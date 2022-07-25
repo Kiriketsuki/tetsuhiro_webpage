@@ -1,6 +1,6 @@
 <template>
     <Renderer ref = "renderer" pointer resize = "window" class = "w-screen h-screen">
-        <Scene ref = "scene" background = "#000">
+        <Scene ref = "scene" background = "#fff">
             <Group ref = "group" :position = "{ z:10 }">
                 <Camera ref = "camera" :position = "{ z:10 }"/>
             </Group>
@@ -28,6 +28,7 @@
                 tubSegs: 512,
                 radialSegs: 128,
                 NUM_INSTANCES: 10000,
+                scroll_min: 0,
             }
         },
         mounted() {
@@ -72,7 +73,7 @@
                 prev_y = cursorXY.y;
                 
                 if (wheel.changed) {
-                    console.log("triggered")
+                    // console.log("triggered")
                     gsap.fromTo(camera.position, {x: camera.position.x }, {x: camera.position.x + wheel.value * 1.5, duration: 0.5});
                     wheel.changed = false;
                     wheel.value = 0;

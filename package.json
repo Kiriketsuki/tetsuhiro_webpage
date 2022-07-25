@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
+    "three": "^0.134.0",
+    "troisjs": "^0.3.4",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3"
   },
@@ -37,7 +39,10 @@
     "parserOptions": {
       "parser": "@babel/eslint-parser"
     },
-    "rules": {}
+    "rules": {
+      "vue/multi-word-component-names": "off",
+      "no-unused-vars": "off"
+    }
   },
   "browserslist": [
     "> 1%",

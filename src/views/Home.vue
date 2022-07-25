@@ -1,8 +1,8 @@
 <template>
     <three class = "fixed w-screen h-screen"></three>
-    <div id = "main_div" class = "text-9xl absolute top-0 left-0 w-[500vw]" >
-        hello world
-    </div>
+    <!-- <div id = "main_div" class = "text-9xl absolute top-0 left-0 w-[500vw]" > -->
+        <!-- hello world -->
+    <!-- </div> -->
 </template>
 
 <script>

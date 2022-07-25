@@ -20,12 +20,13 @@
 
 <script>
     import { Object3D, MathUtils } from 'three';
+    import { gsap } from 'gsap';
     export default {
         data() {
             return {
-                radius: 1,
-                tubSegs: 10,
-                radialSegs: 8,
+                radius: 3,
+                tubSegs: 512,
+                radialSegs: 128,
                 NUM_INSTANCES: 10000,
             }
         },
@@ -39,8 +40,10 @@
 
             // cursor
             const cursorXY = renderer.three.pointer.position; // top left is 0 0
-            var wheel_change = 0;
-
+            var wheel = {
+                changed: false,
+                value: 0
+            }
             // change properties
             renderer.three.setSize(window.innerWidth, window.innerHeight);
 
@@ -58,23 +61,35 @@
             }
             imesh.instanceMatrix.needsUpdate = true;
             // render loop
+            var prev_x = window.innerWidth / 2;
+            var prev_y = window.innerHeight / 2;
+
             renderer.onBeforeRender(() => {
                 box.rotation.x += 0.01;
-                const parallax_X = (cursorXY.x/window.innerWidth) - 0.5;
-                const parallax_Y = (cursorXY.y/window.innerHeight) - 0.5;
+                var parallax_X = (cursorXY.x - prev_x) * 0.001;
+                var parallax_Y = (cursorXY.y - prev_y) * 0.001;
+                prev_x = cursorXY.x;
+                prev_y = cursorXY.y;
+                
+                if (wheel.changed) {
+                    console.log("triggered")
+                    gsap.fromTo(camera.position, {x: camera.position.x }, {x: camera.position.x + wheel.value * 1.5, duration: 0.5});
+                    wheel.changed = false;
+                    wheel.value = 0;
+                }
 
-                camera.position.x = parallax_X * 1;
-                camera.position.y = - parallax_Y * 1;
-                camera.position.x += wheel_change;
+                camera.position.x += parallax_X;
+                camera.position.y -= parallax_Y;
+                // camera.position.x += parallax_X * 1;
+                // scene.position.y = (cursorXY.y - window.innerHeight) * 10;
+                // scene.position.x = (cursorXY.x - window.innerWidth / 2);
             });
 
 
             window.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                wheel_change += e.deltaY * 0.01;
+                wheel.changed = true;
+                e.deltaY > 0 ? wheel.value += 1 : wheel.value -= 1;
             })
-
-
         }
     }
 </script>

@@ -7,10 +7,6 @@
             <PointLight color = "#fff" :intensity = "0.2"  cast-shadow :position = "{ y:50, x: 40, z: 40 }"/>
             <Box :position = "{y:50 ,x :40 , z:40}"/>
             <AmbientLight cast-shadow :intensity="1.3"/>
-            <!-- <TorusKnot ref="box" :rotation="{ y: Math.PI / 4, z: Math.PI / 4 }" :radius = "radius" :tubularSegments = "tubSegs" :radialSegments = "radialSegs" :tube = '0.1'>
-                <LambertMaterial />
-            </TorusKnot> -->
-
             <GltfModel cast-shadow receive-shadow src="../models/lake_mountain.glb" @load="onReady"/>
 
             <InstancedMesh ref = 'imesh' :count = "NUM_INSTANCES">
@@ -45,7 +41,6 @@
             const renderer = this.$refs.renderer;
             const scene = this.$refs.scene.scene;
             const camera = this.$refs.camera.camera;
-            // const box = this.$refs.box.mesh;
             const group = this.$refs.group.group;
 
             // cursor
@@ -77,17 +72,16 @@
             const fog = new THREE.Fog(0x06101d, 1, 100);
             scene.fog = fog;
             renderer.onBeforeRender(() => {
-                // scene.background = this.background
-                // console.log(scene)
-                // box.rotation.x += 0.001;
                 var parallax_X = (cursorXY.x - prev_x) * 0.001;
                 var parallax_Y = (cursorXY.y - prev_y) * 0.001;
                 prev_x = cursorXY.x;
                 prev_y = cursorXY.y;
                 
                 if (wheel.changed) {
-                    // console.log("triggered")
-                    gsap.fromTo(camera.position, {x: camera.position.x }, {x: camera.position.x + wheel.value * 5.5, duration: 0.5});
+                    var new_position = camera.position.x + (wheel.value * 5.5);
+                    if (new_position < 40 && new_position > -60) { // 100 units of freedom
+                        gsap.fromTo(camera.position, {x: camera.position.x }, {x: camera.position.x + wheel.value * 5.5, duration: 0.5});
+                    }
                     wheel.changed = false;
                     wheel.value = 0;
                 }
@@ -95,7 +89,7 @@
                 camera.position.x += parallax_X;
                 camera.position.y -= parallax_Y;
                 camera.lookAt(0, 3, camera.position.z + 1000);
-                // camera.position.x -= 0.1
+                // console.log(camera.position.x);
             });
 
 
@@ -106,7 +100,7 @@
         },
         methods : {
             onReady(model){
-                console.log(model)
+                // console.log(model)
                 model.scene.traverse(o => {
                     if (o.isMesh){
                         // handle both multiple and single materials

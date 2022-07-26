@@ -12,6 +12,7 @@
     "gsap": "^3.10.4",
     "three": "^0.134.0",
     "troisjs": "^0.3.4",
+    "tw-elements": "^1.0.0-alpha12",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3"
   },

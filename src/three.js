@@ -3,10 +3,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 //? Set up
+var parameters = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    ratio: 0,
+}
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.height, 0.1, 1000);
 const controls = new OrbitControls(camera, canvas);
+
 
 
 //? Renderer options
@@ -18,6 +24,22 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.physicallyCorrectLights = true;
 renderer.shadowMap.enabled = true;
 renderer.setClearColor(0xcccccc);
+
+//? Resize
+window.addEventListener('resize', () =>
+{
+    // Update parameters
+    parameters.width = window.innerWidth
+    parameters.height = window.innerHeight
+
+    // Update camera
+    camera.aspect = parameters.width / parameters.height
+    camera.updateProjectionMatrix()
+
+    // Update renderer
+    renderer.setSize(parameters.width, parameters.height)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+})
 
 //? Environment
 const cube_loader = new THREE.CubeTextureLoader();

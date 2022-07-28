@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import gsap from 'gsap';
 
 //? Set up
 var parameters = {
@@ -23,7 +23,7 @@ renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.physicallyCorrectLights = true;
 renderer.shadowMap.enabled = true;
-renderer.setClearColor(0xcccccc);
+renderer.setClearAlpha(0);
 
 //? Resize
 window.addEventListener('resize', () =>
@@ -70,9 +70,9 @@ scene.environment = env;
 camera.position.set(40, 3, -40);
 camera.lookAt(camera.position.x + 10, camera.position.y, camera.position.z);
 
-window.addEventListener("wheel", (e) => {
-    camera.position.x -= e.deltaY / 100;
-})
+// window.addEventListener("wheel", (e) => {
+//     camera.position.x -= e.deltaY / 100;
+// })
 
 //? Light
 const light = new THREE.AmbientLight(0xffffff, 0);
@@ -80,8 +80,13 @@ scene.add(light);
 
 //? Models
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+const loading_manager = new THREE.LoadingManager();
+loading_manager.onLoad = () => {
+    console.log('loaded')
+    loop();
+}
 
-const model_loader = new GLTFLoader();
+const model_loader = new GLTFLoader(loading_manager);
 
 import sceneURL from './assets/models/lake_mountain.gltf?url';
 var meshes = [];
@@ -89,18 +94,42 @@ model_loader.load(sceneURL, (glb) => {
     scene.add(glb.scene);
 })
 
-// for (var mesh of meshes) {
-//     scene.add(mesh);
-// }
+import curveURL from './assets/models/curve.gltf?url';
+var curve = null;
+var curve_positions = []
+model_loader.load(curveURL, (glb) => {
+    glb.scene.traverse(children => {
+        if (children.isMesh) {
+            curve = children;
+            curve_positions = curve.geometry.attributes.position.array;
+            scene.add(curve)
+        }
+    });
+});
 
+
+// for (var mesh in meshes) {
+//     scene.add(mesh)
+// }
+// ? Scrolling animation
+// const home = document.getElementById('home');
+
+function updateCamera() {
+    var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight);
+    var index = Math.floor(ratio * curve_positions.length / 3);
+    camera.position.copy(new THREE.Vector3(curve_positions[index * 3], curve_positions[index * 3 + 1], curve_positions[index * 3 + 2]));
+}
 //? Scene
 
 function loop() {
     requestAnimationFrame(loop);
     renderer.render(scene, camera);
+    updateCamera();
     controls.update();
+    // console.log(scrollY)
     // camera.position.x -= 0.1
     // camera.lookAt(camera.position.x, 2, camera.position.z + 10);
+    // console.log(meshes)
 }
 
-loop();
+// loop();

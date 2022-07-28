@@ -1,5 +1,5 @@
 <template>
-    <div class="h-[500vh] w-[95vw]">
+    <div id = "home" class="h-[500vh] w-[95vw] flex flex-col items-center justify-between">
         <section class="h-screen">
             <Name/>
         </section>
@@ -10,10 +10,10 @@
             <Skills/>
         </section>
         <section class="h-screen">
-            Section 4
+            <Projects/>
         </section>
         <section class="h-screen">
-            Section 5
+            <Contact/>
         </section>
     </div>
 </template>
@@ -22,12 +22,16 @@
     import Name from '../components/Name.vue';
     import About from '../components/About.vue';
     import Skills from '../components/Skills.vue';
+    import Projects from '../components/Projects.vue';
+    import Contact from '../components/Contact.vue';
     export default  {
         name: 'Tetsuhiro Webpage',
         components: {
             Name,
             About,
-            Skills
+            Skills,
+            Projects,
+            Contact
         },
         methods: {
         }

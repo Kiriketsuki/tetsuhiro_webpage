@@ -13,7 +13,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.height, 0.1, 1000);
 // const controls = new OrbitControls(camera, canvas);
 scene.add(new THREE.AxesHelper(10));
-camera.rotateY(Math.PI / 2);
+// camera.rotateY(Math.PI / 2);
 
 
 //? Renderer options
@@ -67,12 +67,6 @@ const env = cube_loader.load([
 // console.log(environment)
 scene.environment = env;
 
-//? Camera
-
-// window.addEventListener("wheel", (e) => {
-//     camera.position.x -= e.deltaY / 100;
-// })
-
 //? Light
 const light = new THREE.AmbientLight(0xffffff, 0);
 scene.add(light);
@@ -81,13 +75,14 @@ scene.add(light);
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 const loading_manager = new THREE.LoadingManager();
 loading_manager.onLoad = () => {
-    scene.traverse((child) => {
-        if (child.name == "CameraCurve") {
-            curve = child;
-            curve_positions = curve.geometry.attributes.position.array;
-            return
-        }
-    })
+    // scene.traverse((child) => {
+    //     if (child.name == "CameraCurve") {
+    //         curve = child;
+    //         curve_positions = curve.geometry.attributes.position.array;
+    //         return
+    //     }
+    // })
+    // console.log(curve)
     loop();
 }
 
@@ -101,32 +96,24 @@ model_loader.load(sceneURL, (glb) => {
     scene.add(glb.scene)
 });
 
-// import curveURL from './assets/models/curve.gltf?url';
-// model_loader.load(curveURL, (glb) => {
-//     glb.scene.traverse(children => {
-//         if (children.isMesh) {
-//             curve = children;
-//             curve_positions = curve.geometry.attributes.position.array.reverse();
-//             scene.add(curve)
-//         }
-//     });
-// });
+import curveURL from './assets/models/curve.gltf?url';
+model_loader.load(curveURL, (glb) => {
+    glb.scene.traverse(children => {
+        if (children.isMesh) {
+            curve = children;
+            curve_positions = curve.geometry.attributes.position.array;
+            // scene.add(curve)
+        }
+    });
+});
 
 
-// for (var mesh in meshes) {
-//     scene.add(mesh)
-// }
 // ? Scrolling animation
-// const home = document.getElementById('home');
 
 function updateCamera() {
     var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight);
-    var special_ratio = (document.scrollingElement.scrollHeight - document.scrollingElement.scrollTop)/document.scrollingElement.scrollHeight;
     var index = Math.floor(ratio * curve_positions.length / 3);
-    var special_index = Math.floor(special_ratio * curve_positions.length / 3);
-    // camera.position.copy(new THREE.Vector3(curve_positions[index * 3] + 40, curve_positions[index * 3 + 1], curve_positions[index * 3 + 2] - 40));
-    // gsap.fromTo(camera.position, {x: camera.position.x, y: camera.position.y, z: camera.position.z }, {x: curve_positions[index * 3], y: curve_positions[index * 3 + 1], z: curve_positions[index * 3 + 2] - 40, duration: 1, ease: "power3.inOut"});
-    gsap.to(camera.position, {x: curve_positions[special_index * 3], y: curve_positions[index * 3 + 1], z: curve_positions[special_index * 3 + 2] - 40, duration: 0.1, ease: "power3.inOut"});
+    gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.05, ease: "power3.inOut"});
     camera.lookAt(camera.position.x, camera.position.y + 10, 1000);
 }
 //? Scene

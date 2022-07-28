@@ -70,6 +70,10 @@ scene.environment = env;
 camera.position.set(40, 3, -40);
 camera.lookAt(camera.position.x + 10, camera.position.y, camera.position.z);
 
+window.addEventListener("wheel", (e) => {
+    camera.position.x -= e.deltaY / 100;
+})
+
 //? Light
 const light = new THREE.AmbientLight(0xffffff, 0);
 scene.add(light);

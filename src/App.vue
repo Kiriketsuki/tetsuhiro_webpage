@@ -1,6 +1,6 @@
 <template>
-    <canvas id="webgl" class="w-screen h-screen">
-    </canvas>
+    <!-- <canvas id="webgl" class="w-screen h-screen">
+    </canvas> -->
 
     <router-view></router-view>
 </template>
@@ -13,9 +13,14 @@ export default {
     components: {
     }
 }
+
 </script>
 
 <style>
+
+    body {
+        background-color: #3C6E71
+    }
     canvas {
         position: fixed;
         top: 0;

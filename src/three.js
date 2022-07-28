@@ -11,8 +11,9 @@ var parameters = {
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.height, 0.1, 1000);
-const controls = new OrbitControls(camera, canvas);
-
+// const controls = new OrbitControls(camera, canvas);
+scene.add(new THREE.AxesHelper(10));
+camera.rotateY(Math.PI / 2);
 
 
 //? Renderer options
@@ -67,8 +68,6 @@ const env = cube_loader.load([
 scene.environment = env;
 
 //? Camera
-camera.position.set(40, 3, -40);
-camera.lookAt(camera.position.x + 10, camera.position.y, camera.position.z);
 
 // window.addEventListener("wheel", (e) => {
 //     camera.position.x -= e.deltaY / 100;
@@ -82,7 +81,13 @@ scene.add(light);
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 const loading_manager = new THREE.LoadingManager();
 loading_manager.onLoad = () => {
-    console.log('loaded')
+    scene.traverse((child) => {
+        if (child.name == "CameraCurve") {
+            curve = child;
+            curve_positions = curve.geometry.attributes.position.array;
+            return
+        }
+    })
     loop();
 }
 
@@ -90,22 +95,22 @@ const model_loader = new GLTFLoader(loading_manager);
 
 import sceneURL from './assets/models/lake_mountain.gltf?url';
 var meshes = [];
-model_loader.load(sceneURL, (glb) => {
-    scene.add(glb.scene);
-})
-
-import curveURL from './assets/models/curve.gltf?url';
 var curve = null;
 var curve_positions = []
-model_loader.load(curveURL, (glb) => {
-    glb.scene.traverse(children => {
-        if (children.isMesh) {
-            curve = children;
-            curve_positions = curve.geometry.attributes.position.array;
-            scene.add(curve)
-        }
-    });
+model_loader.load(sceneURL, (glb) => {
+    scene.add(glb.scene)
 });
+
+// import curveURL from './assets/models/curve.gltf?url';
+// model_loader.load(curveURL, (glb) => {
+//     glb.scene.traverse(children => {
+//         if (children.isMesh) {
+//             curve = children;
+//             curve_positions = curve.geometry.attributes.position.array.reverse();
+//             scene.add(curve)
+//         }
+//     });
+// });
 
 
 // for (var mesh in meshes) {
@@ -116,8 +121,13 @@ model_loader.load(curveURL, (glb) => {
 
 function updateCamera() {
     var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight);
+    var special_ratio = (document.scrollingElement.scrollHeight - document.scrollingElement.scrollTop)/document.scrollingElement.scrollHeight;
     var index = Math.floor(ratio * curve_positions.length / 3);
-    camera.position.copy(new THREE.Vector3(curve_positions[index * 3], curve_positions[index * 3 + 1], curve_positions[index * 3 + 2]));
+    var special_index = Math.floor(special_ratio * curve_positions.length / 3);
+    // camera.position.copy(new THREE.Vector3(curve_positions[index * 3] + 40, curve_positions[index * 3 + 1], curve_positions[index * 3 + 2] - 40));
+    // gsap.fromTo(camera.position, {x: camera.position.x, y: camera.position.y, z: camera.position.z }, {x: curve_positions[index * 3], y: curve_positions[index * 3 + 1], z: curve_positions[index * 3 + 2] - 40, duration: 1, ease: "power3.inOut"});
+    gsap.to(camera.position, {x: curve_positions[special_index * 3], y: curve_positions[index * 3 + 1], z: curve_positions[special_index * 3 + 2] - 40, duration: 0.1, ease: "power3.inOut"});
+    camera.lookAt(camera.position.x, camera.position.y + 10, 1000);
 }
 //? Scene
 
@@ -125,7 +135,7 @@ function loop() {
     requestAnimationFrame(loop);
     renderer.render(scene, camera);
     updateCamera();
-    controls.update();
+    // controls.update();
     // console.log(scrollY)
     // camera.position.x -= 0.1
     // camera.lookAt(camera.position.x, 2, camera.position.z + 10);

@@ -84,7 +84,11 @@ import sceneURL from './assets/models/lake_mountain.gltf?url';
 var meshes = [];
 var curve = null;
 var curve_positions = []
+var mixer;
 model_loader.load(sceneURL, (glb) => {
+    mixer = new THREE.AnimationMixer(glb.scene);
+    const animation = mixer.clipAction(glb.animations[0]);
+    animation.play();
     scene.add(glb.scene)
 });
 
@@ -94,7 +98,6 @@ model_loader.load(curveURL, (glb) => {
         if (children.isMesh) {
             curve = children;
             curve_positions = curve.geometry.attributes.position.array;
-            // scene.add(curve)
         }
     });
 });
@@ -116,6 +119,7 @@ function loop() {
     requestAnimationFrame(loop);
     renderer.render(scene, camera);
     updateCamera();
+    mixer.update(0.003);
     // controls.update();
     // console.log(scrollY)
     // camera.position.x -= 0.1

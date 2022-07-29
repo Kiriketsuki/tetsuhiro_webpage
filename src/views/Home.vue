@@ -37,3 +37,9 @@
         }
     }
 </script>
+
+<style>
+    section {
+        visibility: hidden;
+    }
+</style>

@@ -75,14 +75,6 @@ scene.add(light);
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 const loading_manager = new THREE.LoadingManager();
 loading_manager.onLoad = () => {
-    // scene.traverse((child) => {
-    //     if (child.name == "CameraCurve") {
-    //         curve = child;
-    //         curve_positions = curve.geometry.attributes.position.array;
-    //         return
-    //     }
-    // })
-    // console.log(curve)
     loop();
 }
 
@@ -96,7 +88,7 @@ model_loader.load(sceneURL, (glb) => {
     scene.add(glb.scene)
 });
 
-import curveURL from './assets/models/curve.gltf?url';
+import curveURL from './assets/models/curve_1.gltf?url';
 model_loader.load(curveURL, (glb) => {
     glb.scene.traverse(children => {
         if (children.isMesh) {
@@ -110,11 +102,13 @@ model_loader.load(curveURL, (glb) => {
 
 // ? Scrolling animation
 
+var camera_target = new THREE.Vector3(0, 0, 0);
 function updateCamera() {
-    var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight);
-    var index = Math.floor(ratio * curve_positions.length / 3);
-    gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.05, ease: "power3.inOut"});
-    camera.lookAt(camera.position.x, camera.position.y + 10, 1000);
+    var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight)/2;
+    var index = Math.floor(ratio * (curve_positions.length / 3));
+    gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.05, ease: "power4.inOut"});
+    gsap.to(camera_target, {x: camera.position.x - 10 * Math.cos((4/3 * ratio * Math.PI)), y: camera.position.y -30 * Math.sin(0.5-ratio), z: 200 - 200 * Math.cos((0.5-ratio) * Math.PI), duration: 0.05, ease: "power4.inOut"});
+    camera.lookAt(camera_target);
 }
 //? Scene
 

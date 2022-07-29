@@ -1,15 +1,15 @@
 <template>
-    <div id = "home" class="h-[900vh] w-[99vw] flex flex-col items-center justify-between">
-        <section class="h-screen mb-[100vh]">
+    <div id = "home" class="w-[99vw] flex flex-col items-center justify-between">
+        <section class="h-screen">
             <Name/>
         </section>
-        <section class="h-screen my-[125vh]">
+        <section class="h-screen">
             <About/>
         </section>
-        <section class="h-screen mb-[75vh]">
+        <section class="h-screen">
             <Skills/>
         </section>
-        <section class="h-screen mb-[75vh]">
+        <section class="h-screen">
             <Projects/>
         </section>
         <section class="h-screen">

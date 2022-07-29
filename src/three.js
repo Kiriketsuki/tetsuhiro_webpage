@@ -11,6 +11,9 @@ var parameters = {
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.height, 0.1, 1000);
+const camera_group = new THREE.Group();
+camera_group.add(camera);
+scene.add(camera_group);
 // const controls = new OrbitControls(camera, canvas);
 scene.add(new THREE.AxesHelper(10));
 // camera.rotateY(Math.PI / 2);
@@ -109,11 +112,25 @@ var camera_target = new THREE.Vector3(0, 0, 0);
 function updateCamera() {
     var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight)/2;
     var index = Math.floor(ratio * (curve_positions.length / 3));
-    gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.05, ease: "power4.inOut"});
-    gsap.to(camera_target, {x: camera.position.x - 10 * Math.cos((4/3 * ratio * Math.PI)), y: camera.position.y -30 * Math.sin(0.5-ratio), z: 200 - 200 * Math.cos((0.5-ratio) * Math.PI), duration: 0.05, ease: "power4.inOut"});
+    gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.06, ease: "power4.inOut"});
+    gsap.to(camera_target, {x: camera.position.x - 10 * Math.cos((4/3 * ratio * Math.PI)), y: camera.position.y -30 * Math.sin(0.5-ratio), z: 200 - 200 * Math.cos((0.5-ratio) * Math.PI), duration: 0.06, ease: "power4.inOut"});
+    // gsap.to(camera_group.position, {x: -cursor.x * 5, y: -cursor.y * 5, duration: 0.01, ease: "power4.inOut"});
+    camera_group.position.x = -cursor.x * 5;
+    camera_group.position.y = -cursor.y * 5;
     camera.lookAt(camera_target);
 }
-//? Scene
+
+//? Parallax Movement
+var cursor = {
+    x: 0,
+    y: 0
+}
+window.addEventListener('mousemove', (e) => {
+    cursor.x = e.clientX / window.innerWidth * 2 - 1;
+    cursor.y = e.clientY / window.innerHeight * 2 - 1;
+    console.log(cursor)
+});
+
 
 function loop() {
     requestAnimationFrame(loop);

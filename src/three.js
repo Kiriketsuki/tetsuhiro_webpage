@@ -15,7 +15,7 @@ const camera_group = new THREE.Group();
 camera_group.add(camera);
 scene.add(camera_group);
 // const controls = new OrbitControls(camera, canvas);
-scene.add(new THREE.AxesHelper(10));
+// scene.add(new THREE.AxesHelper(10));
 // camera.rotateY(Math.PI / 2);
 
 
@@ -96,6 +96,7 @@ model_loader.load(sceneURL, (glb) => {
 });
 
 import curveURL from './assets/models/curve_1.gltf?url';
+import { isGloballyWhitelisted } from '@vue/shared';
 model_loader.load(curveURL, (glb) => {
     glb.scene.traverse(children => {
         if (children.isMesh) {
@@ -105,6 +106,23 @@ model_loader.load(curveURL, (glb) => {
     });
 });
 
+// ?  Stars
+const stars_counts = 10000;
+const position = new Float32Array(stars_counts * 3);
+for (var i = 0; i < stars_counts; i++) {
+    position[i * 3] = Math.random() * 1000 - 500; // x
+    position[i * 3 + 1] = Math.random() * 400; // y
+    position[i * 3 + 2] = Math.random() * 1000 + 50; // z
+}
+
+const star_geo = new THREE.BufferGeometry();
+star_geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
+const star_material = new THREE.PointsMaterial({
+    sizeAttenuation: true,
+    size: 1,
+});
+const star_mesh = new THREE.Points(star_geo, star_material);
+scene.add(star_mesh);
 
 // ? Scrolling animation
 

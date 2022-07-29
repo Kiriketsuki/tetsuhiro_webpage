@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { MapControls, OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import gsap from 'gsap';
 
 //? Set up
@@ -11,12 +11,11 @@ var parameters = {
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.height, 0.1, 1000);
+camera.position.set(40, 10, -40);
 const camera_group = new THREE.Group();
 camera_group.add(camera);
 scene.add(camera_group);
-// const controls = new OrbitControls(camera, canvas);
-// scene.add(new THREE.AxesHelper(10));
-// camera.rotateY(Math.PI / 2);
+const controls = new OrbitControls(camera, canvas);
 
 
 //? Renderer options
@@ -83,20 +82,19 @@ loading_manager.onLoad = () => {
 
 const model_loader = new GLTFLoader(loading_manager);
 
-import sceneURL from './assets/models/lake_mountain.gltf?url';
-var meshes = [];
+import sceneURL from './assets/models/lake_mountain.glb?url';
 var curve = null;
 var curve_positions = []
 var mixer;
+var mixer2;
 model_loader.load(sceneURL, (glb) => {
-    mixer = new THREE.AnimationMixer(glb.scene);
-    const animation = mixer.clipAction(glb.animations[0]);
-    animation.play();
+    // mixer = new THREE.AnimationMixer(glb.scene);
+    // const animation = mixer.clipAction(glb.animations[0]);
+    // animation.play();
     scene.add(glb.scene)
 });
 
 import curveURL from './assets/models/curve_1.gltf?url';
-import { isGloballyWhitelisted } from '@vue/shared';
 model_loader.load(curveURL, (glb) => {
     glb.scene.traverse(children => {
         if (children.isMesh) {
@@ -111,7 +109,7 @@ const stars_counts = 10000;
 const position = new Float32Array(stars_counts * 3);
 for (var i = 0; i < stars_counts; i++) {
     position[i * 3] = Math.random() * 1000 - 500; // x
-    position[i * 3 + 1] = Math.random() * 400; // y
+    position[i * 3 + 1] = Math.random() * 400 - 100; // y
     position[i * 3 + 2] = Math.random() * 1000 + 50; // z
 }
 
@@ -124,8 +122,17 @@ const star_material = new THREE.PointsMaterial({
 const star_mesh = new THREE.Points(star_geo, star_material);
 scene.add(star_mesh);
 
-// ? Scrolling animation
+// ? Sea
+import waveURL from './assets/models/wave.glb?url';
+model_loader.load(waveURL, (glb) => {
+    console.log(glb)
+    mixer2 = new THREE.AnimationMixer(glb.scene);
+    var animation = mixer2.clipAction(glb.animations[0]);
+    animation.play();
+    scene.add(glb.scene)
+});
 
+// ? Scrolling animation
 var camera_target = new THREE.Vector3(0, 0, 0);
 function updateCamera() {
     var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight)/2;
@@ -146,20 +153,13 @@ var cursor = {
 window.addEventListener('mousemove', (e) => {
     cursor.x = e.clientX / window.innerWidth * 2 - 1;
     cursor.y = e.clientY / window.innerHeight * 2 - 1;
-    console.log(cursor)
 });
 
 
 function loop() {
-    requestAnimationFrame(loop);
+    controls.update();
     renderer.render(scene, camera);
-    updateCamera();
-    mixer.update(0.003);
-    // controls.update();
-    // console.log(scrollY)
-    // camera.position.x -= 0.1
-    // camera.lookAt(camera.position.x, 2, camera.position.z + 10);
-    // console.log(meshes)
+    // updateCamera();
+    mixer2.update(0.001);
+    requestAnimationFrame(loop);
 }
-
-// loop();

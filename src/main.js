@@ -1,11 +1,7 @@
-import { createApp } from 'vue';
-import { TroisJSVuePlugin  } from 'troisjs';
-import App from './App.vue';
+import { createApp } from 'vue'
+import './index.css'
+import App from './App.vue'
 import router from './router';
-import './index.css';
-import 'tw-elements';
+import 'tw-elements'
 
-createApp(App)
-    .use(router)
-    .use(TroisJSVuePlugin)
-    .mount('#app')
+createApp(App).use(router).mount('#app')

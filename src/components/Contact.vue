@@ -1,11 +1,11 @@
 <template>
-    <div class="w-[80vw] flex flex-row items-center justify-center h-full">
-        <div class="w-1/2 h-[60vh]">
-            <div class="flex flex-col justify-between h-full rounded-lg shadow-lg px-6 py-12 lg:py-6 xl:py-12 md:px-12 lg:-mr-14" style="background: hsla(0, 0%, 100%, 0.05); backdrop-filter: blur(100px)">
-                <h3 class="text-7xl text-secondary font-bold mb-3 font-slab">Thank you for checking out my portfolio</h3>
-                <h5 class="text-4xl text-tertiary font-bold mb-12 lg:mb-10 xl:mb-12 font-slab">I would love to hear from you</h5>
+    <div class="w-[80vw] flex flex-row items-center justify-center h-full stagger_anim">
+        <div class="w-1/2 h-[60vh] stagger_anim">
+            <div class="flex flex-col justify-between h-full rounded-lg shadow-lg px-6 py-12 lg:py-6 xl:py-12 md:px-12 lg:-mr-14 stagger_anim" style="background: hsla(0, 0%, 100%, 0.05); backdrop-filter: blur(100px)">
+                <h3 class="text-7xl text-secondary font-bold mb-3 font-slab stagger_anim">Thank you for checking out my portfolio</h3>
+                <h5 class="text-4xl text-tertiary font-bold mb-12 lg:mb-10 xl:mb-12 font-slab stagger_anim">I would love to hear from you</h5>
 
-                <div>
+                <div class = "stagger_anim">
                     <p class="text-2xl mb-4 text-quaternary font-slab">Socials</p>
                     <p class="text-xl text-gra-500 mb-6 font-roboto">
                         Lorem ipsum dolor sit amet consectetur, adipisicing elit. Sunt
@@ -15,7 +15,7 @@
                     </p>
                 </div>
 
-                <div>
+                <div class = "stagger_anim">
                     <p class="text-2xl mb-4 text-quaternary font-slab">Contact</p>
                     <p class="text-xl text-gra-500 mb-6 font-roboto">
                         Feel free to contact me if you have any questions for me, or simply would like me to take a look at a project idea of yours.
@@ -26,8 +26,8 @@
         </div>
 
 
-        <div class="block p-6 rounded-lg shadow-lg w-1/2 h-[50vh]" style="background: hsla(0, 0%, 100%, 0.55); backdrop-filter: blur(30px)">
-            <form class = "w-full">
+        <div class="block p-6 rounded-lg shadow-lg w-1/2 h-[50vh] stagger_anim" style="background: hsla(0, 0%, 100%, 0.55); backdrop-filter: blur(30px)">
+            <form class = "w-full stagger_anim">
                 <div class="form-group mb-6">
                     <input type="text" class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:border-blue-600 focus:outline-none" id="exampleInput7" placeholder="Name">
                 </div>

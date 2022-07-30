@@ -89,7 +89,7 @@ var mixer;
 var mixer2;
 model_loader.load(sceneURL, (glb) => {
     mixer = new THREE.AnimationMixer(glb.scene);
-    console.log(glb.animations)
+    // console.log(glb.animations)
     const animation = mixer.clipAction(glb.animations[0]);
     animation.play();
     scene.add(glb.scene)
@@ -106,19 +106,25 @@ model_loader.load(curveURL, (glb) => {
 });
 
 // ?  Stars
-const stars_counts = 10000;
+const stars_counts = 2000;
 const position = new Float32Array(stars_counts * 3);
 for (var i = 0; i < stars_counts; i++) {
     position[i * 3] = Math.random() * 1000 - 500; // x
-    position[i * 3 + 1] = Math.random() * 400 - 100; // y
-    position[i * 3 + 2] = Math.random() * 1000 + 50; // z
+    position[i * 3 + 1] = (Math.random() * 300) - 30; // y
+    position[i * 3 + 2] = Math.random() * 1000 + 200; // z
 }
-
+import star_png from './assets/star.png?url';
+const star_texture = new THREE.TextureLoader().load(star_png);
 const star_geo = new THREE.BufferGeometry();
 star_geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
 const star_material = new THREE.PointsMaterial({
+    color: new THREE.Color(0xCA907E),
+    alphaMap: star_texture,
     sizeAttenuation: true,
-    size: 1,
+    size: 10,
+    depthWrite: false,
+    transparent: true,
+    fog: false,
 });
 const star_mesh = new THREE.Points(star_geo, star_material);
 scene.add(star_mesh);
@@ -126,7 +132,7 @@ scene.add(star_mesh);
 // ? Sea
 import waveURL from './assets/models/wave_2.glb?url';
 model_loader.load(waveURL, (glb) => {
-    console.log(glb)
+    // console.log(glb)
     mixer2 = new THREE.AnimationMixer(glb.scene);
     var animation = mixer2.clipAction(glb.animations[1]);
     glb.scene.position.y += 2;
@@ -159,7 +165,7 @@ window.addEventListener('mousemove', (e) => {
 });
 
 //? Fog
-const fog = new THREE.Fog(0x3C6E71, 0, 200);
+const fog = new THREE.Fog(0x203c3d, 50, 200);
 scene.fog = fog;
 
 function loop() {

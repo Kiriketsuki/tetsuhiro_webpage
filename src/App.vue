@@ -19,7 +19,7 @@ export default {
 <style>
 
     body {
-        background-color: #3C6E71
+        background-color: #203c3d
     }
     canvas {
         position: fixed;

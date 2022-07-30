@@ -15,7 +15,7 @@ camera.position.set(40, 10, -40);
 const camera_group = new THREE.Group();
 camera_group.add(camera);
 scene.add(camera_group);
-const controls = new OrbitControls(camera, canvas);
+// const controls = new OrbitControls(camera, canvas);
 
 
 //? Renderer options
@@ -88,9 +88,10 @@ var curve_positions = []
 var mixer;
 var mixer2;
 model_loader.load(sceneURL, (glb) => {
-    // mixer = new THREE.AnimationMixer(glb.scene);
-    // const animation = mixer.clipAction(glb.animations[0]);
-    // animation.play();
+    mixer = new THREE.AnimationMixer(glb.scene);
+    console.log(glb.animations)
+    const animation = mixer.clipAction(glb.animations[0]);
+    animation.play();
     scene.add(glb.scene)
 });
 
@@ -123,11 +124,14 @@ const star_mesh = new THREE.Points(star_geo, star_material);
 scene.add(star_mesh);
 
 // ? Sea
-import waveURL from './assets/models/wave.glb?url';
+import waveURL from './assets/models/wave_2.glb?url';
 model_loader.load(waveURL, (glb) => {
     console.log(glb)
     mixer2 = new THREE.AnimationMixer(glb.scene);
-    var animation = mixer2.clipAction(glb.animations[0]);
+    var animation = mixer2.clipAction(glb.animations[1]);
+    glb.scene.position.y += 2;
+    glb.scene.position.x -= 100;
+    glb.scene.scale.set(0.75, 1, 0.75)
     animation.play();
     scene.add(glb.scene)
 });
@@ -139,7 +143,6 @@ function updateCamera() {
     var index = Math.floor(ratio * (curve_positions.length / 3));
     gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.06, ease: "power4.inOut"});
     gsap.to(camera_target, {x: camera.position.x - 10 * Math.cos((4/3 * ratio * Math.PI)), y: camera.position.y -30 * Math.sin(0.5-ratio), z: 200 - 200 * Math.cos((0.5-ratio) * Math.PI), duration: 0.06, ease: "power4.inOut"});
-    // gsap.to(camera_group.position, {x: -cursor.x * 5, y: -cursor.y * 5, duration: 0.01, ease: "power4.inOut"});
     camera_group.position.x = -cursor.x * 5;
     camera_group.position.y = -cursor.y * 5;
     camera.lookAt(camera_target);
@@ -155,11 +158,15 @@ window.addEventListener('mousemove', (e) => {
     cursor.y = e.clientY / window.innerHeight * 2 - 1;
 });
 
+//? Fog
+const fog = new THREE.Fog(0x3C6E71, 0, 200);
+scene.fog = fog;
 
 function loop() {
-    controls.update();
+    // controls.update();
     renderer.render(scene, camera);
-    // updateCamera();
-    mixer2.update(0.001);
+    updateCamera();
+    mixer.update(0.002)
+    mixer2.update(0.0005);
     requestAnimationFrame(loop);
 }

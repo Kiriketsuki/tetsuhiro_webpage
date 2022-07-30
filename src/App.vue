@@ -2,7 +2,7 @@
     <canvas id="webgl" class="w-screen h-screen">
     </canvas>
 
-    <!-- <router-view></router-view> -->
+    <router-view></router-view>
 </template>
 
 <script>

@@ -13,7 +13,7 @@ module.exports = {
             },
             colors: {
                 secondary: "#483C46",
-                primary: "#3C6E71",
+                primary: "#051b45",
                 tertiary: "#70AE6E",
                 quaternary: "#CA907E",
                 quinary: "#F6AE2D",

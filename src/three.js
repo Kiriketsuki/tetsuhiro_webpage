@@ -11,11 +11,13 @@ const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, parameters.width / parameters.height, 1, 400);
 const camera_group = new THREE.Group();
-camera.position.set(-100, 200, 200)
+camera.position.set(-100, 200, 200);
 camera_group.add(camera);
 scene.add(camera_group);
 window.onload = () => {
+    document.scrollingElement.scrollTop = 0;
     document.body.style.overflowY = "hidden";
+
 }
 
 
@@ -97,6 +99,7 @@ model_loader.load(sceneURL, (glb) => {
     const animation = mixer.clipAction(glb.animations[0]);
     animation.play();
     scene.add(glb.scene);
+    // camera.position.set(data[data.length - 1].x, data[data.length - 1].y, data[data.length - 1].z);
     update_materials();
 });
 
@@ -242,7 +245,6 @@ function loop() {
 //? Onload
 loading_manager.onLoad = () => {
     renderer.compile(scene, camera);
-    loop();
     setTimeout(()=>{
         canvas.style.visibility = "visible";
         var spinner = document.getElementById("spinner");
@@ -251,8 +253,10 @@ loading_manager.onLoad = () => {
         gsap.to(canvas.style, {opacity: 1, duration: 0.5});
         gsap.to(spinner.style, {opacity: 0, duration: 1});
         gsap.to(ready.style, {opacity: 1, duration: 1});
+        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 4, ease: "power4.inOut"});
         scroll_load();
     }, 1000);
+    loop();
 }
 
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
@@ -262,7 +266,7 @@ function scroll_load() {
         trigger: ".name",
         start: "10 5",
         onEnter: () => {
-            gsap.to(".name", {opacity: 0, duration: 1});
+            gsap.to(".name", {opacity: 0, duration: 0.5});
         }
     });
 
@@ -271,16 +275,17 @@ function scroll_load() {
         start: "10 5",
         onEnter: () => {
             var home = document.getElementById("home");
-            gsap.to(home.style, {visibility: "visible", duration: 1});
+            gsap.to(home.style, {visibility: "visible", duration: 0.5});
         }
     });
 
     ScrollTrigger.create({
-        trigger: document.querySelector('#home'),
+        trigger: document.querySelector('.webgl'),
+        // scrub: 0.1,
         onUpdate: (self) => {
-            var progress = self.progress - 0.181;
-            var ratio = progress / 0.638;
+            var ratio = self.progress;
             var index = Math.floor(ratio * data.length);
+            // console.log(ratio*data.length)
             camera_positions.x = data[index].x;
             camera_positions.y = data[index].y;
             camera_positions.z = data[index].z;

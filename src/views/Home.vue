@@ -4,20 +4,20 @@
     </section>
 
     <div id = "home" class="w-[99vw] flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
-        <div class = "h-[25vh]">
+        <div class = "h-[50vh]">
 
         </div>
-        <section class="h-screen about">
-            <!-- <About/> -->
+        <section class="h-screen about mb-[50vh]">
+            <About/>
         </section>
-        <section class="h-screen skills">
-            <!-- <Skills/> -->
+        <section class="h-screen skills mb-[200vh]">
+            <Skills/>
         </section>
         <section class="h-[125vh] projects">
-            <!-- <Projects/> -->
+            <Projects/>
         </section>
         <section class="h-screen contact">
-            <!-- <Contact/> -->
+            <Contact/>
         </section>
     </div>
 </template>
@@ -60,7 +60,7 @@
         about_tween.pause();
         ScrollTrigger.create({
             trigger: ".about",
-            start: "top bottom",
+            start: "center bottom",
             end: "bottom center",
             // markers: true,
             onEnter: () => {
@@ -83,7 +83,7 @@
         ScrollTrigger.create({
             trigger: '.skills',
             start: 'center 80%',
-            end: 'center 20%',
+            end: 'center 5%',
             onEnter: function() {
                 skill_tween.play();
             },
@@ -99,12 +99,12 @@
         })
 
         // Projects
-        var proj_tween = gsap.fromTo('.projects', {opacity: 0}, {opacity: 1, duration: 1});
+        var proj_tween = gsap.fromTo('.projects', {opacity: 0}, {opacity: 1, duration: 0.5});
         proj_tween.pause();
         ScrollTrigger.create({
             trigger: '.projects',
-            start: 'center 90%',
-            end: 'center 10%',
+            start: 'top 80%',
+            end: 'center 5%',
             // markers: true,
             onEnter: function() {
                 proj_tween.play();
@@ -121,12 +121,12 @@
         })
 
         // Contacts
-        var contact_tween = gsap.fromTo('.stagger_anim', {opacity: 0}, {opacity: 1, duration: 1, stagger: 0.2});
+        var contact_tween = gsap.fromTo('.stagger_anim', {opacity: 0}, {opacity: 1, stagger: 0.2});
         contact_tween.pause();
         ScrollTrigger.create({
             trigger: '.contact',
             start: 'center 90%',
-            end: 'center 10%',
+            end: 'center 5%',
             // markers: true,
             onEnter: function() {
                 contact_tween.play();

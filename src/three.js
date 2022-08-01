@@ -17,7 +17,6 @@ scene.add(camera_group);
 window.onload = () => {
     document.scrollingElement.scrollTop = 0;
     document.body.style.overflowY = "hidden";
-
 }
 
 
@@ -30,6 +29,8 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.needsUpdate = true;
+renderer.shadowMap.autoUpdate = false;
 renderer.setClearAlpha(0);
 
 //? Resize
@@ -150,30 +151,37 @@ light_3.shadow.bias = -0.1;
 scene.add(light_3);
 
 // ?  Stars
-const stars_counts = 2000;
+const stars_counts = 5000;
 const position = new Float32Array(stars_counts * 3);
 const star_color = new Float32Array(stars_counts * 3);
+const star_scale = new Float32Array(stars_counts);
 for (var i = 0; i < stars_counts; i++) {
     position[i * 3] = Math.random() * 1000 - 500; // x
     position[i * 3 + 1] = (Math.random() * 300) - 30; // y
     position[i * 3 + 2] = Math.random() * 1000 + 200; // z
+    star_scale[i] = Math.random() * 0.5 + 0.5;
     star_color[i * 3] = 202/255;
     star_color[i * 3 + 1] = 144/255;
     star_color[i * 3 + 2] = 126/255;
 }
 
-import star_png from './assets/star.png?url';
-const star_texture = new THREE.TextureLoader().load(star_png);
+import star_vertex from './assets/shaders/stars/vertex.glsl?raw';
+import star_fragment from './assets/shaders/stars/fragment.glsl?raw';
 const star_geo = new THREE.BufferGeometry();
 star_geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
 star_geo.setAttribute('color', new THREE.BufferAttribute(star_color, 3));
-const star_material = new THREE.PointsMaterial({
+star_geo.setAttribute('aScale', new THREE.BufferAttribute(star_scale, 1));
+const star_material = new THREE.ShaderMaterial({
+    vertexShader: star_vertex,
+    fragmentShader: star_fragment,
+    uniforms: {
+        uSize: { value: 20 * renderer.getPixelRatio()},
+        uTime: { value: 0 },
+    },
     vertexColors: true,
-    alphaMap: star_texture,
-    sizeAttenuation: true,
-    size: 10,
-    depthWrite: false,
+    depthTest: true,
     transparent: true,
+    // blending: THREE.AdditiveBlending,
     fog: false,
 });
 
@@ -233,8 +241,11 @@ const fog = new THREE.Fog(0x051b45, 50, 200);
 scene.fog = fog;
 
 //? Animation
+const clock = new THREE.Clock();
+
 function loop() {
-    // controls.update();
+    const uTime = clock.getElapsedTime();
+    star_material.uniforms.uTime.value = uTime;
     renderer.render(scene, camera);
     updateCamera();
     mixer.update(0.002)
@@ -261,6 +272,7 @@ loading_manager.onLoad = () => {
 
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
 
+
 function scroll_load() {
     ScrollTrigger.create({
         trigger: ".name",
@@ -284,7 +296,7 @@ function scroll_load() {
         // scrub: 0.1,
         onUpdate: (self) => {
             var ratio = self.progress;
-            var index = Math.floor(ratio * data.length);
+            var index = Math.min(Math.floor(ratio * data.length), data.length - 1);
             // console.log(ratio*data.length)
             camera_positions.x = data[index].x;
             camera_positions.y = data[index].y;

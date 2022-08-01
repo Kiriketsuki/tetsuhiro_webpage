@@ -13,6 +13,9 @@ const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.hei
 const camera_group = new THREE.Group();
 camera_group.add(camera);
 scene.add(camera_group);
+window.onload = () => {
+    document.body.style.overflowY = "hidden";
+}
 // const controls = new OrbitControls(camera, canvas);
 
 
@@ -81,10 +84,6 @@ function update_materials() {
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 const loading_manager = new THREE.LoadingManager();
-loading_manager.onLoad = () => {
-    loop();
-}
-
 const model_loader = new GLTFLoader(loading_manager);
 const draco_loader = new DRACOLoader();
 draco_loader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.3/');
@@ -115,36 +114,52 @@ model_loader.load(curveURL, (glb) => {
 
 //? Light
 var light_1_pos, light_2_pos, light_3_pos;
-import lightURL from './assets/models/lights.glb?url';
-model_loader.load(lightURL, (glb) => {
-    light_1_pos = glb.scene.children[0].position;
-    light_2_pos = glb.scene.children[1].position;
-    light_3_pos = glb.scene.children[2].position;
+light_1_pos = {
+    x: 24.67058753967285,
+    y: 30.510108947753906,
+    z: 27.250045776367188
+}
 
-    const light_1 = new THREE.PointLight(0xFFF9B0, 0.420, 0);
-    light_1.position.set(light_1_pos.x, light_1_pos.y, light_1_pos.z);
-    light_1.castShadow = true;
-    light_1.shadow.camera.far = 100;
-    light_1.shadow.bias = -0.1;
-    light_1.shadow.mapSize.width = 1024;
-    light_1.shadow.mapSize.height = 1024;
-    scene.add(light_1);
+light_2_pos = {
+    x: 41.705875396728516,
+    y: 25.02428436279297,
+    z: 0
+}
 
-    const light_2 = new THREE.PointLight(0xFFF49C, 0.2, 0);
-    light_2.position.set(light_2_pos.x, light_2_pos.y, light_2_pos.z);
-    light_2.castShadow = true;
-    light_2.shadow.camera.far = 100;
-    light_2.shadow.bias = -0.1;
-    scene.add(light_2);
+light_3_pos = {
+    x: 12.767450332641602,
+    y: 26.301376342773438,
+    z: -63.92277908325195
+}
+const light_1 = new THREE.PointLight(0xFFF9B0, 0.420, 0);
+light_1.position.set(light_1_pos.x, light_1_pos.y, light_1_pos.z);
+console.log(light_1.position)
+light_1.castShadow = true;
+light_1.shadow.camera.far = 100;
+light_1.shadow.bias = -0.1;
+light_1.shadow.mapSize.width = 1024;
+light_1.shadow.mapSize.height = 1024;
+scene.add(light_1);
 
-    const light_3 = new THREE.PointLight(0x8080CF, 1.4, 0);
-    light_3.position.set(light_3_pos.x, light_3_pos.y, light_3_pos.z);
-    light_3.castShadow = true;
-    light_3.shadow.camera.far = 400;
-    light_3.shadow.radius = 10;
-    light_3.shadow.bias = -0.1;
-    scene.add(light_3);
-});
+const light_2 = new THREE.PointLight(0xFFF49C, 0.2, 0);
+light_2.position.set(light_2_pos.x, light_2_pos.y, light_2_pos.z);
+console.log(light_2.position)
+
+light_2.castShadow = true;
+light_2.shadow.camera.far = 100;
+light_2.shadow.bias = -0.1;
+scene.add(light_2);
+
+const light_3 = new THREE.PointLight(0x8080CF, 1.4, 0);
+light_3.position.set(light_3_pos.x, light_3_pos.y, light_3_pos.z);
+console.log(light_3.position)
+
+light_3.castShadow = true;
+light_3.shadow.camera.far = 400;
+light_3.shadow.radius = 10;
+light_3.shadow.bias = -0.1;
+scene.add(light_3);
+
 // ?  Stars
 const stars_counts = 2000;
 const position = new Float32Array(stars_counts * 3);
@@ -173,14 +188,12 @@ const star_material = new THREE.PointsMaterial({
     fog: false,
 });
 const star_mesh = new THREE.Points(star_geo, star_material);
-console.log(star_mesh)
 scene.add(star_mesh);
 
 // ? Sea
 import waveURL from './assets/models/wave.glb?url';
 model_loader.load(waveURL, (glb) => {
     mixer2 = new THREE.AnimationMixer(glb.scene);
-    console.log(glb)
     var animation = mixer2.clipAction(glb.animations[3]);
     animation.loop = THREE.LoopPingPong;
     glb.scene.position.y += 2.5;
@@ -190,7 +203,8 @@ model_loader.load(waveURL, (glb) => {
     scene.add(glb.scene)
 });
 
-// ? Scrolling animation
+// ? Scrolling animation 
+// ! Need to make less laggy
 var camera_target = new THREE.Vector3(0, 0, 0);
 function updateCamera() {
     var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight);
@@ -215,12 +229,49 @@ window.addEventListener('mousemove', (e) => {
 //? Fog
 const fog = new THREE.Fog(0x051b45, 50, 200);
 scene.fog = fog;
+
+//? Animation
 function loop() {
     // controls.update();
     renderer.render(scene, camera);
     updateCamera();
-    // console.log(star_geo.attributes.position.array)
     mixer.update(0.002)
     mixer2.update(0.0002);
     requestAnimationFrame(loop);
+}
+
+//? Onload
+loading_manager.onLoad = () => {
+    loop();
+    setTimeout(()=>{
+        canvas.style.visibility = "visible";
+        var spinner = document.getElementById("spinner");
+        var ready = document.getElementById("ready");
+        document.body.style.overflowY = "auto";
+        gsap.to(canvas.style, {opacity: 1, duration: 0.5});
+        gsap.to(spinner.style, {opacity: 0, duration: 1});
+        gsap.to(ready.style, {opacity: 1, duration: 1});
+        scroll_load();
+    }, 1000);
+}
+
+import {ScrollTrigger} from 'gsap/ScrollTrigger';
+
+function scroll_load() {
+    ScrollTrigger.create({
+        trigger: ".name",
+        start: "10 5",
+        onEnter: () => {
+            gsap.to(".name", {opacity: 0, duration: 1});
+        }
+    });
+
+    ScrollTrigger.create({
+        trigger: ".name",
+        start: "10 5",
+        onEnter: () => {
+            var home = document.getElementById("home");
+            gsap.to(home.style, {visibility: "visible", duration: 1});
+        }
+    });
 }

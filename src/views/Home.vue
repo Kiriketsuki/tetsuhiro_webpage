@@ -1,8 +1,12 @@
 <template>
-    <div id = "home" class="w-[99vw] flex flex-col items-center justify-between">
-        <section class="h-screen name">
-            <Name/>
-        </section>
+    <section class="h-screen name fixed top-0 left-0 w-sceen">
+        <Name/>
+    </section>
+
+    <div id = "home" class="w-[99vw] flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
+        <div class = "h-[25vh]">
+
+        </div>
         <section class="h-screen about">
             <About/>
         </section>
@@ -38,6 +42,9 @@
         methods: {
             scrolling
         },
+        setup(){
+            // scrolling();
+        },
         mounted() {
             scrolling();
         }
@@ -47,24 +54,6 @@
 
     function scrolling() {
         gsap.registerPlugin(ScrollTrigger);
-        // Name
-        var name_tween = gsap.fromTo('.name', {scale: 0}, {scale: 1, duration: 0.5});
-        // name_tween.pause();
-        ScrollTrigger.create({
-            trigger: '.name',
-            start: 'bottom 30%',
-            end: 'bottom center',
-            // markers: true,
-            onEnter: function() {
-                name_tween.play();
-            },
-            onLeave: function() {
-                name_tween.reverse();
-            },
-            onEnterBack: function() {
-                name_tween.play();
-            }
-        });
 
         // About
         var about_tween = gsap.fromTo('.about', {xPercent: -200}, {xPercent: 0, duration: 0.5})

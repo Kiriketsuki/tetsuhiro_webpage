@@ -8,16 +8,16 @@
 
         </div>
         <section class="h-screen about">
-            <About/>
+            <!-- <About/> -->
         </section>
         <section class="h-screen skills">
-            <Skills/>
+            <!-- <Skills/> -->
         </section>
         <section class="h-[125vh] projects">
-            <Projects/>
+            <!-- <Projects/> -->
         </section>
         <section class="h-screen contact">
-            <Contact/>
+            <!-- <Contact/> -->
         </section>
     </div>
 </template>

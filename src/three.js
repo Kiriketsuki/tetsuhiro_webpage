@@ -9,14 +9,13 @@ var parameters = {
 }
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, parameters.width / parameters.height, 0.1, 500);
+const camera = new THREE.PerspectiveCamera(50, parameters.width / parameters.height, 1, 400);
 const camera_group = new THREE.Group();
 camera_group.add(camera);
 scene.add(camera_group);
 window.onload = () => {
     document.body.style.overflowY = "hidden";
 }
-// const controls = new OrbitControls(camera, canvas);
 
 
 //? Renderer options
@@ -90,8 +89,6 @@ draco_loader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.
 model_loader.setDRACOLoader(draco_loader);
 
 import sceneURL from './assets/models/lake_mountain.glb?url';
-var curve = null;
-var curve_positions = []
 var mixer;
 var mixer2;
 model_loader.load(sceneURL, (glb) => {
@@ -102,15 +99,6 @@ model_loader.load(sceneURL, (glb) => {
     update_materials();
 });
 
-import curveURL from './assets/models/curve_1.gltf?url';
-model_loader.load(curveURL, (glb) => {
-    glb.scene.traverse(children => {
-        if (children.isMesh) {
-            curve = children;
-            curve_positions = curve.geometry.attributes.position.array;
-        }
-    });
-});
 
 //? Light
 var light_1_pos, light_2_pos, light_3_pos;
@@ -133,9 +121,9 @@ light_3_pos = {
 }
 const light_1 = new THREE.PointLight(0xFFF9B0, 0.420, 0);
 light_1.position.set(light_1_pos.x, light_1_pos.y, light_1_pos.z);
-console.log(light_1.position)
 light_1.castShadow = true;
-light_1.shadow.camera.far = 100;
+light_1.shadow.camera.far = 1000;
+light_1.shadow.camera.near = 0.1;
 light_1.shadow.bias = -0.1;
 light_1.shadow.mapSize.width = 1024;
 light_1.shadow.mapSize.height = 1024;
@@ -143,17 +131,14 @@ scene.add(light_1);
 
 const light_2 = new THREE.PointLight(0xFFF49C, 0.2, 0);
 light_2.position.set(light_2_pos.x, light_2_pos.y, light_2_pos.z);
-console.log(light_2.position)
-
 light_2.castShadow = true;
 light_2.shadow.camera.far = 100;
+light_2.shadow.camera.near = 0.1;
 light_2.shadow.bias = -0.1;
 scene.add(light_2);
 
 const light_3 = new THREE.PointLight(0x8080CF, 1.4, 0);
 light_3.position.set(light_3_pos.x, light_3_pos.y, light_3_pos.z);
-console.log(light_3.position)
-
 light_3.castShadow = true;
 light_3.shadow.camera.far = 400;
 light_3.shadow.radius = 10;
@@ -187,6 +172,7 @@ const star_material = new THREE.PointsMaterial({
     transparent: true,
     fog: false,
 });
+
 const star_mesh = new THREE.Points(star_geo, star_material);
 scene.add(star_mesh);
 
@@ -197,8 +183,8 @@ model_loader.load(waveURL, (glb) => {
     var animation = mixer2.clipAction(glb.animations[3]);
     animation.loop = THREE.LoopPingPong;
     glb.scene.position.y += 2.5;
-    glb.scene.position.x -= 100;
-    glb.scene.scale.set(0.75, 1, 0.75)
+    glb.scene.position.x -= 50;
+    glb.scene.scale.set(1, 1, 0.75)
     animation.play();
     scene.add(glb.scene)
 });
@@ -206,14 +192,26 @@ model_loader.load(waveURL, (glb) => {
 // ? Scrolling animation 
 // ! Need to make less laggy
 var camera_target = new THREE.Vector3(0, 0, 0);
+import data from './assets/vertices.json';
+var camera_positions = {
+    x: data[0].x,
+    y: data[0].y,
+    z: data[0].z
+}
+
+var camera_target_positions = {
+    x: camera_positions.x,
+    y: camera_positions.y - 30,
+    z: 200
+}
+
 function updateCamera() {
-    var ratio = (document.scrollingElement.scrollTop/document.scrollingElement.scrollHeight);
-    var index = Math.floor(ratio * (curve_positions.length / 3));
-    gsap.to(camera.position, {x: curve_positions[index * 3] + 10, y:curve_positions[index * 3 + 1] + 10, z: curve_positions[index * 3 + 2] - 40, duration: 0.06, ease: "power4.inOut"});
-    gsap.to(camera_target, {x: camera.position.x - 10 * Math.cos((4/3 * ratio * Math.PI)), y: camera.position.y -30 * Math.sin(0.5-ratio), z: 200 - 200 * Math.cos((0.5-ratio) * Math.PI), duration: 0.06, ease: "power4.inOut"});
+    gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 0.06, ease: "power4.inOut"});
+    gsap.to(camera_target, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 0.06, ease: "power4.inOut"});
     camera_group.position.x = -cursor.x * 5;
     camera_group.position.y = -cursor.y * 5;
     camera.lookAt(camera_target);
+    // console.log(camera_target);
 }
 
 //? Parallax Movement
@@ -272,6 +270,22 @@ function scroll_load() {
         onEnter: () => {
             var home = document.getElementById("home");
             gsap.to(home.style, {visibility: "visible", duration: 1});
+        }
+    });
+
+    ScrollTrigger.create({
+        trigger: document.querySelector('#home'),
+        onUpdate: (self) => {
+            var progress = self.progress - 0.181;
+            var ratio = progress / 0.638;
+            var index = Math.floor(ratio * data.length);
+            camera_positions.x = data[index].x;
+            camera_positions.y = data[index].y;
+            camera_positions.z = data[index].z;
+
+            camera_target_positions.x = data[index].x + 40 * Math.sin(2 * ratio * Math.PI);
+            camera_target_positions.y = data[index].y - 30;
+            camera_target_positions.z = 200 - 10 * Math.cos( 2 * ratio * Math.PI);
         }
     });
 }

@@ -15,7 +15,7 @@
             <div class="carousel-inner relative overflow-hidden h-[75vh] w-full rounded-3xl font-gabriola">
 
                 <div class="carousel-item relative active float-left w-full h-full">
-                    <img src="../assets/project_gallery/fractals.png" class="block w-full h-full" alt="..." />
+                    <img src="../assets/project_gallery/fractals.jpg" class="block w-full h-full" alt="..." />
                     <div class="carousel-caption hidden md:block absolute text-center">
                         <h5 class="text-xl">Fractals in Java</h5>
                         <p>A simple program using Java to image fractals such as the Mandelbrot Set</p>
@@ -23,14 +23,14 @@
                 </div>
 
                 <div class="carousel-item relative float-left w-full h-full">
-                    <img src="../assets/project_gallery/sixma.png" class="block w-full h-full" alt="..." />
+                    <img src="../assets/project_gallery/sixma.jpg" class="block w-full h-full" alt="..." />
                     <div class="carousel-caption hidden md:block absolute text-center">
                             <h5 class="text-xl">Sixma Restaurant</h5>
                             <p>Restaurant Reservaction and Point of Sale System</p>
                     </div>
                 </div>
                 <div class="carousel-item  relative float-left w-full h-full">
-                    <img src="../assets/project_gallery/placeholders.png" class="block w-full h-full" alt="..."/>
+                    <img src="../assets/project_gallery/placeholders.jpg" class="block w-full h-full" alt="..."/>
 
                     <div class="carousel-caption hidden md:block absolute text-center text-black">
                         <h5 class="text-xl">Placeholder Apartments</h5>
@@ -41,7 +41,7 @@
 
 
                 <div class="carousel-item relative float-left w-full h-full">
-                    <img src="../assets/project_gallery/dancing_table.png" class="block w-full h-full" alt="..." />
+                    <img src="../assets/project_gallery/dancing_table.jpg" class="block w-full h-full" alt="..." />
                     <div class="carousel-caption hidden md:block absolute text-center">
                         <h5 class="text-xl">Dancing Tables</h5>
                         <p>A promotional website for the Dancing Tables product</p>

@@ -1,11 +1,11 @@
 <template>
-    <section class="h-screen name fixed top-0 left-0 w-sceen">
+    <section class="h-screen name fixed top-0 left-0 w-screen">
         <Name/>
     </section>
 
     <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
         <section class = "h-screen w-full dodecahedron">
-            <div class="h-full w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab text-[10rem] text-gray-400 px-10 rounded-3xl">
+            <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[10rem] text-gray-400 px-10 rounded-3xl">
                 Welcome
                 <button type="button" class="z-20 inline-block px-6 py-2.5 bg-blue-600 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
                     @click=clear_html()>

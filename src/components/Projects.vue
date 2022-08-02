@@ -1,5 +1,5 @@
 <template>
-    <div class = "w-[80vw] flex flex-col items-center justify-center gap-10 mt-12">
+    <div class = "lg:w-[80vw] flex flex-col items-center justify-center gap-10 mt-12">
         <h1 class = "font-slab font-bold text-5xl text-tertiary">
             Explosive Projects
         </h1>

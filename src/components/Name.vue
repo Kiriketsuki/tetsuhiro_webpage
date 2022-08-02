@@ -1,11 +1,11 @@
 <template>
-    <div class = "w-screen h-screen flex flex-col items-center justify-center bg-[#051b45] z-[100]">
-        <div class = "font-slab text-[10rem] text-gray-400 px-10 rounded-3xl">
+    <div class = "w-screen h-screen flex flex-col items-center justify-center bg-[#051b45] z-[100] text-center">
+        <div class = "font-slab lg:text-[10rem] text-gray-400 px-10 rounded-3xl">
             Lim Zhe Hong, Jovian
         </div>
 
         <div class="loader relative">
-            <div class="spinner-border spinning inline-block w-24 h-24 border-4 rounded-full text-gray-400 absolute" role="status" id = "spinner" style = "opacity: 1">
+            <div class="spinner-border spinning inline-block lg:w-24 lg:h-24 border-4 rounded-full text-gray-400 absolute" role="status" id = "spinner" style = "opacity: 1">
                 <span class="visually-hidden">Loading...</span>
             </div>
             <div class = "text-gray-400 text-3xl top-0 left-0 right-0 bottom-0 absolute" style = "opacity: 0;" id = "ready">

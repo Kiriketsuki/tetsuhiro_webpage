@@ -203,12 +203,25 @@ model_loader.load(waveURL, (glb) => {
 
 // ? Scrolling animation 
 // ! Need to make less laggy
-var camera_target = new THREE.Vector3(0, 0, 0);
-import data from './assets/vertices.json';
+var camera_target = new THREE.Mesh( new THREE.BoxGeometry(0.01, 0.01, 0.01), new THREE.PointsMaterial());
+camera_target.position.set(0, 0, 0);
+scene.add(camera_target);
+//! Trying new method, having an array of positions for the camera to move to.
+var positions_array = [
+    new THREE.Vector3(19.7, 6.8, -35), // dodecahedron
+    new THREE.Vector3(-27.6, 12.178, -40), // about
+    new THREE.Vector3(-57, 23.7, -60), // skill tree
+    new THREE.Vector3(-129, 34, -100), // projects
+    new THREE.Vector3(-126, 94.3, -100) // contact
+]
+
+var previous_section = 0;
+var curr_section = 0;
+
 var camera_positions = {
-    x: data[0].x,
-    y: data[0].y,
-    z: data[0].z
+    x: positions_array[0].x,
+    y: positions_array[0].y,
+    z: positions_array[0].z
 }
 
 var camera_target_positions = {
@@ -217,20 +230,12 @@ var camera_target_positions = {
     z: 200
 }
 
-function updateCamera() {
-    gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 0.06, ease: "power4.inOut"});
-    gsap.to(camera_target, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 0.06, ease: "power4.inOut"});
-    camera_group.position.x = -cursor.x * 5;
-    camera_group.position.y = -cursor.y * 5;
-    camera.lookAt(camera_target);
-    // console.log(camera_target);
-}
-
 //? Parallax Movement
 var cursor = {
     x: 0,
     y: 0
 }
+
 window.addEventListener('mousemove', (e) => {
     cursor.x = e.clientX / window.innerWidth * 2 - 1;
     cursor.y = e.clientY / window.innerHeight * 2 - 1;
@@ -245,11 +250,28 @@ const clock = new THREE.Clock();
 
 function loop() {
     const uTime = clock.getElapsedTime();
+    // ? star animation
     star_material.uniforms.uTime.value = uTime;
+
+    // ? renderer
     renderer.render(scene, camera);
-    updateCamera();
+
+    // ? sea and fire animation
     mixer.update(0.002)
     mixer2.update(0.0002);
+
+    //? camera
+    // parallax
+    gsap.to(camera_group.position, {x: -cursor.x * 4, y: -cursor.y * 4, duration: 0.06, ease: "power4.inOut"});
+
+    // scroll
+    if (curr_section != previous_section) {
+        // gsap to new section
+        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 1, ease: "power1.inOut"});
+        gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "power1.inOut"});
+    }
+    camera.lookAt(camera_target.position);
+    // console.log(camera_target);
     requestAnimationFrame(loop);
 }
 
@@ -264,9 +286,12 @@ loading_manager.onLoad = () => {
         gsap.to(canvas.style, {opacity: 1, duration: 0.5});
         gsap.to(spinner.style, {opacity: 0, duration: 1});
         gsap.to(ready.style, {opacity: 1, duration: 1});
-        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 4, ease: "power4.inOut"});
         scroll_load();
-    }, 1000);
+        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 1, ease: "power4.inOut"});
+        camera.lookAt(camera_target.position);
+        gsap.to(".name", {opacity: 0, duration: 1, delay: 1});
+        gsap.to(home.style, {visibility: "visible", duration: 1, delay: 1});
+    }, 3000);
     loop();
 }
 
@@ -274,37 +299,45 @@ import {ScrollTrigger} from 'gsap/ScrollTrigger';
 
 
 function scroll_load() {
-    ScrollTrigger.create({
-        trigger: ".name",
-        start: "10 5",
-        onEnter: () => {
-            gsap.to(".name", {opacity: 0, duration: 0.5});
-        }
-    });
+    // ScrollTrigger.create({
+    //     trigger: ".name",
+    //     start: "10 5",
+    //     onEnter: () => {
+    //         gsap.to(".name", {opacity: 0, duration: 0.5});
+    //     }
+    // });
 
-    ScrollTrigger.create({
-        trigger: ".name",
-        start: "10 5",
-        onEnter: () => {
-            var home = document.getElementById("home");
-            gsap.to(home.style, {visibility: "visible", duration: 0.5});
-        }
-    });
+    // ScrollTrigger.create({
+    //     trigger: ".name",
+    //     start: "10 5",
+    //     onEnter: () => {
+    //         var home = document.getElementById("home");
+    //         gsap.to(home.style, {visibility: "visible", duration: 0.5});
+    //     }
+    // });
 
     ScrollTrigger.create({
         trigger: document.querySelector('.webgl'),
-        // scrub: 0.1,
         onUpdate: (self) => {
             var ratio = self.progress;
-            var index = Math.min(Math.floor(ratio * data.length), data.length - 1);
-            // console.log(ratio*data.length)
-            camera_positions.x = data[index].x;
-            camera_positions.y = data[index].y;
-            camera_positions.z = data[index].z;
+            previous_section = curr_section;
 
-            camera_target_positions.x = data[index].x + 40 * Math.sin(2 * ratio * Math.PI);
-            camera_target_positions.y = data[index].y - 30;
-            camera_target_positions.z = 200 - 10 * Math.cos( 2 * ratio * Math.PI);
-        }
+            
+            // ? out of all 5 positions in array, check which section, then move
+            var section = ratio * positions_array.length; // from 0 to 1 becomes 0 to 5
+            var section = Math.floor(section) // clamps down to nearest integer
+            section == 5 ? section = 4 : section = section; // prevent out of index
+            curr_section = section;
+            
+            // ? modify array of camera positions and camera target positions
+            camera_positions.x = positions_array[section].x;
+            camera_positions.y = positions_array[section].y;
+            camera_positions.z = positions_array[section].z;
+
+            var cam_x_offset = Math.cos(ratio * Math.PI) * 20;
+            camera_target_positions.x = camera_positions.x + cam_x_offset;
+            camera_target_positions.y = camera_positions.y - 30;
+            camera_target_positions.z = 300;
+        },
     });
 }

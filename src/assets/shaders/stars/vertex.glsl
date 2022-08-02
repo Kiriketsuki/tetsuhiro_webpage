@@ -20,5 +20,5 @@ void main()
     // gl_PointSize *= (1.0/- viewPosition.z);
 
     vColor = color;
-    vAlpha = sin(uTime * modelPosition.z  * 0.005) * 0.5 + 0.5;
+    vAlpha = sin(uTime * modelPosition.z  * 0.01) * 0.5 + 0.5;
 }

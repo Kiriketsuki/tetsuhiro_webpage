@@ -5,8 +5,12 @@
 
     <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
         <section class = "h-screen w-full dodecahedron">
-            <div class="h-full w-full bg-transparent z-10">
-
+            <div class="h-full w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab text-[10rem] text-gray-400 px-10 rounded-3xl">
+                Welcome
+                <button type="button" class="z-20 inline-block px-6 py-2.5 bg-blue-600 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                    @click=clear_html()>
+                    View Scene
+                </button>
             </div>
         </section>
         <section class="h-screen about">
@@ -42,7 +46,8 @@
     Contact,
     },
     methods: {
-        scrolling
+        scrolling,
+        clear_html
     },
     setup(){
         // scrolling();
@@ -59,13 +64,13 @@
         var curr_section, prev_section = 0;
 
         // Dodecahedron
-        var dodec_tween = gsap.to('.dodecahedron', {opacity: 1});
-        dodec_tween.pause();
+        var dodec_tween = gsap.fromTo('.dodecahedron', {opacity: 0}, {opacity: 1, duration: 1, ease: 'power2.out'});
+        // dodec_tween.pause();
         // About
-        var about_tween = gsap.fromTo('.about', {xPercent: -200}, {xPercent: 0, duration: 0.5})
+        var about_tween = gsap.fromTo('.about', {xPercent: -200}, {xPercent: 0, duration: 1})
         about_tween.pause();
         // Skills
-        var skill_tween = gsap.fromTo('.skills', {xPercent: 400, scale: 0}, {xPercent: 0, scale: 1.5, duration: 0.5});
+        var skill_tween = gsap.fromTo('.skills', {xPercent: 400, scale: 0}, {xPercent: 0, scale: 1.5, duration: 1});
         skill_tween.pause();
         // Projects
         var proj_tween = gsap.fromTo('.projects', {opacity: 0}, {opacity: 1, duration: 0.5});
@@ -103,10 +108,19 @@
             }
         });
     }
+
+    // ? View Scene
+    function clear_html() {
+        document.querySelector("#home").style.visibility = "hidden";
+    }
 </script>
 
 <style>
     body {
         overflow-x: hidden;
+    }
+
+    .dodecahedron {
+        text-shadow: 1px 1px black;
     }
 </style>

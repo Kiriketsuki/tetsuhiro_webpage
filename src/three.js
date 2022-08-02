@@ -100,10 +100,17 @@ model_loader.load(sceneURL, (glb) => {
     const animation = mixer.clipAction(glb.animations[0]);
     animation.play();
     scene.add(glb.scene);
-    // camera.position.set(data[data.length - 1].x, data[data.length - 1].y, data[data.length - 1].z);
     update_materials();
 });
 
+import dodecaURL from './assets/models/dodecahedron.glb?url';
+var dodeca_mesh = null;
+model_loader.load(dodecaURL, (glb) => {
+    dodeca_mesh = glb.scene.children[0]
+    scene.add(dodeca_mesh);
+    dodeca_mesh.position.y -= 4;
+    update_materials();
+})
 
 //? Light
 var light_1_pos, light_2_pos, light_3_pos;
@@ -253,6 +260,11 @@ function loop() {
     // ? star animation
     star_material.uniforms.uTime.value = uTime;
 
+    //? Dodecahedron
+    dodeca_mesh.position.y += Math.sin(uTime * 0.5) * 0.005;
+    dodeca_mesh.rotation.y -= 0.001;
+    dodeca_mesh.rotation.x -= 0.002;
+
     // ? renderer
     renderer.render(scene, camera);
 
@@ -267,11 +279,10 @@ function loop() {
     // scroll
     if (curr_section != previous_section) {
         // gsap to new section
-        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 1, ease: "power1.inOut"});
-        gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "power1.inOut"});
+        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 1, ease: "sine.inOut"});
+        gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "sine.inOut"});
     }
     camera.lookAt(camera_target.position);
-    // console.log(camera_target);
     requestAnimationFrame(loop);
 }
 
@@ -287,7 +298,8 @@ loading_manager.onLoad = () => {
         gsap.to(spinner.style, {opacity: 0, duration: 1});
         gsap.to(ready.style, {opacity: 1, duration: 1});
         scroll_load();
-        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 1, ease: "power4.inOut"});
+        gsap.to(camera.position, {x: positions_array[0].x, y: positions_array[0].y, z: positions_array[0].z, duration: 1, ease: "power4.inOut"});
+        gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "power4.inOut"});
         camera.lookAt(camera_target.position);
         gsap.to(".name", {opacity: 0, duration: 1, delay: 1});
         gsap.to(home.style, {visibility: "visible", duration: 1, delay: 1});
@@ -299,22 +311,6 @@ import {ScrollTrigger} from 'gsap/ScrollTrigger';
 
 
 function scroll_load() {
-    // ScrollTrigger.create({
-    //     trigger: ".name",
-    //     start: "10 5",
-    //     onEnter: () => {
-    //         gsap.to(".name", {opacity: 0, duration: 0.5});
-    //     }
-    // });
-
-    // ScrollTrigger.create({
-    //     trigger: ".name",
-    //     start: "10 5",
-    //     onEnter: () => {
-    //         var home = document.getElementById("home");
-    //         gsap.to(home.style, {visibility: "visible", duration: 0.5});
-    //     }
-    // });
 
     ScrollTrigger.create({
         trigger: document.querySelector('.webgl'),

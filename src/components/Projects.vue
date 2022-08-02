@@ -1,6 +1,6 @@
 <template>
-    <div class = "w-[80vw] flex flex-col items-center justify-center gap-10">
-        <h1 class = "font-slab font-bold text-5xl text-secondary">
+    <div class = "w-[80vw] flex flex-col items-center justify-center gap-10 mt-12">
+        <h1 class = "font-slab font-bold text-5xl text-tertiary">
             Explosive Projects
         </h1>
 
@@ -59,7 +59,10 @@
             </button>
         </div>
 
-        <button type="button" class=" inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out">More</button>
+        <button type="button" class="z-20 inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out"
+            @click="$router.push('projects')">
+            More
+        </button>
     </div>
 </template>
 

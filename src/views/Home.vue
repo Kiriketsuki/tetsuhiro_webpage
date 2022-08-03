@@ -1,6 +1,6 @@
 <template>
-    <canvas id="webgl" class="w-screen h-screen">
-    </canvas>
+    <!-- <canvas id="webgl" class="w-screen h-screen">
+    </canvas> -->
     <section class="h-screen name fixed top-0 left-0 w-screen">
         <Name class = "z-100"/>
     </section>

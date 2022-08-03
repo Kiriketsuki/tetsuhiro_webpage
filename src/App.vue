@@ -17,9 +17,6 @@ export default {
 </script>
 
 <style>
-    body {
-        background-color: #051b45;
-    }
 
     router-view {
         position: fixed;

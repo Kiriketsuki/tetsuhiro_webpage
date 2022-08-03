@@ -12,11 +12,12 @@ module.exports = {
                 roboto: [`"Roboto"`, "sans-serif"],
             },
             colors: {
-                secondary: "#483C46",
+                secondary: "#E01A4F",
                 primary: "#051b45",
-                tertiary: "#70AE6E",
-                quaternary: "#CA907E",
-                quinary: "#F6AE2D",
+                tertiary: "#498467",
+                quaternary: "#F9C22E",
+                quinary: "#53B3CB",
+                primary_shade: "#6798F4",
             }
         }
     }

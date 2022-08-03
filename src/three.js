@@ -290,13 +290,7 @@ function loop() {
 loading_manager.onLoad = () => {
     renderer.compile(scene, camera);
     setTimeout(()=>{
-        canvas.style.visibility = "visible";
-        var spinner = document.getElementById("spinner");
-        var ready = document.getElementById("ready");
-        document.body.style.overflowY = "auto";
-        gsap.to(canvas.style, {opacity: 1, duration: 0.5});
-        gsap.to(spinner.style, {opacity: 0, duration: 1});
-        gsap.to(ready.style, {opacity: 1, duration: 1});
+        before_scroll_load();
         scroll_load();
         gsap.to(camera.position, {x: positions_array[0].x, y: positions_array[0].y, z: positions_array[0].z, duration: 1, ease: "power4.inOut"});
         gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "power4.inOut"});
@@ -309,7 +303,15 @@ loading_manager.onLoad = () => {
 }
 
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
-
+function before_scroll_load() {
+    canvas.style.visibility = "visible";
+    var spinner = document.getElementById("spinner");
+    var ready = document.getElementById("ready");
+    document.body.style.overflowY = "auto";
+    gsap.to(canvas.style, {opacity: 1, duration: 0.5});
+    gsap.to(spinner.style, {opacity: 0, duration: 1});
+    gsap.to(ready.style, {opacity: 1, duration: 1});
+}
 
 function scroll_load() {
 

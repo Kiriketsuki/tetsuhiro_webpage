@@ -1,6 +1,6 @@
 <template>
     <div class = "lg:w-[80vw] flex flex-col items-center justify-center gap-10 mt-12">
-        <h1 class = "font-slab font-bold text-5xl text-tertiary">
+        <h1 class = "font-slab font-bold text-5xl text-secondary">
             Explosive Projects
         </h1>
 
@@ -59,7 +59,7 @@
             </button>
         </div>
 
-        <button type="button" class="z-20 inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out"
+        <button type="button" class="bg-quinary z-20 inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out"
             @click="$router.push('projects')">
             More
         </button>
@@ -73,5 +73,12 @@
 <style>
     img {
         object-fit: cover;
+    }
+
+    h5 {
+        color: #F9C22E
+    }
+    p {
+        color: #53B3CB
     }
 </style>

@@ -41,7 +41,7 @@
                 w-full
                 px-6
                 py-2.5
-                bg-blue-600
+                bg-quinary
                 text-white
                 font-medium
                 text-xs

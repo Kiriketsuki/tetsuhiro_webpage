@@ -7,9 +7,9 @@
 
     <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
         <section class = "h-screen w-full dodecahedron">
-            <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[10rem] text-gray-400 px-10 rounded-3xl">
+            <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[10rem] text-secondary px-10 rounded-3xl">
                 Welcome
-                <button type="button" class="z-20 inline-block px-6 py-2.5 bg-blue-600 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                <button type="button" class="z-20 inline-block px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
                     @click=clear_html()>
                     View Scene
                 </button>
@@ -28,6 +28,9 @@
             <Contact/>
         </section>
     </div>
+    <!-- <div>
+        <script type="application/javascript" src="/src/three.js" defer></script>
+    </div> -->
 </template>
 
 <script>
@@ -52,12 +55,23 @@
         clear_html
     },
     setup(){
-        // scrolling();
+        setTimeout(() => {
+            document.querySelector(".name").style.visibility = "hidden";
+            if (document.querySelector("#webgl").style.opacity != 1) {
+                location.reload();
+            } else {
+                console.log("threejs shldve loaded properly")
+            }
+        }, 30000);
     },
     mounted() {
         scrolling();
-    }
-    }
+        var script = document.createElement("script");
+        script.src = "/src/three.js";
+        script.type = "module";
+        script.defer = true;
+        document.body.appendChild(script);
+    }}
 
     //? GSAP
 
@@ -109,6 +123,10 @@
 
             }
         });
+
+        window.onpopstate = function () {
+            location.reload()
+        };
     }
 
     // ? View Scene
@@ -120,6 +138,7 @@
 <style>
     body {
         overflow-x: hidden;
+        background-color: #051b45;
     }
 
     canvas {

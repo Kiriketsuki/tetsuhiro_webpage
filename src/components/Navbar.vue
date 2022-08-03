@@ -1,5 +1,5 @@
 <template>
-    <ul class="fixed right-2 flex flex-col h-full items-center justify-center text-3xl gap-6 z-10 text-gray-500">
+    <ul class="fixed right-2 flex flex-col h-full items-center justify-center text-3xl gap-6 z-10 text-tertiary">
         <li class="z-20 cursor-pointer">
             <button type="button" @click=next_section() class="z-50 nav_stagger shadow-sm animate-pulse" style="visibility: hidden">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

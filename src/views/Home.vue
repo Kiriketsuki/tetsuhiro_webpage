@@ -74,7 +74,8 @@
 
     function scrolling() {
         gsap.registerPlugin(ScrollTrigger);
-        var curr_section, prev_section = 0;
+        var curr_section = 0;
+        var prev_section = 0;
 
         // Dodecahedron
         var dodec_tween = gsap.fromTo('.dodecahedron', {opacity: 0}, {opacity: 1, duration: 1, ease: 'power2.out'});

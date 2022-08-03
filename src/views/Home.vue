@@ -28,9 +28,6 @@
             <Contact/>
         </section>
     </div>
-    <!-- <div>
-        <script type="application/javascript" src="/src/three.js" defer></script>
-    </div> -->
 </template>
 
 <script>
@@ -66,11 +63,11 @@
     },
     mounted() {
         scrolling();
-        var script = document.createElement("script");
-        script.src = "/src/three.js";
-        script.type = "module";
-        script.defer = true;
-        document.body.appendChild(script);
+        // var script = document.createElement("script");
+        // script.src = "/src/three.js";
+        // script.type = "module";
+        // script.defer = true;
+        // document.body.appendChild(script);
     }}
 
     //? GSAP

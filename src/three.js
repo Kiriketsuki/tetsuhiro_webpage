@@ -215,7 +215,7 @@ camera_target.position.set(0, 0, 0);
 scene.add(camera_target);
 //! Trying new method, having an array of positions for the camera to move to.
 var positions_array = [
-    new THREE.Vector3(19.7, 6.8, -35), // dodecahedron
+    new THREE.Vector3(18.1, 6.8, -35), // dodecahedron
     new THREE.Vector3(-27.6, 12.178, -40), // about
     new THREE.Vector3(-57, 23.7, -60), // skill tree
     new THREE.Vector3(-129, 34, -100), // projects
@@ -303,6 +303,7 @@ loading_manager.onLoad = () => {
         camera.lookAt(camera_target.position);
         gsap.to(".name", {opacity: 0, duration: 1, delay: 1});
         gsap.to(home.style, {visibility: "visible", duration: 1, delay: 1});
+        gsap.to(".nav_stagger", {visibility: "visible", duration: 1, delay: 2, stagger: 0.3});
     }, 3000);
     loop();
 }

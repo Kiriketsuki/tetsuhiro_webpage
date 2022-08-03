@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.1.2",
     "autoprefixer": "^10.4.7",
     "gsap": "^3.10.4",
     "gzip-cli": "^1.2.0",

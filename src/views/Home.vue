@@ -1,6 +1,8 @@
 <template>
+    <canvas id="webgl" class="w-screen h-screen">
+    </canvas>
     <section class="h-screen name fixed top-0 left-0 w-screen">
-        <Name/>
+        <Name class = "z-100"/>
     </section>
 
     <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
@@ -83,7 +85,7 @@
         var tweens = [dodec_tween ,about_tween, skill_tween, proj_tween, contact_tween];
         // ScrollTrigger
         ScrollTrigger.create({
-            snap: 1/4,
+            snap: window.innerWidth >= 1000 ? 1/4 : false,
             duration: 0.1,
             // scrub: 0.1,
             trigger: document.querySelector('.webgl'),
@@ -118,6 +120,15 @@
 <style>
     body {
         overflow-x: hidden;
+    }
+
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        opacity: 0;
+        visibility: hidden;
     }
 
     .dodecahedron {

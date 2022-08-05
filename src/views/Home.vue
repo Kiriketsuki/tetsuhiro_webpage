@@ -1,6 +1,6 @@
 <template>
-    <!-- <canvas id="webgl" class="w-screen h-screen">
-    </canvas> -->
+    <canvas id="webgl" class="w-screen h-screen">
+    </canvas>
     <section class="h-screen name fixed top-0 left-0 w-screen">
         <Name class = "z-100"/>
     </section>
@@ -52,14 +52,18 @@
         clear_html
     },
     setup(){
-        setTimeout(() => {
-            document.querySelector(".name").style.visibility = "hidden";
-            if (document.querySelector("#webgl").style.opacity != 1) {
-                location.reload();
-            } else {
-                console.log("threejs shldve loaded properly")
-            }
-        }, 30000);
+        try {
+            setTimeout(() => {
+                document.querySelector(".name").style.visibility = "hidden";
+                if (document.querySelector("#webgl").style.opacity != 1) {
+                    location.reload();
+                } else {
+                    console.log("threejs shldve loaded properly")
+                }
+            }, 30000);
+        } catch (error) {
+            console.log(error);
+        }
     },
     mounted() {
         scrolling();
@@ -71,7 +75,7 @@
     }}
 
     //? GSAP
-
+    var main_trigger = null;
     function scrolling() {
         gsap.registerPlugin(ScrollTrigger);
         var curr_section = 0;
@@ -96,7 +100,7 @@
         // tween arrays
         var tweens = [dodec_tween ,about_tween, skill_tween, proj_tween, contact_tween];
         // ScrollTrigger
-        ScrollTrigger.create({
+        main_trigger = ScrollTrigger.create({
             snap: window.innerWidth >= 1000 ? 1/4 : false,
             duration: 0.1,
             // scrub: 0.1,
@@ -126,6 +130,7 @@
             location.reload()
         };
     }
+    export {main_trigger};
 
     // ? View Scene
     function clear_html() {

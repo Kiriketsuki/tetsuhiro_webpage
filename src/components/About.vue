@@ -23,7 +23,7 @@
             </div>
         </div>
 
-        <div class = "lg:w-[50vw] lg:h-[58vh] shadow-md flex flex-col items-center justify-center lg:text-3xl lg:gap-10 text-left rounded-lg font-roboto text-secondary" style="background-color: rgba(5, 27, 69, 0.65)">
+        <div class = "lg:w-[50vw] lg:h-[57vh] shadow-md flex flex-col items-center justify-center lg:text-3xl lg:gap-10 text-left rounded-lg font-roboto text-secondary" style="background-color: rgba(5, 27, 69, 0.65)">
             <p class = 'w-11/12'>
                 Hey there! I am Jovian Lim, and I am currently a student at Nanyang Technological University (NTU) in Singapore!
                 I am majoring in Computer Science, and I am specializing in Data Science and Artificial Intelligence.

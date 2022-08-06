@@ -1,5 +1,8 @@
 <template>
     <Navbar id="navbar"/>
+    <canvas id="webgl" class="w-screen h-screen"> 
+        <!-- causes a problem for build if removed, need to -->
+    </canvas>
     <router-view/>
         <!-- <transition name="fade">
             <component :is="Component"/>

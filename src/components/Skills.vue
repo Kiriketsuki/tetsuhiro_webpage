@@ -20,9 +20,8 @@
         }
     }
     import {main_trigger} from '../views/Home.vue';
-
     function skills_redirect() {
-        console.log(main_trigger);
+        document.scrollingElement.scrollTo(0,0);
         main_trigger.kill(); // removes scrolltrigger and its snap
         this.$router.push('/skills');
     }

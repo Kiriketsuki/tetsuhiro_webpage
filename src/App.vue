@@ -1,8 +1,10 @@
 <template>
     <Navbar id="navbar"/>
-    <canvas id="webgl" class="w-screen h-screen">
-    </canvas>
-    <router-view></router-view>
+    <router-view/>
+        <!-- <transition name="fade">
+            <component :is="Component"/>
+        </transition> -->
+    <!-- </router-view> -->
 </template>
 
 <script>
@@ -38,4 +40,14 @@ export default {
         left: 0;
         /* z-index: 20; */
     }
+
+    /* .fade-enter-from,
+    .fade-leave-to {
+        opacity: 0;
+    }
+
+    .fade-enter-active,
+    .fade-leave-active {
+        transition: opacity 0.5s;
+    } */
 </style>

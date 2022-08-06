@@ -1,32 +1,35 @@
 <template>
-    <canvas id="webgl" class="w-screen h-screen">
-    </canvas>
-    <section class="h-screen name fixed top-0 left-0 w-screen">
-        <Name class = "z-100"/>
-    </section>
-
-    <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
-        <section class = "h-screen w-full dodecahedron">
-            <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[10rem] text-secondary px-10 rounded-3xl">
-                Welcome
-                <button type="button" class="z-20 inline-block px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
-                    @click=clear_html()>
-                    View Scene
-                </button>
-            </div>
+    <div>
+        <transition appear @before-enter="beforeEnter" @enter="enter" @leave="beforeLeave">
+            <canvas id="webgl" class="w-screen h-screen">
+            </canvas>
+        </transition>
+        <section class="h-screen name fixed top-0 left-0 w-screen">
+            <Name class = "z-100"/>
         </section>
-        <section class="h-screen about">
-            <About/>
-        </section>
-        <section class="h-screen skills">
-            <Skills/>
-        </section>
-        <section class="h-screen projects">
-            <Projects/>
-        </section>
-        <section class="h-screen contact">
-            <Contact/>
-        </section>
+        <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
+            <section class = "h-screen w-full dodecahedron">
+                <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[10rem] text-secondary px-10 rounded-3xl">
+                    Welcome
+                    <button type="button" class="z-20 inline-block px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                        @click=clear_html()>
+                        View Scene
+                    </button>
+                </div>
+            </section>
+            <section class="h-screen about">
+                <About/>
+            </section>
+            <section class="h-screen skills">
+                <Skills/>
+            </section>
+            <section class="h-screen projects">
+                <Projects/>
+            </section>
+            <section class="h-screen contact">
+                <Contact/>
+            </section>
+        </div>
     </div>
 </template>
 
@@ -57,21 +60,30 @@
                 document.querySelector(".name").style.visibility = "hidden";
                 if (document.querySelector("#webgl").style.opacity != 1) {
                     location.reload();
-                } else {
-                    console.log("threejs shldve loaded properly")
                 }
             }, 30000);
         } catch (error) {
-            console.log(error);
+            console.log();
         }
+
+        const beforeEnter = (el) => {
+            el.style.opacity = 0;
+        }
+
+        const enter = (el) => {
+            gsap.to(el, {opacity: 1, duration: 1.5});
+            console.log("canvas enter")
+        }
+
+        const beforeLeave = (el) => {
+            gsap.to(el, {opacity: 0, duration: 1.5});
+            console.log("canvas leave")
+        }
+
+        return {beforeEnter, enter, beforeLeave}
     },
     mounted() {
         scrolling();
-        // var script = document.createElement("script");
-        // script.src = "/src/three.js";
-        // script.type = "module";
-        // script.defer = true;
-        // document.body.appendChild(script);
     }}
 
     //? GSAP
@@ -156,4 +168,5 @@
     .dodecahedron {
         text-shadow: 1px 1px black;
     }
+
 </style>

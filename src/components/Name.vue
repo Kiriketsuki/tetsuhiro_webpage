@@ -1,5 +1,5 @@
 <template>
-    <div class = "w-screen h-screen flex flex-col items-center justify-center bg-[#051b45] z-100 text-center">
+    <div class = "w-screen h-screen flex flex-col items-center justify-center bg-[#001220] z-100 text-center">
         <div class = "font-slab lg:text-[10rem] text-quaternary px-10 rounded-3xl">
             Lim Zhe Hong, Jovian
         </div>

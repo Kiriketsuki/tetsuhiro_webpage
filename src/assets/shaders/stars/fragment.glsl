@@ -8,6 +8,6 @@ void main()
     strength = 1.0 - strength;
     strength = pow(strength, 10.0);
 
-    vec3 color = mix(vec3(5.0/255.0, 27.0/255.0, 69.0/255.0), vColor, strength);
+    vec3 color = mix(vec3(0.0/255.0, 18.0/255.0, 32.0/255.0), vColor, strength);
     gl_FragColor = vec4(color, vAlpha);
 }

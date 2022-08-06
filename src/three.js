@@ -27,6 +27,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ReinhardToneMapping;
+renderer.toneMappingExposure = 0.8;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.needsUpdate = true;
@@ -249,7 +250,7 @@ window.addEventListener('mousemove', (e) => {
 });
 
 //? Fog
-const fog = new THREE.Fog(0x051b45, 50, 200);
+const fog = new THREE.Fog(0x001220, 50, 200);
 scene.fog = fog;
 
 //? Animation

@@ -22,7 +22,7 @@ export default {
 
 <style>
     body {
-        background-color: #051b45;
+        background-color: #001220;
     }
     
     canvas {

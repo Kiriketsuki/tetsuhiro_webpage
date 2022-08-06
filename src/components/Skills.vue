@@ -19,10 +19,15 @@
             skills_redirect
         }
     }
+
     import {main_trigger} from '../views/Home.vue';
+    import gsap from 'gsap';
     function skills_redirect() {
+        gsap.to(window.document.querySelector("#webgl").style, {opacity: 0, duration: 1});
+        setTimeout(() => {;
+            this.$router.push('/skills');
+        }, 1000);
         document.scrollingElement.scrollTo(0,0);
         main_trigger.kill(); // removes scrolltrigger and its snap
-        this.$router.push('/skills');
     }
 </script>

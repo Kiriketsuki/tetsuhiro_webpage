@@ -17,7 +17,7 @@ module.exports = {
                 tertiary: "#498467",
                 quaternary: "#F9C22E",
                 quinary: "#53B3CB",
-                primary_shade: "#6798F4",
+                primary_shade: "#001220",
             }
         }
     }

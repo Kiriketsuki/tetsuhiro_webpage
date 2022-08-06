@@ -1,7 +1,7 @@
 <template>
     <div class = "flex lg:flex-row items-center justify-center lg:h-[85vh] flex-col md:h-screen md:mt-10 sm:mt-10 sm:h-screen">
         <div class="lg:w-[20vw]">
-            <div class="bg-tertiary block rounded-lg shadow-lg h-full" style="background-color: rgba(5, 27, 69, 0.55)">
+            <div class="bg-tertiary block rounded-lg shadow-lg h-full" style="background-color: rgba(0, 18, 32, 0.55)">
                 <div class="relative overflow-hidden bg-no-repeat bg-cover " >
                     <img src="../assets/photo.jpg" class="w-full rounded-t-lg" />
                     <a href="#!"> <div class="absolute top-0 right-0 bottom-0 left-0 w-full h-full overflow-hidden bg-fixed"></div> </a>
@@ -23,7 +23,7 @@
             </div>
         </div>
 
-        <div class = "lg:w-[50vw] lg:h-[57vh] shadow-md flex flex-col items-center justify-center lg:text-3xl lg:gap-10 text-left rounded-lg font-roboto text-secondary" style="background-color: rgba(5, 27, 69, 0.65)">
+        <div class = "lg:w-[50vw] lg:h-[57vh] shadow-md flex flex-col items-center justify-center lg:text-3xl lg:gap-10 text-left rounded-lg font-roboto text-secondary" style="background-color: rgba(0, 18, 32, 0.65)">
             <p class = 'w-11/12'>
                 Hey there! I am Jovian Lim, and I am currently a student at Nanyang Technological University (NTU) in Singapore!
                 I am majoring in Computer Science, and I am specializing in Data Science and Artificial Intelligence.

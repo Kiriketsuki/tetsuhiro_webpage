@@ -5,7 +5,7 @@ import Skills from '../views/Skills.vue';
 const routes = [{
     path: '/',
     name: 'home',
-    component: Home
+    component: Skills
   }, {
     path: '/test',
     name: 'test',

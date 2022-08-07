@@ -1,17 +1,19 @@
 <template>
     <transition appear @before-enter="beforeEnter" @enter="enter">
-        <div class="w-screen flex flex-col items-center justify-start text-center min-h-screen gap-10 p-10 skills_showcase" style="opacity: 1">
-            <h1 class="w-screen text-9xl font-slab text-quaternary">
+        <div class="w-screen flex flex-col items-center justify-start text-center min-h-screen gap-10 skills_showcase" style="opacity: 1">
+            <h1 class="w-screen text-9xl font-slab text-quaternary title">
                 Skills
             </h1>
 
-            <ul class="w-screen flex flex-col items-center justify-start gap-20">
-                <img src="../assets/skills_bg/blob-scene-haikei.svg" alt="" class="absolute top-0 left-0 w-screen -z-[1]">
-                <img src="../assets/skills_bg/blob-scene-haikei(1).svg" alt="" class="absolute top-[330vh] left-0 w-screen -z-[1]">
-                <img src="../assets/skills_bg/blob-scene-haikei(3).svg" alt="" class="absolute top-[600vh] left-0 w-screen -z-[2]">
-                <li class="img_left flex flex-row items-center justify-center h-[40vh] gap-[-10vw] w-full">
-                    <img src="../assets/skills_showcase/blender_showcase_1.png" alt="" class="h-full">
-                    <div class="" style="">
+            <ul class="w-screen flex flex-col items-center justify-start gap-20 p-10">
+                <img src="../assets/skills_bg/blob-scene-haikei.png" alt="" class="absolute top-0 left-0 w-screen -z-[1]">
+                <!-- <img src="../assets/skills_bg/blob-scene-haikei(1).svg" alt="" class="absolute top-[330vh] left-0 w-screen -z-[1]"> -->
+                <!-- <img src="../assets/skills_bg/blob-scene-haikei(3).svg" alt="" class="absolute top-[600vh] left-0 w-screen -z-[2]"> -->
+
+
+                <li class="img_left gap-[-10vw] w-full ">
+                    <img src="../assets/skills_showcase/blender_showcase_1.png" alt="" class="h-full stagger-anim">
+                    <div class="tilt stagger-anim" style="">
                         <h5>
                             Blender
                         </h5>
@@ -24,8 +26,8 @@
                     </div>
                 </li>
 
-                <li class="img_right flex flex-row items-center justify-center h-[40vh]">
-                    <div class="w-1/2 h-full">
+                <li class="img_right">
+                    <div class="tilt stagger-anim">
                         <h5>
                             C/C++
                         </h5>
@@ -36,12 +38,12 @@
                             after having spent hours using them in coursework and exams.
                         </p>
                     </div>
-                    <img src="../assets/skills_showcase/c-cpp_showcase.png" alt="" class = "w-1/2 h-full">
+                    <img src="../assets/skills_showcase/c-cpp_showcase.png" alt="" class = "w-1/2 h-full stagger-anim" >
                 </li>
 
-                <li class="img_left flex flex-row items-center justify-center h-[40vh]">
-                    <img src="../assets/skills_showcase/flask_showcase.png" alt="" class="w-1/2 h-full">
-                    <div class="w-1/2 h-full">
+                <li class="img_left">
+                    <img src="../assets/skills_showcase/flask_showcase.png" alt="" class="w-1/2 h-full stagger-anim">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Flask
                         </h5>
@@ -54,8 +56,8 @@
                     </div>
                 </li>
 
-                <li class="img_right flex flex-row items-center justify-center h-[40vh]">
-                    <div class="w-1/2 h-full">
+                <li class="img_right">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Java
                         </h5>
@@ -66,12 +68,12 @@
                             On my own time, I have used Java to create and display different fractals, with the ability to change the colour spectrum as well.
                         </p>
                     </div>
-                    <img src="../assets/skills_showcase/java_showcase.png" alt="" class = "w-1/2 h-full">
+                    <img src="../assets/skills_showcase/java_showcase.png" alt="" class = "w-1/2 h-full stagger-anim">
                 </li>
 
                 <li class="img_left flex flex-row items-center justify-center">
-                    <img src="../assets/skills_showcase/django_showcase.png" alt="" class="w-1/2 h-full">
-                    <div class="w-1/2">
+                    <img src="../assets/skills_showcase/django_showcase.png" alt="" class="w-1/2 h-full stagger-anim">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Django
                         </h5>
@@ -83,8 +85,8 @@
                     </div>
                 </li>
 
-                <li class="img_right flex flex-row items-center justify-center h-[40vh]">
-                    <div class="w-1/2 h-full">
+                <li class="img_right">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Javascript
                         </h5>
@@ -95,12 +97,12 @@
                             as well as in development. Using only the basics, HTML, CSS, and Javascript, I have been able to create multiple simple yet interactive web applications, such as my project titled A Sketchy Website.
                         </p>
                     </div>
-                    <img src="../assets/skills_showcase/javascript_showcase.png" alt="" class = "w-1/2 h-full">
+                    <img src="../assets/skills_showcase/javascript_showcase.png" alt="" class = "w-1/2 h-full stagger-anim">
                 </li>
 
-                <li class="img_left flex flex-row items-center justify-center h-[40vh]">
-                    <img src="../assets/skills_showcase/firebase_showcase.png" alt="" class="w-1/2 h-full">
-                    <div class="w-1/2 h-full">
+                <li class="img_left">
+                    <img src="../assets/skills_showcase/firebase_showcase.png" alt="" class="w-1/2 h-full stagger-anim">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Firebase
                         </h5>
@@ -113,8 +115,8 @@
                     </div>
                 </li>
 
-                <li class="img_right flex flex-row items-center justify-center h-[40vh]">
-                    <div class="w-1/2 h-full">
+                <li class="img_right">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Three.js
                         </h5>
@@ -125,12 +127,12 @@
                             webpage. After spending hours working with Three.js, I am able to get desired views and effects, while being able to optimize the speed at which the models are loaded.
                         </p>
                     </div>
-                    <img src="../assets/skills_showcase/threejs_showcase.png" alt="" class = "w-1/2 h-full">
+                    <img src="../assets/skills_showcase/threejs_showcase.png" alt="" class = "w-1/2 h-full stagger-anim">
                 </li>
 
-                <li class="img_left flex flex-row items-center justify-center h-[40vh]">
-                    <img src="../assets/skills_showcase/premiere_showcase.png" alt="" class="w-1/2 h-full">
-                    <div class="w-1/2">
+                <li class="img_left">
+                    <img src="../assets/skills_showcase/premiere_showcase.png" alt="" class="w-1/2 h-full stagger-anim">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Adobe Premiere Pro
                         </h5>
@@ -143,8 +145,8 @@
                     </div>
                 </li>
 
-                <li class="img_right flex flex-row items-center justify-center h-[40vh]">
-                    <div class="w-1/2">
+                <li class="img_right">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Adobe Photoshop
                         </h5>
@@ -155,12 +157,12 @@
                             as well as use it for a myriad of other purposes, not limited to creating pixel art. 
                         </p>
                     </div>
-                    <img src="../assets/skills_showcase/photoshop_showcase.png" alt="" class = "w-1/2">
+                    <img src="../assets/skills_showcase/photoshop_showcase.png" alt="" class = "w-1/2 stagger-anim">
                 </li>
 
-                <li class="img_left flex flex-row items-center justify-center h-[40vh]">
-                    <img src="../assets/skills_showcase/python_showcase.png" alt="" class="w-1/2">
-                    <div class="w-1/2">
+                <li class="img_left">
+                    <img src="../assets/skills_showcase/python_showcase.png" alt="" class="w-1/2 stagger-anim">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Python
                         </h5>
@@ -174,8 +176,8 @@
                     </div>
                 </li>
 
-                <li class="img_right flex flex-row items-center justify-center h-[40vh]">
-                    <div class="w-1/2">
+                <li class="img_right">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Ruby
                         </h5>
@@ -185,12 +187,12 @@
                             simple webpages, a text-based game, and a Sudoku solver. With the help of Ruby on Rails, I am also able to create server-side web applications.
                         </p>
                     </div>
-                    <img src="../assets/skills_showcase/ruby_showcase.png" alt="" class = "w-1/2">
+                    <img src="../assets/skills_showcase/ruby_showcase.png" alt="" class = "w-1/2 stagger-anim">
                 </li>
 
-                <li class="img_left flex flex-row items-center justify-center h-[40vh]">
-                    <img src="../assets/skills_showcase/office_showcase.png" alt="" class="w-1/2">
-                    <div class="w-1/2">
+                <li class="img_left">
+                    <img src="../assets/skills_showcase/office_showcase.png" alt="" class="w-1/2 stagger-anim">
+                    <div class="tilt stagger-anim">
                         <h5>
                             Microsoft Office
                         </h5>
@@ -209,6 +211,8 @@
 
 <script>
     import gsap from 'gsap';
+    import { ScrollTrigger } from 'gsap/ScrollTrigger';
+    gsap.registerPlugin(ScrollTrigger);
     export default {
         setup() {
             const beforeEnter = (el) => {
@@ -226,14 +230,34 @@
                 }, 600);
             }
 
+            
             return {beforeEnter, enter};
         },
+
+        mounted() {
+            var list_items = Array.from(document.querySelectorAll(".stagger-anim"));
+            list_items.forEach((item, index) => {
+                gsap.fromTo(item, {
+                    opacity: 0,
+                    yPercent: 5 + 5/3 * (index % 2)
+                },{
+                    opacity: 1,
+                    yPercent: 0,
+                    stagger: 0.2,
+                    delay: index % 3 * 0.1,
+                    scrollTrigger: {
+                        trigger: item,
+                        start: "top bottom",
+                    }
+                })
+            })
+        }
     }
 </script>
 
 <style scoped>
     p {
-        @apply text-quinary text-2xl w-[90%] px-20 py-4;
+        @apply text-quinary lg:text-2xl w-[90%] lg:px-20 py-4;
         text-shadow: 1px white;
     }
 
@@ -246,7 +270,7 @@
     .img_right > div {
         @apply text-left rounded-l-xl rounded-r-sm shadow-lg;
         height: 110%;
-        transform: translate(15%);
+        transform: translateX(15%);
     }
 
     .img_right > img {
@@ -268,7 +292,7 @@
     }
 
     li {
-        @apply h-[55vh] w-[95%] gap-10 px-10;
+        @apply lg:h-[55vh] w-[95%] gap-10 px-10 flex lg:flex-row flex-col items-center justify-center;
     }
 
     h5 {
@@ -276,7 +300,46 @@
         text-transform: capitalize;
     }
 
-    h1 {
-        text-shadow: 3px white;
+    li > div::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 18, 32, 0.1);
+        transform: scaleX(0);
+        border-radius: 1%;
+        transition: 0.5s;
+        /* border: 0px solid white; */
+    }
+
+    li > div:hover::after {
+        transform: scaleX(1);
+        border: 1px;
+        backdrop-filter: saturate(110%);
+    }
+
+    .img_left > div::after {
+        transform-origin: right;
+        transition: transform 0.5s ease;
+    }
+
+    .img_right > div::after {
+        transform-origin: left;
+        transition: transform 0.5s ease;
+    }
+
+    .img_left > div:hover::after {
+        transform-origin: left;
+    }
+
+    .img_right > div:hover::after {
+        transform-origin: right;
+    }
+
+
+    .stagger-anim {
+        opacity: 0;
     }
 </style>

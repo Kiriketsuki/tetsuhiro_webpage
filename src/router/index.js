@@ -4,8 +4,8 @@ import Test from '../views/Test.vue';
 import Skills from '../views/Skills.vue';
 const routes = [{
     path: '/',
-    name: 'home',
-    component: Skills
+    name: 'Home',
+    component: Home
   }, {
     path: '/test',
     name: 'test',

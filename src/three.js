@@ -95,13 +95,13 @@ model_loader.setDRACOLoader(draco_loader);
 import sceneURL from './assets/models/lake_mountain.glb?url';
 var mixer;
 var mixer2;
-// model_loader.load(sceneURL, (glb) => {
-//     mixer = new THREE.AnimationMixer(glb.scene);
-//     const animation = mixer.clipAction(glb.animations[0]);
-//     animation.play();
-//     scene.add(glb.scene);
-//     update_materials();
-// });
+model_loader.load(sceneURL, (glb) => {
+    mixer = new THREE.AnimationMixer(glb.scene);
+    const animation = mixer.clipAction(glb.animations[0]);
+    animation.play();
+    scene.add(glb.scene);
+    update_materials();
+});
 
 import dodecaURL from './assets/models/dodecahedron.glb?url';
 var dodeca_mesh = null;

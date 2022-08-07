@@ -1,5 +1,5 @@
 <template>
-    <div class="lg:w-[80vw] flex lg:flex-row items-center justify-center h-full stagger_anim sm:flex-col md:flex-col">
+    <div class="lg:w-[80vw] flex lg:flex-row items-center justify-center h-full stagger_anim flex-col">
         <div class="w-1/2 h-[60vh] stagger_anim">
             <div class="flex flex-col justify-between h-11/12 rounded-lg shadow-lg px-6 py-12 lg:py-6 xl:py-12 md:px-12 lg:-mr-14 stagger_anim" style="background: hsla(0, 0%, 100%, 0.05); backdrop-filter: blur(100px)">
                 <h3 class="lg:text-7xl text-secondary font-bold mb-3 font-slab stagger_anim">Thank you for checking out my portfolio</h3>

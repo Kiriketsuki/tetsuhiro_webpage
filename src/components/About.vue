@@ -9,10 +9,12 @@
                         <!-- <svg class="absolute text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" style="left: 0; bottom: 0"> <path fill="#fff" d="M0,288L48,272C96,256,192,224,288,197.3C384,171,480,149,576,165.3C672,181,768,235,864,250.7C960,267,1056,245,1152,250.7C1248,256,1344,288,1392,304L1440,320L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"> </path> </svg> -->
                     </div>
 
-                    <div class="p-6 font-slab">
-                        <h5 class="lg:text-5xl font-bold mb-4 text-secondary">Jovian Lim</h5>
-                        <p class=" mb-4 text-2xl text-tertiary">Software Engineer</p>
-                        <ul class="list-inside flex mx-auto justify-center">
+                    <div class="p-6 font-slab flex flex-col justify-between">
+                        <div>
+                            <h5 class="lg:text-5xl font-bold mb-4 text-secondary">Jovian Lim</h5>
+                            <p class=" mb-4 text-2xl text-tertiary">Software Engineer</p>
+                        </div>
+                        <ul class="list-inside flex mx-auto justify-center h-1/2">
                             <a href="#!" class="px-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" class="w-8 h-8 text-quinary"> <path fill="currentColor" d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" /> </svg>
                             </a>

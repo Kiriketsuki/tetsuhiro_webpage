@@ -44,13 +44,22 @@ export default {
         /* z-index: 20; */
     }
 
-    /* .fade-enter-from,
-    .fade-leave-to {
-        opacity: 0;
+    ::-webkit-scrollbar {
+        width: 0.5rem;
     }
 
-    .fade-enter-active,
-    .fade-leave-active {
-        transition: opacity 0.5s;
-    } */
+    ::-webkit-scrollbar-track {
+        background: hsla(0, 0%, 100%, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: hsla(0, 0%, 100%, 0.2);
+    }
+
+    @supports (scrollbar-color: red blue) {
+        * {
+            scrollbar-color: hsla(0, 0%, 100%, 0.1), hsla(0, 0%, 100%, 0.1);
+            scrollbar-width: thin;
+        }
+    }
 </style>

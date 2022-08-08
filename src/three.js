@@ -297,7 +297,7 @@ loading_manager.onLoad = () => {
         camera.lookAt(camera_target.position);
         gsap.to(".name", {opacity: 0, duration: 1, delay: 1});
         gsap.to(home.style, {visibility: "visible", duration: 1, delay: 1});
-        gsap.to(".nav_stagger", {visibility: "visible", duration: 1, delay: 2, stagger: 0.3});
+        gsap.to(".nav_stagger", {visibility: "visible", duration: 1, delay: 2, stagger: 0.1});
     }, 3000);
     loop();
 }

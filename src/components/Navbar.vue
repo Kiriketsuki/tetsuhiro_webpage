@@ -63,4 +63,8 @@
 </script>
 
 <style>
+
+    svg {
+        filter: drop-shadow(0 0 0.5rem #000000);
+    }
 </style>

@@ -20,13 +20,13 @@
                                 principles, including encapsulation, abstraction, inheritance, and polymorphism.
                             </p>
 
-                            <p>
+                            <p v-if="big">
                                 Besides the actual final product created, we had to learn how to operate as a software
                                 engineering team, implenting systems such as the Agile methodlogy to pace the work
                                 of every member.
                             </p>
 
-                            <p>
+                            <p v-if="big">
                                 We also learnt how to, and submitted, various design maps and diagrams, with allowed
                                 for clear and straightforward development of the final program
                             </p>
@@ -39,7 +39,7 @@
                 </div>
 
                 <div class="project grid placeholders grid-rows-5 grid-cols-8 stagger-anim">
-                    <div class="text row-start-4 col-start-2 col-end-5 stagger-anim">
+                    <div class="text lg:row-start-4 lg:col-start-2 lg:col-end-5 stagger-anim">
                         <h5 class =  "mb-10 stagger-anim">
                             Placeholders - Find My HDB
                         </h5>
@@ -51,13 +51,13 @@
                                 data.gov.sg
                             </p>
 
-                            <p>
+                            <p v-if="big">
                                 We came up with an web app, using data that contains the information of all sales of second-hand
                                 HDBs, and created an algorithm that takes in the requirements a client would want in a house,
                                 and search through the data for a list of most viable HDBs that fits their budget and criteria.
                             </p>
 
-                            <p>
+                            <p v-if="big">
                                 Hence, we named the webpage “Find My (the client's) HDB"
                             </p>
                         </div>
@@ -65,14 +65,44 @@
 
                 </div>
 
-                <div class="project fractal flex flex-row items-center justify-end relative stagger-anim">
-                    <div class="fractal_image absolute top-0 left-0 right-0 w-[80vw] flex flex-row items-start justify-end rounded-3xl stagger-anim">
-                        <div class = "h-full w-1/2 rounded-xl">
+                <div class = "flex flex-col">
+                    <div class="project fractal flex flex-row items-center justify-end relative stagger-anim">
+                        <div class="fractal_image absolute top-0 left-0 right-0 w-[80vw] flex flex-row items-start justify-end rounded-3xl stagger-anim">
+                            <div class = "h-full w-1/2 rounded-xl">
 
+                            </div>
+                        </div>
+
+                        <div v-if="big" class="text flex flex-col items-center justify-center w-1/2 stagger-anim">
+                            <h5 class="mb-10 stagger-anim lg:text-5xl">
+                                Fractals in Java
+                            </h5>
+
+                            <div class="para flex flex-col gap-4 w-[90%] stagger-anim">
+                                <p class ="text-primary">
+                                    After learning how to use Java, I decided to use it to create a project in my own time. 
+                                    Having always been interested in Mathematics, I looked into Fractals, and decided to try coding a program to display them
+                                </p>
+
+                                <p class ="text-primary" v-if="big">
+                                    I started with one of th emost well known fractals, the Mandelbrot set, using various different algorithms to escape the calculation, 
+                                    and thus optimizing the speed and detail of the set.
+                                </p>
+
+                                <p class ="text-primary" v-if="big">
+                                    I have also implemented different methods of colouring in the set as outputted by the escape time algorithms, including continuous, hsv, and histogram colouring.
+                                </p>
+
+                                <p class ="text-primary" v-if="big">
+                                    Lastly, I also created mutiple ways to generate a colour palette for the 
+                                    colouring algorithms to fill in the screen
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <div class="text flex flex-col items-center justify-center w-1/2 stagger-anim">
-                        <h5 class="mb-10 stagger-anim">
+
+                    <!-- <div v-if="big" class="text flex flex-col items-center justify-center w-1/2 stagger-anim">
+                        <h5 class="mb-10 stagger-anim lg:text-5xl">
                             Fractals in Java
                         </h5>
 
@@ -81,22 +111,8 @@
                                 After learning how to use Java, I decided to use it to create a project in my own time. 
                                 Having always been interested in Mathematics, I looked into Fractals, and decided to try coding a program to display them
                             </p>
-
-                            <p class ="text-primary">
-                                I started with one of th emost well known fractals, the Mandelbrot set, using various different algorithms to escape the calculation, 
-                                and thus optimizing the speed and detail of the set.
-                            </p>
-
-                            <p class ="text-primary">
-                                I have also implemented different methods of colouring in the set as outputted by the escape time algorithms, including continuous, hsv, and histogram colouring.
-                            </p>
-
-                            <p class ="text-primary">
-                                Lastly, I also created mutiple ways to generate a colour palette for the 
-                                colouring algorithms to fill in the screen
-                            </p>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div class="project dancing_tables relative grid grid-cols-2 grid-rows-2 stagger-anim">
@@ -114,12 +130,12 @@
                                 Dancing Tables was my first professional web design product. A company approaced me to create a website to help advertise their product, the Dancing Tables robot.
                             </p>
 
-                            <p>
+                            <p v-if="big">
                                 It was a robot meant to be used to lift heavy tables and chairs, such as the ones typically found at banquets. In my webpage, I was able
                                 to put the viewer into a 3D scene of a banquet hall itself
                             </p>
 
-                            <p>
+                            <p v-if="big">
                                 Using Three.js, the viewer was able to see how the product can be used, and even allowed the viewer to be upclose and personal, and inspect a 3D model of the robot itself
                             </p>
                         </div>
@@ -139,7 +155,7 @@
             const beforeEnter = (el) => {
                 el.style.opacity = 0;
             };
-
+            var big = true;
             const enter = (el) => {
                 console.log('enter');
                 setTimeout(() => {
@@ -149,8 +165,10 @@
                     });
                 }, 1000);
             }
-
-            return {beforeEnter, enter};
+            if (window.innerWidth < 640) {
+                big = false;
+            }
+            return {beforeEnter, enter, big};
         },
         mounted() {
             var list_items = Array.from(document.querySelectorAll(".stagger-anim"));
@@ -221,10 +239,10 @@
     }
 
     h5 {
-        @apply text-3xl font-slab text-quaternary;
+        @apply lg:text-3xl text-2xl font-slab text-quaternary text-center;
     }
 
     .para {
-        @apply text-xl font-slab;
+        @apply lg:text-xl text-xs font-slab;
     }
 </style>

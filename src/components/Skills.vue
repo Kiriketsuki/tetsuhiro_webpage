@@ -1,17 +1,23 @@
 <template>
-    <div class="flex flex-col h-full justify-center items-center">
-        <div class="flex flex-col lg:p-6 rounded-lg shadow-lg lg:max-w-sm lg:mt-[20rem] w-[30vw] h-[20vh] relative" style="background-color: rgba(249, 194, 46, 0.85)">
-            <h5 class="text-secondary lg:text-xl leading-tight font-medium mb-2">Skill Tree</h5>
-            <p class="text-tertiary lg:text-base mb-4">
-                Here are some of the skills I have, displayed in a tree of progression. Using these skills, I have worked on many different projects. Scroll on to learn more, or click to go indepth!
+    <div class = "lg:w-[25vw] w-[50vw] h-[75vh] bg-transparent flex flex-col items-end justify-end">
+        <div class ="w-full lg:h-[20vh] h-[30vh] flex flex-col gap-4 p-4 rounded-xl" style="background:rgba(249, 194, 46, 0.85);">
+            <h5 class = "text-center text-secondary lg:text-5xl font-slab">
+                Skill Tree
+            </h5>
+
+            <p class = "text-tertiary lg:text-2xl font-roboto">
+                Here are some of the relavant skills I currently process. As a perfectionist, I fully intend on learning more skills and progressing through my skill tree,
+                just like I would when finishing a video game.
             </p>
-            <button type="button" class="absolute bottom-10 px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+
+            <button type="button" class="px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
                 @click=skills_redirect()>
                 More
             </button>
         </div>
     </div>
 </template>
+           
 
 <script>
     export default {
@@ -31,3 +37,7 @@
         main_trigger.kill(); // removes scrolltrigger and its snap
     }
 </script>
+
+<style scoped>
+
+</style>

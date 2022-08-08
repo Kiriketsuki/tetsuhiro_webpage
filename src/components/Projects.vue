@@ -60,14 +60,29 @@
         </div>
 
         <button type="button" class="bg-quinary z-20 inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out"
-            @click="$router.push('projects')">
+            @click=projects_redirect()>
             More
         </button>
     </div>
 </template>
 
 <script>
-    export default {}
+    export default {
+        methods: {
+            projects_redirect
+        }
+    }
+
+    import {main_trigger} from '../views/Home.vue';
+    import gsap from 'gsap';
+    function projects_redirect() {
+        gsap.to(window.document.querySelector("#webgl").style, {opacity: 0, duration: 1});
+        setTimeout(() => {;
+            this.$router.push('/projects');
+        }, 1000);
+        document.scrollingElement.scrollTo(0,0);
+        main_trigger.kill(); // removes scrolltrigger and its snap
+    }
 </script>
 
 <style>

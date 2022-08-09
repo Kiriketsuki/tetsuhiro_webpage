@@ -35,11 +35,11 @@
                     <br>
                     <p class = 'w-11/12'>
                         About my educational history, I took the GCE O Levels in 2015, and went on to be admitted into Anglo-Chinese Junior College, where I took the A levels in 2017.
-                        My subjects were Physics, Chemistry, and Mathematics, as well as H1 Economics. After, I served my National Service, before starting school at NTU, where I am currently expecting to graduate from in 2024 
+                        My subjects were Physics, Chemistry, and Mathematics, as well as H1 Economics. After, I served my National Service, before starting school at NTU, where I am currently expecting to graduate from in 2024
                     </p>
                     <br>
                     <p class = 'w-11/12'>
-                        My hobbies include playing games, watching shows, photography, videography, and most importantly of all, programming! I have done quite a few passion projects, and you can find out more by scrolling! 
+                        My hobbies include playing games, watching shows, photography, videography, and most importantly of all, programming! I have done quite a few passion projects, and you can find out more by scrolling!
                     </p>
                 </div>
             </div>

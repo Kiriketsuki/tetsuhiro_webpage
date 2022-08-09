@@ -35,7 +35,7 @@
                                 I have also implemented different methods of colouring in the set as outputted by the escape time algorithms, including continuous, hsv, and histogram colouring.
                             </p>
                             <p>
-                                Lastly, I also created mutiple ways to generate a colour palette for the 
+                                Lastly, I also created mutiple ways to generate a colour palette for the
                                 colouring algorithms to fill in the screen
                             </p>
 
@@ -56,14 +56,14 @@
                     </h5>
                 </div>
             </div>
-            
+
             <div class="project_container rrpss stagger-anim">
                 <div class="image_description stagger-anim" :v-if="big" style="opacity: 1">
                     <div class="text_left">
                         <div class="text">
                             <p>
                                 An assignment from school, to create a fully functioning Restaurant Reservation and
-                                Point of Sale System, coded entirely in Java. 
+                                Point of Sale System, coded entirely in Java.
                             </p>
                             <p>
                                 We used Object Oriented Programming Design
@@ -89,7 +89,7 @@
 
                         </div>
 
-    
+
                         <div class="buttons">
                             <button type="button" class="proj_button bg-quinary" @click="$router.push('projects/rrpss')">
                                 Learn More
@@ -153,7 +153,7 @@
 
                         </div>
 
-    
+
                     </div>
                 </div>
                 <div class="project_image" @mouseover=hover($event) @mouseleave=leave($event) @click="$router.push('projects/placeholders')" style="width:50%">
@@ -192,7 +192,7 @@
 
                         </div>
 
-    
+
                         <div class="buttons">
                             <button type="button" class="proj_button bg-quinary" @click="$router.push('projects/dancing_tables')">
                                 Learn More

@@ -54,7 +54,7 @@
 
 <style scoped>
     .background {
-        background-color: (0, 0, 50, 0.5);
+        background-color: hsla(0, 0, 100%, 0.5);
         backdrop-filter: blur(100px);
     }
 </style>

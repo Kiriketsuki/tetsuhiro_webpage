@@ -4,7 +4,7 @@
             <h1>Projects</h1>
 
             <div class="project_container fractal stagger-anim">
-                <div class="image_description stagger-anim" :v-if="big" style="opacity: 1">
+                <div class="image_description stagger-anim" :v-if=big style="opacity: 1">
                     <div class="text_left">
                         <div class="text">
                             <p>
@@ -224,6 +224,7 @@
     import gsap from 'gsap';
     import { ScrollTrigger } from 'gsap/ScrollTrigger';
     import VanillaTilt from 'vanilla-tilt';
+    var big = true;
 
     gsap.registerPlugin(ScrollTrigger);
     export default {
@@ -231,7 +232,6 @@
             const beforeEnter = (el) => {
                 el.style.opacity = 0;
             };
-            var big = true;
             const enter = (el) => {
                 console.log('enter');
                 setTimeout(() => {
@@ -241,8 +241,9 @@
                     });
                 }, 1000);
             }
-            if (window.innerWidth < 640) {
+            if (window.innerWidth < window.innerHeight) {
                 big = false;
+                console.log(big);
             }
             return {beforeEnter, enter, big};
         },
@@ -272,7 +273,7 @@
         methods: {
             hover,
             leave
-        }
+        },
     }
 
     function hover($event) {
@@ -328,7 +329,7 @@
     }
 
     .text_left, .text_right {
-        @apply flex flex-col items-center justify-center w-[25%] h-full px-5;
+        @apply flex flex-col items-center justify-center h-full w-3/12 px-5;
     }
 
     .text_left {
@@ -352,7 +353,7 @@
     }
 
     .text {
-        @apply flex flex-col gap-10 p-5 rounded-xl shadow-md;
+        @apply flex flex-col gap-10 p-5 rounded-xl shadow-md w-full;
         background: hsla(0, 0%, 100%, 0.1);
     }
 
@@ -366,5 +367,14 @@
 
     p {
         @apply lg:text-2xl text-sm;
+    }
+
+    h1 {
+        background-image: var(--gradient);
+        background-size: 400%;
+        color: transparent;
+        background-clip: text;
+        background-position: left;
+        animation: gradient_animation 5s ease infinite alternate;
     }
 </style>

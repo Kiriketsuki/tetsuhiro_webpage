@@ -62,4 +62,17 @@ export default {
             scrollbar-width: thin;
         }
     }
+
+    :root {
+        --gradient: linear-gradient(45deg, #E01A4F, #498467, #F9C22E, #53B3CB);
+    }
+
+    @keyframes gradient_animation {
+        0% {
+            background-position: left;
+        }
+        100% {
+            background-position: right;
+        }
+    }
 </style>

@@ -5,7 +5,7 @@
         </h1>
 
         <div class="code border-8 w-[80vw] h-[80vh]">
-            <img src="../assets/project_gallery/fractals.jpg" alt="" class="w-full h-full">
+            <embed src="https://placeholders-d4876.web.app" type="" class="w-full h-full">
         </div>
 
         <div class="text_center section">
@@ -27,7 +27,7 @@
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/fractals/fractal_0.png" alt="">
+                <iframe src="https://data.gov.sg/dataset/resale-flat-prices/resource/f1765b54-a209-4718-8d38-a39237f502b3/view/093ff0f0-783f-4f6a-be52-7e506a8c58ca" frameBorder="0" class="w-full h-full rounded-xl"> </iframe> 
             </div>
 
             <div class="text">
@@ -75,13 +75,13 @@
             </div>
 
             <div class="image">
-                <img src="../../assets/project_gallery/fractals/fractal_1.png" alt="">
+                <img src="../../assets/project_gallery/placeholders/placeholders_0.png" alt="">
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/fractals/fractal_2.png" alt="">
+                <img src="../../assets/project_gallery/placeholders/placeholders_1.jpg" alt="">
             </div>
             <div class="text">
                 <h5>

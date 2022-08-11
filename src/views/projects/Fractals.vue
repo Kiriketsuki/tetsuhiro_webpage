@@ -5,7 +5,7 @@
         </h1>
 
         <div class="code border-8 w-[80vw] h-[80vh]">
-            <img src="../assets/project_gallery/fractals.jpg" alt="" class="w-full h-full">
+            <img src="../../assets/project_gallery/fractals.jpg" alt="" class="w-full h-full">
         </div>
 
         <div class="text_center section">

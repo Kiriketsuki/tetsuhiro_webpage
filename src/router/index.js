@@ -34,7 +34,7 @@ const routes = [{
         name: 'RRPSS',
         component: RRPSS
     }, {
-        path: '/projects/dancingtables',
+        path: '/projects/dancing_tables',
         name: 'DancingTables',
         component: DancingTables
     }, {

@@ -1,7 +1,14 @@
-# Vue 3 + Vite
+# Tetsuhiro Webpage
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+My personal portfolio webpage built from scratch
 
-## Recommended IDE Setup
+Has a simple about me, shows off my skills, many of my projects and some case studies
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+# Technologies Used:
+## Blender
+## Vue
+## Vite
+## Firebase
+## TailwindCSS
+## ThreeJS
+## GSAP

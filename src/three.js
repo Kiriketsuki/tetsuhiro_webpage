@@ -9,7 +9,7 @@ var parameters = {
 }
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, parameters.width / parameters.height, 1, 400);
+const camera = new THREE.PerspectiveCamera(50, parameters.width / parameters.height, 0.1, 400);
 const camera_group = new THREE.Group();
 camera.position.set(-100, 200, 200);
 camera_group.add(camera);

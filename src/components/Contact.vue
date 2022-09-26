@@ -9,10 +9,9 @@
                     <div class = "stagger_anim">
                         <p class="lg:text-2xl mb-4 text-quaternary font-slab">Socials</p>
                         <p class="lg:text-xl text-gra-500 mb-6 font-roboto">
-                            Lorem ipsum dolor sit amet consectetur, adipisicing elit. Sunt
-                            autem numquam dolore molestias aperiam culpa alias veritatis
-                            architecto eos, molestiae vitae ex eligendi libero eveniet
-                            dolorem, doloremque rem aliquid perferendis.
+                            Reach me at <a href="mailto: limzh.jovian@gmail.com"> limzh.jovian@gmail.com </a>
+                            or <a href="https://www.linkedin.com/in/jovian-lim-9b1b1b1b9/">LinkedIn</a>
+
                         </p>
                     </div>
 
@@ -28,7 +27,7 @@
         </div>
 
 
-        <div class="lg:mt-0 -mt-10 p-6 rounded-lg lg:w-1/2 w-10/12 shadow-lg h-[50vh] stagger_anim" style="background: hsla(0, 0%, 100%, 0.55); backdrop-filter: blur(30px)">
+        <!-- <div class="lg:mt-0 -mt-10 p-6 rounded-lg lg:w-1/2 w-10/12 shadow-lg h-[50vh] stagger_anim" style="background: hsla(0, 0%, 100%, 0.55); backdrop-filter: blur(30px)">
             <form class = "w-full stagger_anim h-11/12">
                 <div class="form-group mb-6">
                     <input type="text" class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:border-blue-600 focus:outline-none" id="exampleInput7" placeholder="Name">
@@ -58,7 +57,7 @@
                 duration-150
                 ease-in-out">Send</button>
             </form>
-        </div>
+        </div> -->
     </div>
 </template>
 

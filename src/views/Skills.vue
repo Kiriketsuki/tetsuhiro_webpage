@@ -256,6 +256,7 @@
 </script>
 
 <style scoped>
+    @reference "../index.css";
     p {
         @apply text-quinary lg:text-2xl w-[90%] lg:px-20 py-4;
         text-shadow: 1px white;

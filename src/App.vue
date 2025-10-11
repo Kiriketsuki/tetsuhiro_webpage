@@ -11,8 +11,7 @@
 </template>
 
 <script>
-
-import 'tw-elements';
+
 import Navbar from './components/Navbar.vue';
 export default {
     name: 'Tetsuhiro Webpage',

@@ -25,7 +25,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.toneMappingExposure = 0.8;
 renderer.shadowMap.enabled = true;

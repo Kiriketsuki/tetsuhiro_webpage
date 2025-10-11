@@ -309,6 +309,7 @@
 </script>
 
 <style scoped>
+    @reference "../index.css";
     img {
         @apply w-full h-full rounded-xl;
         object-fit: cover;

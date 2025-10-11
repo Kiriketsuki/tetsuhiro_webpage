@@ -249,7 +249,7 @@ window.addEventListener('mousemove', (e) => {
 });
 
 //? Fog
-const fog = new THREE.Fog(0x001220, 50, 200);
+const fog = new THREE.Fog(0x03111e, 50, 200);
 scene.fog = fog;
 
 //? Animation

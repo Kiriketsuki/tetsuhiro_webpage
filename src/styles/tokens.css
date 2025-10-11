@@ -1,0 +1,38 @@
+@theme {
+    /* surfaces */
+    --color-bg-base: oklch(0.172 0.035 245.8); /* #03111e */
+    --color-bg-raised: oklch(0.219 0.05 258.7); /* #0b1a31 */
+    --color-bg-overlay: oklch(0.27 0.055 261.4); /* #172641 */
+    --color-line: oklch(0.36 0.046 256.1); /* #2d3e55 */
+
+    /* text */
+    --color-text-strong: oklch(0.96 0.012 79.8); /* #f6f1e9 */
+    --color-text-body: oklch(0.9 0.018 81.3); /* #e4ddd1 */
+    --color-text-muted: oklch(0.769 0.027 76.7); /* #beb2a1 */
+    --color-text-faint: oklch(0.62 0.029 74.6); /* #918473 */
+
+    /* accents */
+    --color-ruby: oklch(0.639 0.189 14.1); /* #e74d68 */
+    --color-rose: oklch(0.75 0.119 8.4); /* #ee8d9f */
+    --color-amber: oklch(0.839 0.14 84.1); /* #f5c252 */
+    --color-sand: oklch(0.83 0.085 75); /* #e8c089 */
+    --color-teal: oklch(0.74 0.1 214.7); /* #54bbd2 */
+    --color-violet: oklch(0.679 0.141 297.9); /* #a383e3 */
+    --color-moss: oklch(0.679 0.089 158); /* #66a983 */
+
+    /* scene lights, used from three.js later */
+    --color-lava: oklch(0.64 0.2 33.1); /* #ec4e2f */
+    --color-lava-glow: oklch(0.8 0.13 62.3); /* #f9aa60 */
+    --color-portal: oklch(0.699 0.161 297.9); /* #ab85f4 */
+    --color-portal-rim: oklch(0.799 0.1 210.2); /* #66cfe1 */
+    --color-campfire: oklch(0.799 0.15 68); /* #fca942 */
+    --color-moon: oklch(0.931 0.03 243.4); /* #d8ebfb */
+    --color-sea: oklch(0.4 0.07 231.9); /* #164e67 */
+    --color-sea-light: oklch(0.661 0.09 221.8); /* #4b9fba */
+
+    /* status, lifted so dark text sits on them */
+    --color-status-ok: oklch(0.8 0.15 150);
+    --color-status-warn: oklch(0.84 0.14 84);
+    --color-status-error: oklch(0.72 0.17 22);
+    --color-status-info: oklch(0.78 0.1 230);
+}

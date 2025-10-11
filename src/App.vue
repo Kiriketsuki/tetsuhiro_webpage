@@ -11,7 +11,7 @@
 </template>
 
 <script>
-
+
 import Navbar from './components/Navbar.vue';
 export default {
     name: 'Tetsuhiro Webpage',
@@ -24,7 +24,7 @@ export default {
 
 <style>
     body {
-        background-color: #001220;
+        background-color: var(--color-bg-base);
     }
     
     canvas {
@@ -63,7 +63,7 @@ export default {
     }
 
     :root {
-        --gradient: linear-gradient(45deg, #E01A4F, #498467, #F9C22E, #53B3CB);
+        --gradient: linear-gradient(45deg, var(--color-ruby), var(--color-moss), var(--color-amber), var(--color-teal));
     }
 
     @keyframes gradient_animation {

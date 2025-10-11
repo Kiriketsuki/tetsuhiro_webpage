@@ -153,7 +153,7 @@
 <style>
     body {
         overflow-x: hidden;
-        background-color: #001220;
+        background-color: var(--color-bg-base);
     }
 
     canvas {

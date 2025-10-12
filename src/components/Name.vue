@@ -1,6 +1,6 @@
 <template>
     <div class = "w-screen h-screen flex flex-col items-center justify-center bg-bg-base z-100 text-center">
-        <div class = "font-slab lg:text-[10rem] text-3xl text-quaternary px-10 rounded-3xl">
+        <div class = "font-slab lg:text-[clamp(3rem,7vw,7rem)] text-3xl text-quaternary px-10 rounded-3xl">
             Lim Zhe Hong, Jovian
         </div>
 

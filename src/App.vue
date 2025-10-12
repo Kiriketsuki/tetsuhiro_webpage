@@ -24,6 +24,7 @@ export default {
 
 <style>
     body {
+        font-family: var(--font-body);
         background-color: var(--color-bg-base);
     }
     

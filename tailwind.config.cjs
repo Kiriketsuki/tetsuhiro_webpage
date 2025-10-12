@@ -5,8 +5,8 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                slab: [`"Roboto Slab"`, "sans-serif"],
-                roboto: [`"Roboto"`, "sans-serif"],
+                slab: ["var(--font-display)"],
+                roboto: ["var(--font-body)"],
             },
             colors: {
                 secondary: "var(--color-ruby)",

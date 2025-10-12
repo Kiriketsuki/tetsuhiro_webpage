@@ -35,4 +35,9 @@
     --color-status-warn: oklch(0.84 0.14 84);
     --color-status-error: oklch(0.72 0.17 22);
     --color-status-info: oklch(0.78 0.1 230);
+
+    /* type */
+    --font-display: "Instrument Serif", Georgia, serif;
+    --font-label: "Fira Code", ui-monospace, monospace;
+    --font-body: "Inter", system-ui, sans-serif;
 }

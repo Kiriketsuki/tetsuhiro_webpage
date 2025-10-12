@@ -1,6 +1,6 @@
 <template>
     <transition appear @before-enter="beforeEnter" @enter="enter">
-        <div class="flex flex-col items-center justify-center text-[10rem] text-secondary font-slab w-screen gap-24">
+        <div class="flex flex-col items-center justify-center text-[clamp(3rem,7vw,7rem)] text-secondary font-slab w-screen gap-24">
             <h1>Projects</h1>
 
             <div class="project_container fractal stagger-anim">

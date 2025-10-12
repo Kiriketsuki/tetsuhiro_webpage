@@ -1,99 +1,115 @@
+<script setup>
+import { projects } from '../data/projects.js'
+
+const rows = (project) => [
+    ['Stack', project.stack],
+    ['Year', project.year],
+    ['Role', project.role],
+]
+</script>
+
 <template>
-    <div class = "lg:w-[80vw] flex flex-col items-center justify-center gap-10 mt-12">
-        <h1 class = "font-slab font-bold text-5xl text-secondary">
-            Explosive Projects
+    <div class="flex h-full w-screen flex-col justify-center gap-6 pt-8 pb-24">
+        <h1 class="projects-title px-6 font-slab text-[clamp(2.5rem,6vw,5rem)] leading-none lg:px-16">
+            Projects
         </h1>
 
-        <div id="carouselExampleCaptions" class="carousel relative w-[80vw] h-[75vh] rounded-3xl shadow-xl" data-bs-ride="carousel" data-bs-interval = "false">
-            <div class="carousel-indicators absolute right-0 bottom-0 left-0 flex justify-center p-0 mb-4">
-                <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1" ></button>
-                <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="2" aria-label="Slide 3" ></button>
-                <button type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide-to="3" aria-label="Slide 4" ></button>
-
-            </div>
-            <div class="carousel-inner relative overflow-hidden h-[75vh] w-full rounded-3xl font-gabriola">
-
-                <div class="carousel-item relative active float-left w-full h-full">
-                    <img src="../assets/project_gallery/fractals.jpg" class="block w-full h-full" alt="..." />
-                    <div class="carousel-caption hidden md:block absolute text-center">
-                        <h5 class="text-xl">Fractals in Java</h5>
-                        <p>A simple program using Java to image fractals such as the Mandelbrot Set</p>
-                    </div>
+        <ul class="cards flex snap-x gap-5 overflow-x-auto px-6 pb-4 lg:px-16">
+            <li
+                v-for="project in projects"
+                :key="project.id"
+                class="glass flex w-72 shrink-0 snap-start flex-col overflow-hidden lg:w-80"
+            >
+                <img
+                    v-if="project.image"
+                    :src="project.image"
+                    :alt="project.title"
+                    class="h-40 w-full object-cover"
+                />
+                <div
+                    v-else
+                    class="flex h-40 w-full items-end bg-bg-raised p-4 font-slab text-3xl text-text-muted"
+                    aria-hidden="true"
+                >
+                    {{ project.title }}
                 </div>
 
-                <div class="carousel-item relative float-left w-full h-full">
-                    <img src="../assets/project_gallery/sixma.jpg" class="block w-full h-full" alt="..." />
-                    <div class="carousel-caption hidden md:block absolute text-center">
-                            <h5 class="text-xl">Sixma Restaurant</h5>
-                            <p>Restaurant Reservaction and Point of Sale System</p>
+                <div class="flex flex-1 flex-col gap-4 p-5">
+                    <div>
+                        <h2 class="font-slab text-3xl leading-tight text-text-strong">
+                            {{ project.title }}
+                        </h2>
+                        <p class="mt-1 font-body text-sm text-text-body">{{ project.blurb }}</p>
                     </div>
+
+                    <dl class="mt-auto grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
+                        <template v-for="[key, value] in rows(project)" :key="key">
+                            <dt class="font-label text-xs tracking-wider text-text-faint uppercase">
+                                {{ key }}
+                            </dt>
+                            <dd class="font-body text-text-body">{{ value }}</dd>
+                        </template>
+                    </dl>
+
+                    <router-link v-if="project.action?.to" :to="project.action.to" class="action">
+                        {{ project.action.label }}
+                    </router-link>
+                    <a
+                        v-else-if="project.action?.href"
+                        :href="project.action.href"
+                        target="_blank"
+                        rel="noopener"
+                        class="action"
+                    >
+                        {{ project.action.label }}
+                    </a>
+                    <span v-else class="font-label text-xs tracking-wider text-text-faint uppercase">
+                        Not public
+                    </span>
                 </div>
-                <div class="carousel-item  relative float-left w-full h-full">
-                    <img src="../assets/project_gallery/placeholders.jpg" class="block w-full h-full" alt="..."/>
+            </li>
+        </ul>
 
-                    <div class="carousel-caption hidden md:block absolute text-center text-black">
-                        <h5 class="text-xl">Placeholder Apartments</h5>
-                        <p>A website designed to recommend second hand apartments based on government-provided data</p>
-                    </div>
-                </div>
-
-
-
-                <div class="carousel-item relative float-left w-full h-full">
-                    <img src="../assets/project_gallery/dancing_table.jpg" class="block w-full h-full" alt="..." />
-                    <div class="carousel-caption hidden md:block absolute text-center">
-                        <h5 class="text-xl">Dancing Tables</h5>
-                        <p>A promotional website for the Dancing Tables product</p>
-                    </div>
-                </div>
-            </div>
-
-            <button class="carousel-control-prev absolute top-0 bottom-0 flex items-center justify-center p-0 text-center border-0 hover:outline-none hover:no-underline focus:outline-none focus:no-underline left-0" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev" >
-                <span class="carousel-control-prev-icon inline-block bg-no-repeat" aria-hidden="true"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next absolute top-0 bottom-0 flex items-center justify-center p-0 text-center border-0 hover:outline-none hover:no-underline focus:outline-none focus:no-underline right-0" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next" >
-                <span class="carousel-control-next-icon inline-block bg-no-repeat" aria-hidden="true"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
-        </div>
-
-        <button type="button" class="bg-quinary z-20 inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out"
-            @click=projects_redirect()>
-            More
-        </button>
+        <router-link to="/projects" class="action mx-6 w-fit lg:mx-16">All projects</router-link>
     </div>
 </template>
 
-<script>
-    export default {
-        methods: {
-            projects_redirect
-        }
-    }
+<style scoped>
+.projects-title {
+    background-image: var(--gradient);
+    background-size: 400%;
+    color: transparent;
+    background-clip: text;
+    background-position: left;
+    animation: gradient_animation 5s ease infinite alternate;
+}
 
-    import {main_trigger} from '../views/Home.vue';
-    import gsap from 'gsap';
-    function projects_redirect() {
-        gsap.to(window.document.querySelector("#webgl").style, {opacity: 0, duration: 1});
-        setTimeout(() => {;
-            this.$router.push('/projects');
-        }, 1000);
-        document.scrollingElement.scrollTo(0,0);
-        main_trigger.kill(); // removes scrolltrigger and its snap
-    }
-</script>
+.glass {
+    background: color-mix(in oklch, var(--color-bg-overlay) 80%, transparent);
+    backdrop-filter: blur(10px) saturate(170%);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 16px;
+}
 
-<style>
-    img {
-        object-fit: cover;
-    }
+.action {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: var(--color-ruby);
+    color: var(--color-bg-base);
+    font-family: var(--font-label);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
 
-    h5 {
-        color: #F9C22E
-    }
-    p {
-        color: #53B3CB
-    }
+.action:focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+}
+
+.cards {
+    scrollbar-width: thin;
+}
 </style>

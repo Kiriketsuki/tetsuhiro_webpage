@@ -9,8 +9,9 @@
                     <div class = "stagger_anim">
                         <p class="lg:text-2xl mb-4 text-quaternary font-slab">Socials</p>
                         <p class="lg:text-xl text-gra-500 mb-6 font-roboto">
-                            Reach me at <a href="mailto: limzh.jovian@gmail.com"> limzh.jovian@gmail.com </a>
-                            or <a href="https://www.linkedin.com/in/jovian-lim-9b1b1b1b9/">LinkedIn</a>
+                            Reach me at <a href="mailto:limzh.jovian@gmail.com"> limzh.jovian@gmail.com </a>
+                            or <a href="https://www.linkedin.com/in/jovian-lim-tetsuhiro">LinkedIn</a>
+                            or <a href="https://github.com/Kiriketsuki">GitHub</a>
 
                         </p>
                     </div>

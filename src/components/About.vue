@@ -1,56 +1,76 @@
+<script setup>
+import photo from '../assets/photo.jpg'
+</script>
+
 <template>
-    <div class="lg:w-auto w-screen flex items-center justify-center">
-        <div class = "flex lg:flex-row items-center justify-center lg:h-[85vh] h-screen flex-col lg:w-auto md:mt-10 sm:mt-10 w-[90%]">
-            <div class="background lg:[60vh] flex flex-col lg:flex-row rounded-xl">
-                <div class="lg:w-[20vw] h-[60vh]">
-                    <div class="block rounded-lg h-full">
-                        <div class="relative overflow-hidden bg-no-repeat bg-cover " >
-                            <img src="../assets/photo.jpg" class="w-full rounded-t-lg" />
-                            <!-- <svg class="absolute text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" style="left: 0; bottom: 0"> <path fill="#fff" d="M0,288L48,272C96,256,192,224,288,197.3C384,171,480,149,576,165.3C672,181,768,235,864,250.7C960,267,1056,245,1152,250.7C1248,256,1344,288,1392,304L1440,320L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"> </path> </svg> -->
-                        </div>
+    <div class="flex h-full w-screen items-center justify-center px-5 pb-20">
+        <div class="glass flex w-full max-w-5xl flex-col overflow-hidden lg:flex-row">
+            <div class="lg:w-72 lg:shrink-0">
+                <img
+                    :src="photo"
+                    alt="Portrait of Jovian Lim"
+                    class="h-48 w-full object-cover object-top lg:h-full"
+                />
+            </div>
 
-                        <div class="p-6 font-slab flex lg:flex-col justify-between">
-                            <div>
-                                <h5 class="lg:text-5xl text-4xl font-bold lg:mb-4 text-secondary">Jovian Lim</h5>
-                                <p class=" mb-4 lg:text-2xl text-xl text-tertiary">Software Engineer</p>
-                            </div>
-                            <ul class="list-inside flex mx-auto justify-center h-1/2">
-                                <a href="https://www.linkedin.com/in/jovian-lim-tetsuhiro" target="_blank" rel="noopener" class="px-2" aria-label="LinkedIn">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-8 h-8 text-quinary"> <path fill="currentColor" d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8a53.79 53.79 0 0 1 107.58 0c0 29.7-24.1 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z" /> </svg>
-                                </a>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class = "lg:w-[50vw] lg:h-[60vh] lg:p-0 py-4 shadow-lg flex flex-col items-center justify-center lg:text-4xl lg:gap-10 text-left rounded-lg font-roboto">
-                    <p class = 'w-11/12'>
-                        Hey there! I am Jovian Lim, and I am currently a student at Nanyang Technological University (NTU) in Singapore!
-                        I am majoring in Computer Science, and I am specializing in Data Science and Artificial Intelligence.
-                    </p>
-                    <br>
-                    <p class = 'w-11/12'>
-                        About my educational history, I took the GCE O Levels in 2015, and went on to be admitted into Anglo-Chinese Junior College, where I took the A levels in 2017.
-                        My subjects were Physics, Chemistry, and Mathematics, as well as H1 Economics. After, I served my National Service, before starting school at NTU, where I am currently expecting to graduate from in 2024 
-                    </p>
-                    <br>
-                    <p class = 'w-11/12'>
-                        My hobbies include playing games, watching shows, photography, videography, and most importantly of all, programming! I have done quite a few passion projects, and you can find out more by scrolling! 
-                    </p>
-                </div>
+            <div class="flex flex-col gap-4 p-6 lg:p-10">
+                <p class="font-label text-xs tracking-widest text-teal uppercase">About</p>
+                <h2 class="font-slab text-[clamp(2.25rem,5vw,4rem)] leading-none text-text-strong">
+                    Jovian Lim
+                </h2>
+                <p class="font-body text-sm text-text-body sm:text-base">
+                    Hi, I am Jovian. I graduated from NTU in January 2025 with a degree in Computer
+                    Science.
+                </p>
+                <p class="font-body text-sm text-text-body sm:text-base">
+                    Since February 2025 I have been a Software Engineer at Aurrigo. I build the
+                    interfaces that operators use to work with autonomous airside vehicles.
+                </p>
+                <p class="font-body text-sm text-text-body sm:text-base">
+                    On the side I make 3D things in Blender and Three.js, and this site is where they
+                    end up. Scroll down to see some of it.
+                </p>
+                <ul class="mt-2 flex gap-5 font-label text-xs tracking-wider uppercase">
+                    <li>
+                        <a
+                            href="https://www.linkedin.com/in/jovian-lim-tetsuhiro"
+                            target="_blank"
+                            rel="noopener"
+                            class="link"
+                            >LinkedIn</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="https://github.com/Kiriketsuki"
+                            target="_blank"
+                            rel="noopener"
+                            class="link"
+                            >GitHub</a
+                        >
+                    </li>
+                </ul>
             </div>
         </div>
-
     </div>
 </template>
 
-<script>
-    export default {}
-</script>
-
 <style scoped>
-    .background {
-        background-color: hsla(0, 0, 100%, 0.5);
-        backdrop-filter: blur(100px);
-    }
+.glass {
+    background: color-mix(in oklch, var(--color-bg-overlay) 80%, transparent);
+    backdrop-filter: blur(10px) saturate(170%);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 16px;
+}
+
+.link {
+    color: var(--color-sand);
+    border-bottom: 1px solid transparent;
+}
+
+.link:hover,
+.link:focus-visible {
+    border-bottom-color: var(--color-teal);
+    outline: none;
+}
 </style>

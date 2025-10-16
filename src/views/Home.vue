@@ -1,172 +1,137 @@
 <template>
     <div>
-        <transition appear @before-enter="beforeEnter" @enter="enter" @leave="beforeLeave">
-            <canvas id="webgl" class="w-screen h-screen">
-            </canvas>
-        </transition>
         <section class="h-screen name fixed top-0 left-0 w-screen">
-            <Name class = "z-100"/>
+            <Name class="z-100" />
         </section>
-        <div id = "home" class="w-screen flex flex-col items-center justify-between -z-10" style = "visibility: hidden">
-            <section class = "h-screen w-full dodecahedron">
+        <div id="home" class="w-screen flex flex-col items-center justify-between" style="visibility: hidden">
+            <section class="h-screen w-full dodecahedron">
                 <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[clamp(3rem,9vw,9rem)] text-5xl text-secondary px-10 rounded-3xl w-full">
                     Welcome
-                    <button type="button" class="z-20 inline-block px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
-                        @click=clear_html()>
+                    <button type="button" class="view-scene" @click="sceneOnly = true">
                         View Scene
                     </button>
                 </div>
             </section>
-            <section class="h-screen about">
-                <About/>
+            <section class="h-screen w-full about">
+                <About />
             </section>
-            <section class="h-screen skills">
-                <Skills/>
+            <section class="h-screen w-full skills">
+                <Skills />
             </section>
-            <section class="h-screen projects">
-                <Projects/>
+            <section class="h-screen w-full projects">
+                <Projects />
             </section>
-            <section class="h-screen contact">
-                <Contact/>
+            <section class="h-screen w-full contact">
+                <Contact />
             </section>
         </div>
+        <button v-if="sceneOnly" type="button" class="view-scene back" @click="sceneOnly = false">
+            Back to page
+        </button>
     </div>
 </template>
 
-<script>
-    import Name from '../components/Name.vue';
-    import About from '../components/About.vue';
-    import Skills from '../components/Skills.vue';
-    import Projects from '../components/Projects.vue';
-    import Contact from '../components/Contact.vue';
-    import { gsap } from 'gsap';
-    import { ScrollTrigger } from 'gsap/ScrollTrigger';
-    export default  {
-        name: 'Tetsuhiro Webpage',
-        components: {
-    Name,
-    About,
-    Skills,
-    Projects,
-    Contact,
-    },
-    methods: {
-        scrolling,
-        clear_html
-    },
-    setup(){
-        try {
-            setTimeout(() => {
-                document.querySelector(".name").style.visibility = "hidden";
-                if (document.querySelector("#webgl").style.opacity != 1) {
-                    location.reload();
-                }
-            }, 30000);
-        } catch (error) {
-            console.log();
-        }
+<script setup>
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Name from '../components/Name.vue'
+import About from '../components/About.vue'
+import Skills from '../components/Skills.vue'
+import Projects from '../components/Projects.vue'
+import Contact from '../components/Contact.vue'
+import { useWaypoints, sections } from '../composables/useWaypoints.js'
 
-        const beforeEnter = (el) => {
-            el.style.opacity = 0;
-        }
+gsap.registerPlugin(ScrollTrigger)
 
-        const enter = (el) => {
-            gsap.to(el, {opacity: 1, duration: 1.5});
-            console.log("canvas enter")
-        }
+const { active, reducedMotion, setActive, goTo } = useWaypoints()
+const sceneOnly = ref(false)
 
-        const beforeLeave = (el) => {
-            gsap.to(el, {opacity: 0, duration: 1.5});
-            console.log("canvas leave")
-        }
+let trigger = null
 
-        return {beforeEnter, enter, beforeLeave}
-    },
-    mounted() {
-        scrolling();
-    }}
+// Only the section in view shows. The camera moves to match it.
+const showSection = (index) => {
+    sections.forEach((name, i) => {
+        gsap.to(`.${name}`, {
+            autoAlpha: i === index ? 1 : 0,
+            duration: reducedMotion.value ? 0 : 0.6,
+        })
+    })
+}
 
-    //? GSAP
-    var main_trigger = null;
-    function scrolling() {
-        gsap.registerPlugin(ScrollTrigger);
-        var curr_section = 0;
-        var prev_section = 0;
+const onKey = (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    if (e.target.closest('input, textarea, select')) return
+    const number = Number(e.key)
+    if (number >= 1 && number <= sections.length) goTo(number - 1)
+}
 
-        // Dodecahedron
-        var dodec_tween = gsap.fromTo('.dodecahedron', {opacity: 0}, {opacity: 1, duration: 1, ease: 'power2.out'});
-        // dodec_tween.pause();
-        // About
-        var about_tween = gsap.fromTo('.about', {xPercent: -200}, {xPercent: 0, duration: 1})
-        about_tween.pause();
-        // Skills
-        var skill_tween = gsap.fromTo('.skills', {xPercent: 400, scale: 0}, {xPercent: 0, scale: 1.5, duration: 1});
-        skill_tween.pause();
-        // Projects
-        var proj_tween = gsap.fromTo('.projects', {opacity: 0}, {opacity: 1, duration: 0.5});
-        proj_tween.pause();
-        // Contacts
-        var contact_tween = gsap.fromTo('.stagger_anim', {opacity: 0}, {opacity: 1, stagger: 0.2});
-        contact_tween.pause();
+watch(active, showSection)
 
-        // tween arrays
-        var tweens = [dodec_tween ,about_tween, skill_tween, proj_tween, contact_tween];
-        // ScrollTrigger
-        main_trigger = ScrollTrigger.create({
-            snap: window.innerWidth >= 1000 ? 1/4 : false,
-            duration: 0.1,
-            // scrub: 0.1,
-            trigger: document.querySelector('.webgl'),
-            onUpdate: (self) => {
-                var ratio = self.progress;
-                prev_section = curr_section;
+watch(sceneOnly, (value) => {
+    gsap.to('#home', {
+        autoAlpha: value ? 0 : 1,
+        duration: reducedMotion.value ? 0 : 0.4,
+    })
+})
 
-                //? out of all 5 positions in array, check which section, then move
-                var section = ratio * tweens.length; // from 0 to 1 becomes 0 to 5
-                var section = Math.floor(section) // clamps down to nearest integer
-                section == 5 ? section = 4 : section = section; // prevent out of index
-                curr_section = section;
-                
-                //? if section changed, pause all tweens and play the new one
-                if (prev_section != curr_section) {
-                    tweens[prev_section].reverse();
-                    setTimeout(() => {
-                        tweens[curr_section].play();
-                    }, 100); // allow threejs to play first
-                }
+onMounted(async () => {
+    await nextTick()
+    window.scrollTo(0, 0)
+    setActive(0)
+    showSection(0)
 
-            }
-        });
+    trigger = ScrollTrigger.create({
+        trigger: '#home',
+        start: 'top top',
+        end: 'bottom bottom',
+        snap: {
+            snapTo: 1 / (sections.length - 1),
+            duration: { min: 0.2, max: 0.6 },
+            ease: 'power1.inOut',
+        },
+        onUpdate: (self) => setActive(Math.round(self.progress * (sections.length - 1))),
+    })
+    window.addEventListener('keydown', onKey)
+})
 
-        window.onpopstate = function () {
-            location.reload()
-        };
-    }
-    export {main_trigger};
-
-    // ? View Scene
-    function clear_html() {
-        document.querySelector("#home").style.visibility = "hidden";
-    }
+onBeforeUnmount(() => {
+    trigger?.kill()
+    window.removeEventListener('keydown', onKey)
+})
 </script>
 
 <style>
-    body {
-        overflow-x: hidden;
-        background-color: var(--color-bg-base);
-    }
+body {
+    overflow-x: hidden;
+    background-color: var(--color-bg-base);
+}
 
-    canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: -1;
-        opacity: 0;
-        visibility: hidden;
-    }
+.dodecahedron {
+    text-shadow: 1px 1px black;
+}
 
-    .dodecahedron {
-        text-shadow: 1px 1px black;
-    }
+.view-scene {
+    z-index: 20;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: var(--color-ruby);
+    color: var(--color-bg-base);
+    font-family: var(--font-label);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: none;
+}
 
+.view-scene:focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+}
+
+.view-scene.back {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+}
 </style>

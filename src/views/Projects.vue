@@ -4,7 +4,7 @@
             <h1>Projects</h1>
 
             <div class="project_container fractal stagger-anim">
-                <div class="image_description stagger-anim" :v-if=big style="opacity: 1">
+                <div class="image_description stagger-anim" v-if="big" style="opacity: 1">
                     <div class="text_left">
                         <div class="text">
                             <p>
@@ -58,7 +58,7 @@
             </div>
             
             <div class="project_container rrpss stagger-anim">
-                <div class="image_description stagger-anim" :v-if="big" style="opacity: 1">
+                <div class="image_description stagger-anim" v-if="big" style="opacity: 1">
                     <div class="text_left">
                         <div class="text">
                             <p>
@@ -115,7 +115,7 @@
             </div>
 
             <div class="project_container placeholders stagger-anim">
-                <div class="image_description stagger-anim" :v-if="big" style="opacity: 1">
+                <div class="image_description stagger-anim" v-if="big" style="opacity: 1">
                     <div class="text_left">
                         <div class="text">
                             <p>
@@ -168,7 +168,7 @@
             </div>
 
             <div class="project_container dancing_tables stagger-anim">
-                <div class="image_description stagger-anim" :v-if="big" style="opacity: 1">
+                <div class="image_description stagger-anim" v-if="big" style="opacity: 1">
                     <div class="text_left">
                         <div class="text">
                             <p>

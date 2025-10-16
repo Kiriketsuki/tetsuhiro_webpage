@@ -10,33 +10,15 @@
                 just like I would when finishing a video game.
             </p>
 
-            <button type="button" class="px-6 py-2.5 bg-quinary text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
-                @click=skills_redirect()>
+            <router-link to="/skills" class="px-6 py-2.5 bg-quinary text-bg-base text-center font-label text-xs leading-tight uppercase rounded shadow-md focus-visible:outline-2 focus-visible:outline-teal">
                 More
-            </button>
+            </router-link>
         </div>
     </div>
 </template>
            
 
-<script>
-    export default {
-        methods: {
-            skills_redirect
-        }
-    }
 
-    import {main_trigger} from '../views/Home.vue';
-    import gsap from 'gsap';
-    function skills_redirect() {
-        gsap.to(window.document.querySelector("#webgl").style, {opacity: 0, duration: 1});
-        setTimeout(() => {;
-            this.$router.push('/skills');
-        }, 1000);
-        document.scrollingElement.scrollTo(0,0);
-        main_trigger.kill(); // removes scrolltrigger and its snap
-    }
-</script>
 
 <style scoped>
 

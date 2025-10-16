@@ -1,53 +1,37 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useScramble } from '../composables/useScramble.js'
+import { useWaypoints } from '../composables/useWaypoints.js'
 
 const router = useRouter()
 const { scramble } = useScramble()
+const { active, goTo } = useWaypoints()
 
-const items = [
-    { label: 'Welcome', target: '.dodecahedron' },
-    { label: 'About', target: '.about' },
-    { label: 'Skills', target: '.skills' },
-    { label: 'Projects', target: '.projects' },
-    { label: 'Contact', target: '.contact' },
-]
+const items = ['Welcome', 'About', 'Skills', 'Projects', 'Contact']
 
-const active = ref(0)
-
-const go = (item) => {
-    const el = document.querySelector(item.target)
-    if (el) {
-        el.scrollIntoView({ behavior: 'smooth' })
-    } else {
-        router.push('/')
-    }
+const go = async (index) => {
+    if (goTo(index)) return
+    await router.push('/')
+    await nextTick()
+    goTo(index)
 }
-
-const onScroll = () => {
-    const index = Math.round(window.scrollY / window.innerHeight)
-    active.value = Math.min(items.length - 1, Math.max(0, index))
-}
-
-onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
-onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
     <nav class="nav-strip nav_stagger" aria-label="Sections" style="visibility: hidden">
         <ul class="flex items-center justify-between gap-1 sm:gap-6">
-            <li v-for="(item, i) in items" :key="item.label">
+            <li v-for="(item, i) in items" :key="item">
                 <button
                     type="button"
                     class="nav-item"
                     :class="{ active: i === active }"
                     :aria-current="i === active ? 'true' : undefined"
-                    @click="go(item)"
+                    @click="go(i)"
                     @mouseenter="scramble($event.currentTarget.firstElementChild)"
                     @focus="scramble($event.currentTarget.firstElementChild)"
                 >
-                    <span>{{ item.label }}</span>
+                    <span>{{ item }}</span>
                 </button>
             </li>
         </ul>

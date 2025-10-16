@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { watch } from 'vue';
+import { useWaypoints } from './composables/useWaypoints.js';
+
+const { active, ready, reducedMotion } = useWaypoints();
 
 //? Set up
 var parameters = {
@@ -14,10 +18,7 @@ const camera_group = new THREE.Group();
 camera.position.set(-100, 200, 200);
 camera_group.add(camera);
 scene.add(camera_group);
-window.onload = () => {
-    document.scrollingElement.scrollTop = 0;
-    document.body.style.overflowY = "hidden";
-}
+history.scrollRestoration = 'manual';
 
 
 //? Renderer options
@@ -208,12 +209,10 @@ model_loader.load(waveURL, (glb) => {
     scene.add(glb.scene)
 });
 
-// ? Scrolling animation 
-// ! Need to make less laggy
+// ? Camera waypoints
 var camera_target = new THREE.Mesh( new THREE.BoxGeometry(0.01, 0.01, 0.01), new THREE.PointsMaterial());
 camera_target.position.set(0, 0, 0);
 scene.add(camera_target);
-//! Trying new method, having an array of positions for the camera to move to.
 var positions_array = [
     new THREE.Vector3(18.1, 6.8, -35), // dodecahedron
     new THREE.Vector3(-27.6, 12.178, -40), // about
@@ -222,30 +221,28 @@ var positions_array = [
     new THREE.Vector3(-126, 94.3, -100) // contact
 ]
 
-var previous_section = 0;
-var curr_section = 0;
-
-var camera_positions = {
-    x: positions_array[0].x,
-    y: positions_array[0].y,
-    z: positions_array[0].z
+// One tween per move. Reduced motion gets an instant cut.
+function move_camera(section, duration = 1.4) {
+    const position = positions_array[section];
+    const ratio = section / (positions_array.length - 1);
+    const target = {
+        x: position.x + Math.cos(ratio * Math.PI) * 20,
+        y: position.y - 30,
+        z: 300
+    }
+    const time = reducedMotion.value ? 0 : duration;
+    gsap.to(camera.position, {x: position.x, y: position.y, z: position.z, duration: time, ease: 'power2.inOut', overwrite: 'auto'});
+    gsap.to(camera_target.position, {...target, duration: time, ease: 'power2.inOut', overwrite: 'auto'});
 }
 
-var camera_target_positions = {
-    x: camera_positions.x,
-    y: camera_positions.y - 30,
-    z: 200
-}
+watch(active, (section) => move_camera(section));
 
 //? Parallax Movement
-var cursor = {
-    x: 0,
-    y: 0
-}
-
 window.addEventListener('mousemove', (e) => {
-    cursor.x = e.clientX / window.innerWidth * 2 - 1;
-    cursor.y = e.clientY / window.innerHeight * 2 - 1;
+    if (reducedMotion.value) return;
+    const x = e.clientX / window.innerWidth * 2 - 1;
+    const y = e.clientY / window.innerHeight * 2 - 1;
+    gsap.to(camera_group.position, {x: -x * 4, y: -y * 4, duration: 0.6, ease: 'power2.out', overwrite: true});
 });
 
 //? Fog
@@ -272,16 +269,6 @@ function loop() {
     mixer.update(0.002)
     mixer2.update(0.0002);
 
-    //? camera
-    // parallax
-    gsap.to(camera_group.position, {x: -cursor.x * 4, y: -cursor.y * 4, duration: 0.06, ease: "power4.inOut"});
-
-    // scroll
-    if (curr_section != previous_section) {
-        // gsap to new section
-        gsap.to(camera.position, {x: camera_positions.x, y: camera_positions.y, z: camera_positions.z, duration: 1, ease: "sine.inOut"});
-        gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "sine.inOut"});
-    }
     camera.lookAt(camera_target.position);
     requestAnimationFrame(loop);
 }
@@ -289,54 +276,16 @@ function loop() {
 //? Onload
 loading_manager.onLoad = () => {
     renderer.compile(scene, camera);
-    setTimeout(()=>{
-        before_scroll_load();
-        scroll_load();
-        gsap.to(camera.position, {x: positions_array[0].x, y: positions_array[0].y, z: positions_array[0].z, duration: 1, ease: "power4.inOut"});
-        gsap.to(camera_target.position, {x: camera_target_positions.x, y: camera_target_positions.y, z: camera_target_positions.z, duration: 1, ease: "power4.inOut"});
-        camera.lookAt(camera_target.position);
-        gsap.to(".name", {opacity: 0, duration: 1, delay: 1});
-        gsap.to(home.style, {visibility: "visible", duration: 1, delay: 1});
-        gsap.to(".nav_stagger", {visibility: "visible", duration: 1, delay: 2, stagger: 0.1});
-    }, 3000);
+    ready.value = true;
     loop();
-}
 
-import {ScrollTrigger} from 'gsap/ScrollTrigger';
-function before_scroll_load() {
-    canvas.style.visibility = "visible";
-    var spinner = document.getElementById("spinner");
-    var ready = document.getElementById("ready");
-    document.body.style.overflowY = "auto";
-    gsap.to(canvas.style, {opacity: 1, duration: 0.5});
-    gsap.to(spinner.style, {opacity: 0, duration: 1});
-    gsap.to(ready.style, {opacity: 1, duration: 1});
-}
-
-function scroll_load() {
-
-    ScrollTrigger.create({
-        trigger: document.querySelector('.webgl'),
-        onUpdate: (self) => {
-            var ratio = self.progress;
-            previous_section = curr_section;
-
-            
-            // ? out of all 5 positions in array, check which section, then move
-            var section = ratio * positions_array.length; // from 0 to 1 becomes 0 to 5
-            var section = Math.floor(section) // clamps down to nearest integer
-            section == 5 ? section = 4 : section = section; // prevent out of index
-            curr_section = section;
-            
-            // ? modify array of camera positions and camera target positions
-            camera_positions.x = positions_array[section].x;
-            camera_positions.y = positions_array[section].y;
-            camera_positions.z = positions_array[section].z;
-
-            var cam_x_offset = Math.cos(ratio * Math.PI) * 20;
-            camera_target_positions.x = camera_positions.x + cam_x_offset;
-            camera_target_positions.y = camera_positions.y - 30;
-            camera_target_positions.z = 300;
-        },
-    });
+    const tl = gsap.timeline({defaults: {ease: 'power2.inOut'}});
+    if (reducedMotion.value) tl.timeScale(20);
+    tl.to('#spinner', {opacity: 0, duration: 0.6})
+        .to('#ready', {opacity: 1, duration: 0.6}, '<')
+        .add(() => move_camera(active.value, 2), '>')
+        .to('.name', {opacity: 0, duration: 1}, '+=0.4')
+        .set('.name', {visibility: 'hidden'})
+        .to('#home', {autoAlpha: 1, duration: 1}, '<')
+        .to('.nav_stagger', {autoAlpha: 1, duration: 0.8}, '>-0.4');
 }

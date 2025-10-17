@@ -1,54 +1,27 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { watch } from 'vue';
 import { useWaypoints } from './composables/useWaypoints.js';
+import { createRenderer } from './scene/renderer.js';
+import { createLights } from './scene/lights.js';
+import { createStars } from './scene/stars.js';
+import { createWaypoints } from './scene/waypoints.js';
 
 const { active, ready, reducedMotion } = useWaypoints();
 
+// Seconds of animation per real second. These match the old per frame steps at 60fps.
+const FIRE_SPEED = 0.12;
+const SEA_SPEED = 0.012;
+
 //? Set up
-var parameters = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    ratio: 0,
-}
 const canvas = document.getElementById('webgl');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, parameters.width / parameters.height, 0.1, 400);
-const camera_group = new THREE.Group();
-camera.position.set(-100, 200, 200);
-camera_group.add(camera);
-scene.add(camera_group);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 history.scrollRestoration = 'manual';
 
-
-//? Renderer options
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setClearColor(0x000000);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ReinhardToneMapping;
-renderer.toneMappingExposure = 0.8;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.shadowMap.needsUpdate = true;
-renderer.shadowMap.autoUpdate = false;
-renderer.setClearAlpha(0);
-
-//? Resize
-window.addEventListener('resize', () => {
-    // Update parameters
-    parameters.width = window.innerWidth
-    parameters.height = window.innerHeight
-
-    // Update camera
-    camera.aspect = parameters.width / parameters.height
-    camera.updateProjectionMatrix()
-
-    // Update renderer
-    renderer.setSize(parameters.width, parameters.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-})
+const { renderer } = createRenderer({ canvas, scene, camera });
+createLights(scene);
+const stars = createStars(scene, renderer.getPixelRatio());
+const rig = createWaypoints({ scene, camera, active, reducedMotion });
 
 //? Environment
 const cube_loader = new THREE.CubeTextureLoader();
@@ -113,89 +86,6 @@ model_loader.load(dodecaURL, (glb) => {
     update_materials();
 })
 
-//? Light
-var light_1_pos, light_2_pos, light_3_pos;
-light_1_pos = {
-    x: 24.67058753967285,
-    y: 30.510108947753906,
-    z: 27.250045776367188
-}
-
-light_2_pos = {
-    x: 41.705875396728516,
-    y: 25.02428436279297,
-    z: 0
-}
-
-light_3_pos = {
-    x: 12.767450332641602,
-    y: 26.301376342773438,
-    z: -63.92277908325195
-}
-const light_1 = new THREE.PointLight(0xFFF9B0, 0.420, 0);
-light_1.position.set(light_1_pos.x, light_1_pos.y, light_1_pos.z);
-light_1.castShadow = true;
-light_1.shadow.camera.far = 1000;
-light_1.shadow.camera.near = 0.1;
-light_1.shadow.bias = -0.1;
-light_1.shadow.mapSize.width = 1024;
-light_1.shadow.mapSize.height = 1024;
-scene.add(light_1);
-
-const light_2 = new THREE.PointLight(0xFFF49C, 0.2, 0);
-light_2.position.set(light_2_pos.x, light_2_pos.y, light_2_pos.z);
-light_2.castShadow = true;
-light_2.shadow.camera.far = 100;
-light_2.shadow.camera.near = 0.1;
-light_2.shadow.bias = -0.1;
-scene.add(light_2);
-
-const light_3 = new THREE.PointLight(0x8080CF, 1.4, 0);
-light_3.position.set(light_3_pos.x, light_3_pos.y, light_3_pos.z);
-light_3.castShadow = true;
-light_3.shadow.camera.far = 400;
-light_3.shadow.radius = 10;
-light_3.shadow.bias = -0.1;
-scene.add(light_3);
-
-// ?  Stars
-const stars_counts = 5000;
-const position = new Float32Array(stars_counts * 3);
-const star_color = new Float32Array(stars_counts * 3);
-const star_scale = new Float32Array(stars_counts);
-for (var i = 0; i < stars_counts; i++) {
-    position[i * 3] = Math.random() * 1000 - 500; // x
-    position[i * 3 + 1] = (Math.random() * 300) - 30; // y
-    position[i * 3 + 2] = Math.random() * 1000 + 200; // z
-    star_scale[i] = Math.random() * 0.5 + 0.5;
-    star_color[i * 3] = 202/255;
-    star_color[i * 3 + 1] = 144/255;
-    star_color[i * 3 + 2] = 126/255;
-}
-
-import star_vertex from './assets/shaders/stars/vertex.glsl?raw';
-import star_fragment from './assets/shaders/stars/fragment.glsl?raw';
-const star_geo = new THREE.BufferGeometry();
-star_geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
-star_geo.setAttribute('color', new THREE.BufferAttribute(star_color, 3));
-star_geo.setAttribute('aScale', new THREE.BufferAttribute(star_scale, 1));
-const star_material = new THREE.ShaderMaterial({
-    vertexShader: star_vertex,
-    fragmentShader: star_fragment,
-    uniforms: {
-        uSize: { value: 20 * renderer.getPixelRatio()},
-        uTime: { value: 0 },
-    },
-    vertexColors: true,
-    depthTest: true,
-    transparent: true,
-    // blending: THREE.AdditiveBlending,
-    fog: false,
-});
-
-const star_mesh = new THREE.Points(star_geo, star_material);
-scene.add(star_mesh);
-
 // ? Sea
 import waveURL from './assets/models/wave.glb?url';
 model_loader.load(waveURL, (glb) => {
@@ -209,67 +99,26 @@ model_loader.load(waveURL, (glb) => {
     scene.add(glb.scene)
 });
 
-// ? Camera waypoints
-var camera_target = new THREE.Mesh( new THREE.BoxGeometry(0.01, 0.01, 0.01), new THREE.PointsMaterial());
-camera_target.position.set(0, 0, 0);
-scene.add(camera_target);
-var positions_array = [
-    new THREE.Vector3(18.1, 6.8, -35), // dodecahedron
-    new THREE.Vector3(-27.6, 12.178, -40), // about
-    new THREE.Vector3(-57, 23.7, -60), // skill tree
-    new THREE.Vector3(-129, 34, -100), // projects
-    new THREE.Vector3(-126, 94.3, -100) // contact
-]
-
-// One tween per move. Reduced motion gets an instant cut.
-function move_camera(section, duration = 1.4) {
-    const position = positions_array[section];
-    const ratio = section / (positions_array.length - 1);
-    const target = {
-        x: position.x + Math.cos(ratio * Math.PI) * 20,
-        y: position.y - 30,
-        z: 300
-    }
-    const time = reducedMotion.value ? 0 : duration;
-    gsap.to(camera.position, {x: position.x, y: position.y, z: position.z, duration: time, ease: 'power2.inOut', overwrite: 'auto'});
-    gsap.to(camera_target.position, {...target, duration: time, ease: 'power2.inOut', overwrite: 'auto'});
-}
-
-watch(active, (section) => move_camera(section));
-
-//? Parallax Movement
-window.addEventListener('mousemove', (e) => {
-    if (reducedMotion.value) return;
-    const x = e.clientX / window.innerWidth * 2 - 1;
-    const y = e.clientY / window.innerHeight * 2 - 1;
-    gsap.to(camera_group.position, {x: -x * 4, y: -y * 4, duration: 0.6, ease: 'power2.out', overwrite: true});
-});
-
-//? Fog
-const fog = new THREE.Fog(0x03111e, 50, 200);
-scene.fog = fog;
-
 //? Animation
 const clock = new THREE.Clock();
 
 function loop() {
-    const uTime = clock.getElapsedTime();
-    // ? star animation
-    star_material.uniforms.uTime.value = uTime;
+    const delta = Math.min(clock.getDelta(), 0.1);
+    const uTime = clock.elapsedTime;
+    stars.update(uTime);
 
     //? Dodecahedron
-    dodeca_mesh.position.y += Math.sin(uTime * 0.5) * 0.005;
-    dodeca_mesh.rotation.y -= 0.001;
-    dodeca_mesh.rotation.x -= 0.002;
+    dodeca_mesh.position.y += Math.sin(uTime * 0.5) * 0.3 * delta;
+    dodeca_mesh.rotation.y -= 0.06 * delta;
+    dodeca_mesh.rotation.x -= 0.12 * delta;
 
-    // ? renderer
     renderer.render(scene, camera);
 
     // ? sea and fire animation
-    mixer.update(0.002)
-    mixer2.update(0.0002);
+    mixer.update(delta * FIRE_SPEED);
+    mixer2.update(delta * SEA_SPEED);
 
-    camera.lookAt(camera_target.position);
+    camera.lookAt(rig.target.position);
     requestAnimationFrame(loop);
 }
 
@@ -283,7 +132,7 @@ loading_manager.onLoad = () => {
     if (reducedMotion.value) tl.timeScale(20);
     tl.to('#spinner', {opacity: 0, duration: 0.6})
         .to('#ready', {opacity: 1, duration: 0.6}, '<')
-        .add(() => move_camera(active.value, 2), '>')
+        .add(() => rig.move(active.value, 2), '>')
         .to('.name', {opacity: 0, duration: 1}, '+=0.4')
         .set('.name', {visibility: 'hidden'})
         .to('#home', {autoAlpha: 1, duration: 1}, '<')

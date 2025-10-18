@@ -5,6 +5,7 @@ import { createRenderer } from './scene/renderer.js';
 import { createLights } from './scene/lights.js';
 import { createStars } from './scene/stars.js';
 import { createWaypoints } from './scene/waypoints.js';
+import { createDodecahedron } from './scene/dodecahedron.js';
 
 const { active, ready, reducedMotion } = useWaypoints();
 
@@ -77,14 +78,7 @@ model_loader.load(sceneURL, (glb) => {
     update_materials();
 });
 
-import dodecaURL from './assets/models/dodecahedron.glb?url';
-var dodeca_mesh = null;
-model_loader.load(dodecaURL, (glb) => {
-    dodeca_mesh = glb.scene.children[0]
-    scene.add(dodeca_mesh);
-    dodeca_mesh.position.y -= 4;
-    update_materials();
-})
+const dodeca = createDodecahedron({ scene, loadingManager: loading_manager });
 
 // ? Sea
 import waveURL from './assets/models/wave.glb?url';
@@ -107,10 +101,7 @@ function loop() {
     const uTime = clock.elapsedTime;
     stars.update(uTime);
 
-    //? Dodecahedron
-    dodeca_mesh.position.y += Math.sin(uTime * 0.5) * 0.3 * delta;
-    dodeca_mesh.rotation.y -= 0.06 * delta;
-    dodeca_mesh.rotation.x -= 0.12 * delta;
+    dodeca.update(delta, uTime);
 
     renderer.render(scene, camera);
 

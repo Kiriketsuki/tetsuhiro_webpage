@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#03111e"/>
+<polygon points="256,37.8 486.9,205.6 398.7,477 113.3,477 25.1,205.6" fill="none" stroke="#a383e3" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
+
+<polygon points="256.0,136.0 365.1,199.0 365.1,325.0 256.0,388.0 146.9,325.0 146.9,199.0" fill="#a383e3" fill-opacity="0.14" stroke="#a383e3" stroke-width="5" stroke-linejoin="round"/>
+<rect x="190" y="306" width="18" height="40" rx="3" fill="#ee8d9f"/><rect x="214" y="276" width="18" height="70" rx="3" fill="#f5c252"/><rect x="238" y="294" width="18" height="52" rx="3" fill="#54bbd2"/><rect x="262" y="268" width="18" height="78" rx="3" fill="#ee8d9f"/><rect x="286" y="300" width="18" height="46" rx="3" fill="#f5c252"/>
+<ellipse cx="236" cy="262" rx="19" ry="13" transform="rotate(-20 236 262)" fill="#f6f1e9"/>
+<path d="M252 256 L252 172 C262 192 290 196 296 222 C286 208 268 206 258 200" fill="#f6f1e9" stroke="#f6f1e9" stroke-width="5" stroke-linejoin="round"/>
+<text x="256" y="452" text-anchor="middle" font-family="'Fira Code', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#f6f1e9" fill-opacity="0.85">TFT REMIX</text>
+</svg>

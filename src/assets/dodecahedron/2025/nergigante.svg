@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#03111e"/>
+<polygon points="256,37.8 486.9,205.6 398.7,477 113.3,477 25.1,205.6" fill="none" stroke="#ee8d9f" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
+
+<defs><clipPath id="lower"><rect x="0" y="168" width="512" height="400"/></clipPath></defs>
+<g fill="#f6f1e9"><path d="M222 268 C150 262 108 206 130 120 C148 182 186 214 238 240 Z"/><g transform="translate(512 0) scale(-1 1)"><path d="M222 268 C150 262 108 206 130 120 C148 182 186 214 238 240 Z"/></g></g>
+<g fill="#161620" stroke="#beb2a1" stroke-width="3" stroke-linejoin="round" clip-path="url(#lower)"><path d="M222 268 C150 262 108 206 130 120 C148 182 186 214 238 240 Z"/><g transform="translate(512 0) scale(-1 1)"><path d="M222 268 C150 262 108 206 130 120 C148 182 186 214 238 240 Z"/></g></g>
+<g fill="#f6f1e9">
+<polygon points="206,262 190,218 222,248"/><polygon points="306,262 322,218 290,248"/><polygon points="256,246 244,196 268,196"/>
+</g>
+<path d="M256 410 L206 336 L196 276 L226 250 L256 262 L286 250 L316 276 L306 336 Z" fill="#161620" stroke="#beb2a1" stroke-width="3" stroke-linejoin="round"/>
+<path d="M214 306 L238 314 L240 304 Z M298 306 L274 314 L272 304 Z" fill="#e74d68"/>
+<path d="M240 372 L256 392 L272 372" fill="none" stroke="#beb2a1" stroke-width="3" stroke-linejoin="round"/>
+<text x="256" y="452" text-anchor="middle" font-family="'Fira Code', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#f6f1e9" fill-opacity="0.85">NERGIGANTE</text>
+</svg>

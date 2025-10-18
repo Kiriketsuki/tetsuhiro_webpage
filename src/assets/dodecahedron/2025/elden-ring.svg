@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#03111e"/>
+<polygon points="256,37.8 486.9,205.6 398.7,477 113.3,477 25.1,205.6" fill="none" stroke="#f5c252" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
+
+<circle cx="256" cy="215" r="115" fill="#f5c252" fill-opacity="0.09"/>
+<path d="M118 258 C112 160 185 112 256 112 C327 112 400 160 394 258 C350 232 304 236 256 252 C208 236 162 232 118 258 Z" fill="#f5c252"/>
+<path d="M200 405 C232 396 242 384 246 340 L266 340 C270 384 280 396 312 405 Z" fill="#e8c089"/>
+<path d="M238 345 C247 320 252 290 256 252 C260 290 265 320 274 345 Z" fill="#e8c089"/>
+<g stroke="#03111e" stroke-width="4" stroke-linecap="round" fill="none" stroke-opacity="0.7">
+<path d="M256 252 L168 196"/><path d="M256 252 L206 150"/><path d="M256 252 L256 128"/><path d="M256 252 L306 150"/><path d="M256 252 L344 196"/>
+</g>
+<text x="256" y="452" text-anchor="middle" font-family="'Fira Code', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#f6f1e9" fill-opacity="0.85">ELDEN RING</text>
+</svg>

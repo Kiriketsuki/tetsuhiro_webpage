@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#03111e"/>
+<polygon points="256,37.8 486.9,205.6 398.7,477 113.3,477 25.1,205.6" fill="none" stroke="#66a983" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
+
+<polyline points="256,160 274,160 274,142 238,142 238,178 292,178 292,124 220,124 220,196" fill="none" stroke="#54bbd2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M142 252 C154 318 214 340 256 410 C298 340 358 318 370 252 Z" fill="#e8c089" fill-opacity="0.55"/>
+<path d="M200 300 L222 340 M290 296 L276 350" stroke="#03111e" stroke-opacity="0.5" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="256" cy="250" rx="114" ry="28" fill="#66a983"/>
+<ellipse cx="256" cy="246" rx="96" ry="19" fill="#66a983" stroke="#f6f1e9" stroke-opacity="0.35" stroke-width="2"/>
+<circle cx="150" cy="330" r="10" fill="#e8c089" fill-opacity="0.6"/><circle cx="372" cy="342" r="14" fill="#e8c089" fill-opacity="0.6"/>
+<text x="256" y="452" text-anchor="middle" font-family="'Fira Code', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#f6f1e9" fill-opacity="0.85">TOTK</text>
+</svg>

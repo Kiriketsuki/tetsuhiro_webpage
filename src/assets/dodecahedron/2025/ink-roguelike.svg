@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#03111e"/>
+<polygon points="256,37.8 486.9,205.6 398.7,477 113.3,477 25.1,205.6" fill="none" stroke="#ee8d9f" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
+
+<path d="M108 338 C140 256 214 268 262 244 C322 214 350 190 408 168 C380 214 346 252 290 276 C232 300 184 300 142 352 C128 352 116 348 108 338 Z" fill="#f6f1e9"/>
+<circle cx="150" cy="298" r="7" fill="#f6f1e9"/><circle cx="178" cy="232" r="4" fill="#f6f1e9"/><circle cx="396" cy="236" r="6" fill="#f6f1e9"/><circle cx="420" cy="214" r="3" fill="#f6f1e9"/>
+<g transform="rotate(42 256 250)"><path d="M256 112 L270 150 V300 H242 V150 Z" fill="#d8ebfb"/><path d="M256 118 V300" stroke="#03111e" stroke-opacity="0.35" stroke-width="3"/><rect x="224" y="298" width="64" height="12" rx="4" fill="#e74d68"/><rect x="250" y="310" width="12" height="60" rx="4" fill="#e8c089"/><circle cx="256" cy="380" r="9" fill="#e74d68"/></g>
+<rect x="388" y="336" width="26" height="26" rx="3" fill="#e74d68"/>
+<text x="256" y="452" text-anchor="middle" font-family="'Fira Code', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#f6f1e9" fill-opacity="0.85">INK ROGUELIKE</text>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#03111e"/>
+<polygon points="256,37.8 486.9,205.6 398.7,477 113.3,477 25.1,205.6" fill="none" stroke="#ee8d9f" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
+
+<circle cx="256" cy="332" r="84" fill="#0b1a31" stroke="#54bbd2" stroke-width="5"/>
+<ellipse cx="256" cy="332" rx="38" ry="84" fill="none" stroke="#54bbd2" stroke-width="3" stroke-opacity="0.8"/>
+<path d="M172 332 H340 M186 296 H326 M186 368 H326" stroke="#54bbd2" stroke-width="3" stroke-opacity="0.8"/>
+<path d="M214 306 q14 -14 28 -2 q4 16 -10 22 q-14 -2 -18 -20 Z M274 338 q20 -8 32 8 q-6 20 -24 18 q-14 -12 -8 -26 Z" fill="#66a983"/>
+<rect x="212" y="150" width="88" height="92" rx="8" fill="#f6f1e9"/>
+<rect x="212" y="214" width="88" height="20" fill="#e74d68"/>
+<ellipse cx="256" cy="244" rx="82" ry="14" fill="#f6f1e9" stroke="#03111e" stroke-width="3"/>
+<ellipse cx="256" cy="150" rx="44" ry="7" fill="#beb2a1"/>
+<text x="256" y="452" text-anchor="middle" font-family="'Fira Code', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#f6f1e9" fill-opacity="0.85">VICTORIA 3</text>
+</svg>

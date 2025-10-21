@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { interests } from '../data/interests.js'
 
-const textureUrls = import.meta.glob('../assets/dodecahedron/2025/*.svg', {
+const textureUrls = import.meta.glob('../assets/dodecahedron/2025/*.webp', {
     eager: true,
     query: '?url',
     import: 'default',
@@ -100,7 +100,7 @@ function buildGeometry() {
 }
 
 function buildMaterial(slug, loader) {
-    const url = textureUrls[`../assets/dodecahedron/2025/${slug}.svg`]
+    const url = textureUrls[`../assets/dodecahedron/2025/${slug}.webp`]
     const map = loader.load(url)
     map.colorSpace = THREE.SRGBColorSpace
     map.anisotropy = 4

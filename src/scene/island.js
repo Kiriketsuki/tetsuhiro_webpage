@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import islandUrl from '../assets/models/island.glb?url'
+import { applyTerrainMaterials, disposeTerrainMaterials } from './terrain-material.js'
 
 const ANCHORS = ['Anchor_Campfire', 'Anchor_Portal', 'Anchor_Lava', 'Anchor_Dodecahedron']
 const SLOT_PREFIX = 'SkillSlot_'
@@ -61,7 +62,7 @@ export function createIsland({ scene, loaders, onProgress }) {
     group.name = 'island'
     scene.add(group)
 
-    const island = { group, root: null, materials: new Map(), anchors: {}, slots: [], shots: [] }
+    const island = { group, root: null, materials: new Map(), terrain: null, anchors: {}, slots: [], shots: [] }
 
     island.ready = new Promise((resolve, reject) => {
         loaders.gltf.load(
@@ -69,6 +70,9 @@ export function createIsland({ scene, loaders, onProgress }) {
             (gltf) => {
                 island.root = gltf.scene
                 island.materials = prepareMeshes(gltf.scene)
+                // Runs inside the load callback, before the manager counts the gltf
+                // as done, so the texture loads hold the loading screen open too.
+                island.terrain = applyTerrainMaterials(island.materials, loaders.texture)
                 Object.assign(island, readMarkers(gltf.scene, gltf.cameras))
                 group.add(gltf.scene)
                 resolve(island)
@@ -84,8 +88,9 @@ export function createIsland({ scene, loaders, onProgress }) {
     return island
 }
 
-export function disposeIsland(scene, { group }) {
+export function disposeIsland(scene, { group, terrain }) {
     scene.remove(group)
+    if (terrain) disposeTerrainMaterials(terrain)
     group.traverse((node) => {
         if (!node.isMesh) return
         node.geometry.dispose()

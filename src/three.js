@@ -8,6 +8,7 @@ import { createWaypoints, shotsFromCameras } from './scene/waypoints.js'
 import { createDodecahedron } from './scene/dodecahedron.js'
 import { createLoaders } from './scene/loaders.js'
 import { createIsland } from './scene/island.js'
+import { createSea } from './scene/sea.js'
 
 const { active, ready, reducedMotion } = useWaypoints()
 
@@ -18,7 +19,8 @@ const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerH
 history.scrollRestoration = 'manual'
 
 const { renderer, onResize } = createRenderer({ canvas, scene, camera })
-createLights(scene)
+const { moon } = createLights(scene)
+const sea = createSea(scene, { moonDirection: moon.position.clone().sub(moon.target.position) })
 const stars = createStars(scene, renderer.getPixelRatio())
 const rig = createWaypoints({ scene, camera, active, reducedMotion, onResize })
 
@@ -40,6 +42,7 @@ function loop() {
     const delta = Math.min(clock.getDelta(), 0.1)
     const uTime = clock.elapsedTime
     stars.update(uTime)
+    sea.update(uTime)
     dodeca.update(delta, uTime)
 
     camera.lookAt(rig.target.position)

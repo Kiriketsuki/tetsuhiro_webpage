@@ -57,7 +57,9 @@ export function createRenderer({ canvas, scene, camera }) {
     renderer.shadowMap.needsUpdate = true
     renderer.shadowMap.autoUpdate = false
 
-    scene.fog = new THREE.Fog(toneMappedColor(BG_BASE, EXPOSURE), FOG_NEAR, FOG_FAR)
+    // three adds the fog after tone mapping when it draws straight to the screen,
+    // so the plain page colour matches here.
+    scene.fog = new THREE.Fog(BG_BASE, FOG_NEAR, FOG_FAR)
 
     const listeners = new Set()
     const observer = new ResizeObserver(() => {

@@ -44,9 +44,8 @@ export function toneMappedColor(hex, exposure = EXPOSURE) {
 // Sets up the renderer and the fog. The ResizeObserver replaces the old window
 // resize handler, so the canvas size is the only thing that drives the viewport.
 export function createRenderer({ canvas, scene, camera }) {
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
-    renderer.setClearColor(0x000000)
-    renderer.setClearAlpha(0)
+    // No canvas antialias. The post target does MSAA instead.
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
     renderer.setSize(window.innerWidth, window.innerHeight, false)
     renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -57,9 +56,11 @@ export function createRenderer({ canvas, scene, camera }) {
     renderer.shadowMap.needsUpdate = true
     renderer.shadowMap.autoUpdate = false
 
-    // three adds the fog after tone mapping when it draws straight to the screen,
-    // so the plain page colour matches here.
-    scene.fog = new THREE.Fog(BG_BASE, FOG_NEAR, FOG_FAR)
+    // OutputPass tone maps the whole frame, fog and sky included. Both get the
+    // colour that comes out of ACES as bg-base, so the sky still matches the page.
+    const sky = toneMappedColor(BG_BASE, EXPOSURE)
+    scene.background = sky
+    scene.fog = new THREE.Fog(sky, FOG_NEAR, FOG_FAR)
 
     const listeners = new Set()
     const observer = new ResizeObserver(() => {
@@ -87,5 +88,6 @@ export function createRenderer({ canvas, scene, camera }) {
 export function disposeRenderer(scene, { renderer, observer }) {
     observer.disconnect()
     scene.fog = null
+    scene.background = null
     renderer.dispose()
 }

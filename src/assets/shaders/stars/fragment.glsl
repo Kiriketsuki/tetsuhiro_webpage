@@ -8,6 +8,7 @@ void main()
     strength = 1.0 - strength;
     strength = pow(strength, 10.0);
 
-    vec3 color = mix(vec3(0.0/255.0, 18.0/255.0, 32.0/255.0), vColor, strength);
-    gl_FragColor = vec4(color, vAlpha);
+    // Fade by alpha instead of mixing towards the old sky colour, which showed up
+    // as dark squares once the frame went through tone mapping.
+    gl_FragColor = vec4(vColor, strength * vAlpha);
 }

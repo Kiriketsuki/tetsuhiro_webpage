@@ -2,13 +2,15 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { createRenderer } from './scene/renderer.js'
-import { createLights } from './scene/lights.js'
+import { createLights, createAnchorLights } from './scene/lights.js'
 import { createStars } from './scene/stars.js'
 import { createWaypoints, shotsFromCameras } from './scene/waypoints.js'
 import { createDodecahedron } from './scene/dodecahedron.js'
 import { createLoaders } from './scene/loaders.js'
 import { createIsland } from './scene/island.js'
 import { createSea } from './scene/sea.js'
+import { createPost } from './scene/post.js'
+import { createCampfire } from './scene/campfire.js'
 
 const { active, ready, reducedMotion } = useWaypoints()
 
@@ -23,14 +25,20 @@ const { moon } = createLights(scene)
 const sea = createSea(scene, { moonDirection: moon.position.clone().sub(moon.target.position) })
 const stars = createStars(scene, renderer.getPixelRatio())
 const rig = createWaypoints({ scene, camera, active, reducedMotion, onResize })
+const post = createPost({ renderer, scene, camera, onResize })
 
 //? Models
 const loaders = createLoaders()
 const island = createIsland({ scene, loaders })
 const dodeca = createDodecahedron({ scene, loadingManager: loaders.manager })
 
+// Filled in once the gltf anchors are known.
+const extras = []
+
 island.ready.then(({ anchors, shots }) => {
     if (anchors.dodecahedron) dodeca.place(anchors.dodecahedron)
+    extras.push(createAnchorLights(scene, anchors, { reducedMotion }))
+    if (anchors.campfire) extras.push(createCampfire(scene, anchors.campfire, { reducedMotion }))
     rig.setShots(shotsFromCameras(shots))
     renderer.shadowMap.needsUpdate = true
 })
@@ -44,9 +52,10 @@ function loop() {
     stars.update(uTime)
     sea.update(uTime)
     dodeca.update(delta, uTime)
+    extras.forEach((extra) => extra.update(delta, uTime))
 
     camera.lookAt(rig.target.position)
-    renderer.render(scene, camera)
+    post.render(delta)
     requestAnimationFrame(loop)
 }
 
@@ -68,4 +77,4 @@ loaders.manager.onLoad = () => {
 }
 
 // Handy in the console while tuning shots. Not in the build.
-if (import.meta.env.DEV) window.__scene = { scene, camera, renderer, rig, island }
+if (import.meta.env.DEV) window.__scene = { scene, camera, renderer, rig, island, post }

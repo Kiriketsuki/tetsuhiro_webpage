@@ -39,6 +39,22 @@ function readMarkers(root, cameras) {
     return { anchors, slots, shots }
 }
 
+// Emissive strength per material name. The bloom threshold sits just under 1, so
+// these decide what glows. Lava keeps the 2.2 from Blender.
+const GLOW = {
+    lava: 2.2,
+    portal_core: 3.2,
+    lantern_glow: 2.6,
+    coral: 1.4,
+}
+
+function tuneGlow(materials) {
+    Object.entries(GLOW).forEach(([name, strength]) => {
+        const material = materials.get(name)
+        if (material) material.emissiveIntensity = strength
+    })
+}
+
 // The terrain carries custom split normals from Blender. Leave the normals alone:
 // no computeVertexNormals, no mergeVertices, no flat shading.
 function prepareMeshes(root) {
@@ -54,6 +70,7 @@ function prepareMeshes(root) {
             materials.set(material.name, material)
         })
     })
+    tuneGlow(materials)
     return materials
 }
 

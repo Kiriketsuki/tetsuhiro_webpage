@@ -11,6 +11,7 @@ import { createIsland } from './scene/island.js'
 import { createSea } from './scene/sea.js'
 import { createPost } from './scene/post.js'
 import { createCampfire } from './scene/campfire.js'
+import { createSkillBadges } from './scene/skills.js'
 
 const { active, ready, reducedMotion } = useWaypoints()
 
@@ -35,11 +36,13 @@ const dodeca = createDodecahedron({ scene, loadingManager: loaders.manager })
 // Filled in once the gltf anchors are known.
 const extras = []
 
-island.ready.then(({ anchors, shots }) => {
+island.ready.then(({ anchors, shots, slots }) => {
     if (anchors.dodecahedron) dodeca.place(anchors.dodecahedron)
     extras.push(createAnchorLights(scene, anchors, { reducedMotion }))
     if (anchors.campfire) extras.push(createCampfire(scene, anchors.campfire, { reducedMotion }))
-    rig.setShots(shotsFromCameras(shots))
+    const views = shotsFromCameras(shots)
+    rig.setShots(views)
+    extras.push(createSkillBadges(scene, slots, { camera, view: views[2], anisotropy: renderer.capabilities.getMaxAnisotropy(), reducedMotion }))
     renderer.shadowMap.needsUpdate = true
 })
 

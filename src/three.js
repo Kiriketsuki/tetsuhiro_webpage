@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import gsap from 'gsap'
+import { watch } from 'vue'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { createRenderer } from './scene/renderer.js'
 import { createLights, createAnchorLights } from './scene/lights.js'
@@ -13,7 +13,7 @@ import { createPost } from './scene/post.js'
 import { createCampfire } from './scene/campfire.js'
 import { createSkillBadges } from './scene/skills.js'
 
-const { active, ready, reducedMotion } = useWaypoints()
+const { active, ready, reducedMotion, progress, entered, loadError } = useWaypoints()
 
 //? Set up
 const canvas = document.getElementById('webgl')
@@ -30,7 +30,32 @@ const post = createPost({ renderer, scene, camera, onResize })
 
 //? Models
 const loaders = createLoaders()
-const island = createIsland({ scene, loaders })
+
+// Real progress for the gate. The gltf is most of the bytes, so its download
+// counts for most of the bar. The rest is the share of files the manager has
+// finished: the decoder, the dodecahedron faces and the terrain textures.
+const ISLAND_SHARE = 0.6
+let islandBytes = 0
+let files = 0
+const report = () => {
+    const next = ISLAND_SHARE * islandBytes + (1 - ISLAND_SHARE) * files
+    progress.value = Math.max(progress.value, Math.min(1, next))
+}
+loaders.manager.onProgress = (url, loaded, total) => {
+    files = total ? loaded / total : 0
+    report()
+}
+loaders.manager.onError = (url) => {
+    console.error('Failed to load', url)
+    loadError.value = 'Something did not load. Reload the page to try again.'
+}
+const onIslandProgress = (event) => {
+    if (!event.lengthComputable) return
+    islandBytes = event.loaded / event.total
+    report()
+}
+
+const island = createIsland({ scene, loaders, onProgress: onIslandProgress })
 const dodeca = createDodecahedron({ scene, loadingManager: loaders.manager })
 
 // Filled in once the gltf anchors are known.
@@ -63,21 +88,21 @@ function loop() {
 }
 
 //? Onload
+// onLoad can fire again if something loads late. Only one loop runs.
+let running = false
 loaders.manager.onLoad = () => {
-    renderer.compile(scene, camera)
+    progress.value = 1
     ready.value = true
+    if (running) return
+    running = true
+    renderer.compile(scene, camera)
     loop()
-
-    const tl = gsap.timeline({ defaults: { ease: 'power2.inOut' } })
-    if (reducedMotion.value) tl.timeScale(20)
-    tl.to('#spinner', { opacity: 0, duration: 0.6 })
-        .to('#ready', { opacity: 1, duration: 0.6 }, '<')
-        .add(() => rig.move(active.value, 2.4), '>')
-        .to('.name', { opacity: 0, duration: 1 }, '+=0.4')
-        .set('.name', { visibility: 'hidden' })
-        .to('#home', { autoAlpha: 1, duration: 1 }, '<')
-        .to('.nav_stagger', { autoAlpha: 1, duration: 0.8 }, '>-0.4')
 }
+
+// The camera leaves the wide shot when the gate lifts.
+watch(entered, (value) => {
+    if (value) rig.move(active.value, 2.4)
+})
 
 // Handy in the console while tuning shots. Not in the build.
 if (import.meta.env.DEV) window.__scene = { scene, camera, renderer, rig, island, post }

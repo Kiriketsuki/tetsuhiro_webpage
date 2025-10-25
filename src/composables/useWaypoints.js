@@ -6,6 +6,11 @@ export const sections = ['dodecahedron', 'about', 'skills', 'projects', 'contact
 const active = ref(0)
 const ready = ref(false)
 const reducedMotion = ref(false)
+// Loading state for the gate. progress runs 0 to 1, entered flips once the
+// visitor goes through the gate, loadError holds a message if a file failed.
+const progress = ref(0)
+const entered = ref(false)
+const loadError = ref('')
 
 if (typeof window !== 'undefined' && window.matchMedia) {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -31,5 +36,5 @@ export function useWaypoints() {
         return true
     }
 
-    return { active, ready, reducedMotion, setActive, goTo }
+    return { active, ready, reducedMotion, progress, entered, loadError, setActive, goTo }
 }

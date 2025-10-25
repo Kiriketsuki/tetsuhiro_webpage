@@ -1,12 +1,16 @@
 <script setup>
-import { nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useScramble } from '../composables/useScramble.js'
 import { useWaypoints } from '../composables/useWaypoints.js'
 
 const router = useRouter()
+const route = useRoute()
 const { scramble } = useScramble()
-const { active, goTo } = useWaypoints()
+const { active, entered, goTo } = useWaypoints()
+
+// Hidden behind the loading gate, always there on the other pages.
+const shown = computed(() => entered.value || (route.name && route.name !== 'Home'))
 
 const items = ['Welcome', 'About', 'Skills', 'Projects', 'Contact']
 
@@ -19,7 +23,7 @@ const go = async (index) => {
 </script>
 
 <template>
-    <nav class="nav-strip nav_stagger" aria-label="Sections" style="visibility: hidden">
+    <nav class="nav-strip" :class="{ shown }" aria-label="Sections" :aria-hidden="shown ? undefined : 'true'">
         <ul class="flex items-center justify-between gap-1 sm:gap-6">
             <li v-for="(item, i) in items" :key="item">
                 <button
@@ -51,6 +55,22 @@ const go = async (index) => {
     backdrop-filter: blur(10px) saturate(170%);
     border: 1px solid rgb(255 255 255 / 0.1);
     border-radius: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s 0.6s, visibility 0s 1.4s;
+}
+
+.nav-strip.shown {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.8s 0.6s, visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-strip,
+    .nav-strip.shown {
+        transition: none;
+    }
 }
 
 .nav-item {

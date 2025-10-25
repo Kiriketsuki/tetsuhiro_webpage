@@ -1,9 +1,7 @@
 <template>
     <div>
-        <section class="h-screen name fixed top-0 left-0 w-screen">
-            <Name class="z-100" />
-        </section>
-        <div id="home" class="w-screen flex flex-col items-center justify-between" style="visibility: hidden">
+        <Name v-if="showGate" @lifted="showGate = false" />
+        <div id="home" class="w-screen flex flex-col items-center justify-between" :style="{ visibility: entered ? 'visible' : 'hidden' }">
             <section class="h-screen w-full dodecahedron">
                 <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[clamp(3rem,9vw,9rem)] text-5xl text-secondary px-10 rounded-3xl w-full">
                     Welcome
@@ -44,8 +42,10 @@ import { useWaypoints, sections } from '../composables/useWaypoints.js'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const { active, reducedMotion, setActive, goTo } = useWaypoints()
+const { active, reducedMotion, entered, setActive, goTo } = useWaypoints()
 const sceneOnly = ref(false)
+// The gate only shows on the first visit. Coming back from /projects skips it.
+const showGate = ref(!entered.value)
 
 let trigger = null
 
@@ -67,6 +67,12 @@ const onKey = (e) => {
 }
 
 watch(active, showSection)
+
+// Fades the page in under the lifting gate.
+watch(entered, (value) => {
+    if (!value) return
+    gsap.fromTo('#home', { autoAlpha: 0 }, { autoAlpha: 1, duration: reducedMotion.value ? 0 : 1, delay: reducedMotion.value ? 0 : 0.6 })
+})
 
 watch(sceneOnly, (value) => {
     gsap.to('#home', {

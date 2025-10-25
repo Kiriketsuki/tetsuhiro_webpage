@@ -1,25 +1,44 @@
 <template>
-    <div class = "lg:w-[25vw] w-[50vw] h-[75vh] bg-transparent flex flex-col items-end justify-end">
-        <div class ="w-full lg:h-[20vh] h-[30vh] flex flex-col gap-4 p-4 rounded-xl" style="background:rgba(249, 194, 46, 0.85);">
-            <h5 class = "text-center text-secondary lg:text-5xl font-slab">
-                Skill Tree
-            </h5>
-
-            <p class = "text-tertiary lg:text-2xl font-roboto">
-                Here are some of the relavant skills I currently process. As a perfectionist, I fully intend on learning more skills and progressing through my skill tree,
-                just like I would when finishing a video game.
+    <div class="flex h-full w-screen items-end justify-center px-5 pb-24 lg:justify-end lg:px-16">
+        <div class="glass flex w-full max-w-md flex-col gap-4 p-6 sm:p-8">
+            <p class="label text-teal">Skills</p>
+            <h2 class="font-slab text-[clamp(2rem,4vw,3.25rem)] leading-none text-text-strong">
+                Skill tree
+            </h2>
+            <p class="font-body text-[clamp(0.95rem,1.1vw,1.05rem)] text-text-body">
+                The badges on the tree are what I work with as of late 2025. Mostly web and 3D,
+                with some Python on the side. The tree keeps growing, like any good game.
             </p>
-
-            <router-link to="/skills" class="px-6 py-2.5 bg-quinary text-bg-base text-center font-label text-xs leading-tight uppercase rounded shadow-md focus-visible:outline-2 focus-visible:outline-teal">
-                More
-            </router-link>
+            <ul class="flex flex-wrap gap-2" aria-label="Skill branches">
+                <li
+                    v-for="branch in branches"
+                    :key="branch.id"
+                    class="chip"
+                    :style="{ '--chip': `var(--color-${branch.color})` }"
+                >
+                    {{ branch.label }} {{ count(branch.id) }}
+                </li>
+            </ul>
+            <router-link to="/skills" class="action">See the whole tree</router-link>
         </div>
     </div>
 </template>
-           
 
+<script setup>
+import { branches, skills } from '../data/skills.js'
 
+const count = (id) => skills.filter((skill) => skill.branch === id).length
+</script>
 
 <style scoped>
-
+.chip {
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--chip);
+    border-radius: 999px;
+    color: var(--chip);
+    font-family: var(--font-label);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
 </style>

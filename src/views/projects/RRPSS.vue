@@ -1,6 +1,6 @@
 <template>
     <div class="w-screen flex flex-col items-center gap-24 my-24">
-        <h1 class="text-8xl font-slab text-secondary">Restaurant Reservation and Point of Sale System</h1>
+        <h1 class="text-[clamp(2.25rem,6vw,4.5rem)] leading-tight font-slab text-secondary">Restaurant Reservation and Point of Sale System</h1>
 
         <div class="code border-8 w-[80vw] h-[80vh]">
             <iframe src="https://replit.com/@Kiriketsuki/Sixma?embed=true" frameborder="0" class="w-full h-full"></iframe>
@@ -142,11 +142,11 @@
     }
 
     .text > p {
-        @apply text-2xl;
+        @apply text-lg;
     }
 
     .text > h5 {
-        @apply text-5xl font-slab h-16;
+        @apply text-4xl font-slab h-16;
         background-image: var(--gradient);
         background-clip: text;
         color: transparent;

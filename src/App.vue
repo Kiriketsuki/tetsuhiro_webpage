@@ -61,16 +61,16 @@ watch(
     }
 
     ::-webkit-scrollbar-track {
-        background: hsla(0, 0%, 100%, 0.1);
+        background: var(--color-bg-base);
     }
 
     ::-webkit-scrollbar-thumb {
-        background: hsla(0, 0%, 100%, 0.2);
+        background: var(--color-line);
     }
 
     @supports (scrollbar-color: red blue) {
         * {
-            scrollbar-color: hsla(0, 0%, 100%, 0.1), hsla(0, 0%, 100%, 0.1);
+            scrollbar-color: var(--color-line) var(--color-bg-base);
             scrollbar-width: thin;
         }
     }

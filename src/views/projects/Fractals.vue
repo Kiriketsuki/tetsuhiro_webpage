@@ -1,6 +1,6 @@
 <template>
     <div class="w-screen flex flex-col items-center gap-24 my-24">
-        <h1 class="text-9xl font-slab text-secondary">
+        <h1 class="text-[clamp(2.75rem,8vw,6rem)] leading-none font-slab text-secondary">
             Fractals in Java
         </h1>
 
@@ -158,11 +158,11 @@
     }
 
     .text > p {
-        @apply text-2xl;
+        @apply text-lg;
     }
 
     .text > h5 {
-        @apply text-5xl font-slab h-16;
+        @apply text-4xl font-slab h-16;
         background-image: var(--gradient);
         background-clip: text;
         color: transparent;

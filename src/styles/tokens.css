@@ -1,4 +1,4 @@
-@theme {
+@theme static {
     /* surfaces */
     --color-bg-base: oklch(0.172 0.035 245.8); /* #03111e */
     --color-bg-raised: oklch(0.219 0.05 258.7); /* #0b1a31 */

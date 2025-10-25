@@ -10,13 +10,15 @@ const STRENGTH = 0.28
 const RADIUS = 0.45
 const THRESHOLD = 0.92
 // MSAA on the half float target. The composer skips the canvas antialias.
+// A phone already draws at 2x pixel ratio, so 2 samples is enough there.
 const SAMPLES = 4
+const SAMPLES_SMALL = 2
 
 export function createPost({ renderer, scene, camera, onResize }) {
     const size = renderer.getDrawingBufferSize(new THREE.Vector2())
     const target = new THREE.WebGLRenderTarget(size.x, size.y, {
         type: THREE.HalfFloatType,
-        samples: SAMPLES,
+        samples: window.matchMedia('(max-width: 767px)').matches ? SAMPLES_SMALL : SAMPLES,
     })
     target.texture.name = 'post.main'
 

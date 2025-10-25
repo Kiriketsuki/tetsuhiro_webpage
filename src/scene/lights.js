@@ -14,6 +14,9 @@ const ISLAND_MIDDLE = new THREE.Vector3(30, 0, -20)
 // Half the width of the shadow box. It covers both islands and nothing else.
 const SHADOW_REACH = 270
 const SHADOW_MAP = 2048
+// Phones get a quarter of the shadow texels. The island still reads fine.
+const SHADOW_MAP_SMALL = 1024
+const isSmallScreen = () => window.matchMedia('(max-width: 767px)').matches
 
 export function createLights(scene) {
     const hemisphere = new THREE.HemisphereLight(SKY, GROUND, 1.1)
@@ -22,7 +25,8 @@ export function createLights(scene) {
     moon.position.copy(ISLAND_MIDDLE).add(MOON_FROM)
     moon.target.position.copy(ISLAND_MIDDLE)
     moon.castShadow = true
-    moon.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP)
+    const mapSize = isSmallScreen() ? SHADOW_MAP_SMALL : SHADOW_MAP
+    moon.shadow.mapSize.set(mapSize, mapSize)
     Object.assign(moon.shadow.camera, {
         left: -SHADOW_REACH,
         right: SHADOW_REACH,

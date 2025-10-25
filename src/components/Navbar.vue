@@ -10,7 +10,8 @@ const { scramble } = useScramble()
 const { active, entered, goTo } = useWaypoints()
 
 // Hidden behind the loading gate, always there on the other pages.
-const shown = computed(() => entered.value || (route.name && route.name !== 'Home'))
+const onHome = computed(() => route.name === 'Home')
+const shown = computed(() => entered.value || (route.name && !onHome.value))
 
 const items = ['Welcome', 'About', 'Skills', 'Projects', 'Contact']
 
@@ -24,13 +25,13 @@ const go = async (index) => {
 
 <template>
     <nav class="nav-strip" :class="{ shown }" aria-label="Sections" :aria-hidden="shown ? undefined : 'true'">
-        <ul class="flex items-center justify-between gap-1 sm:gap-6">
+        <ul class="flex items-center justify-between sm:gap-6">
             <li v-for="(item, i) in items" :key="item">
                 <button
                     type="button"
                     class="nav-item"
-                    :class="{ active: i === active }"
-                    :aria-current="i === active ? 'true' : undefined"
+                    :class="{ active: onHome && i === active }"
+                    :aria-current="onHome && i === active ? 'true' : undefined"
                     @click="go(i)"
                     @mouseenter="scramble($event.currentTarget.firstElementChild)"
                     @focus="scramble($event.currentTarget.firstElementChild)"
@@ -50,7 +51,8 @@ const go = async (index) => {
     z-index: 50;
     transform: translateX(-50%);
     max-width: calc(100vw - 2rem);
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.5rem;
+    padding-bottom: calc(0.25rem + env(safe-area-inset-bottom) / 2);
     background: color-mix(in oklch, var(--color-bg-overlay) 80%, transparent);
     backdrop-filter: blur(10px) saturate(170%);
     border: 1px solid rgb(255 255 255 / 0.1);
@@ -73,13 +75,14 @@ const go = async (index) => {
     }
 }
 
+/* Five labels fit on a 375px phone at this size. */
 .nav-item {
-    padding: 0.6rem 0.5rem;
+    padding: 0.6rem 0.4rem;
     border-bottom: 2px solid transparent;
     color: var(--color-text-muted);
     font-family: var(--font-label);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     transition: color 0.2s, border-color 0.2s;
 }
@@ -88,6 +91,7 @@ const go = async (index) => {
     .nav-item {
         padding: 0.6rem 0.75rem;
         font-size: 0.8rem;
+        letter-spacing: 0.1em;
     }
 }
 

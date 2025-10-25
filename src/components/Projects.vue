@@ -1,6 +1,15 @@
 <script setup>
 import { projects } from '../data/projects.js'
 
+// Same as the /projects page: initials when there is no screenshot.
+const monogram = (title) =>
+    title
+        .split(' ')
+        .filter((word) => /^[A-Z0-9]/.test(word))
+        .map((word) => word[0])
+        .join('')
+        .slice(0, 3)
+
 const rows = (project) => [
     ['Stack', project.stack],
     ['Year', project.year],
@@ -18,25 +27,25 @@ const rows = (project) => [
             <li
                 v-for="project in projects"
                 :key="project.id"
-                class="glass flex w-72 shrink-0 snap-start flex-col overflow-hidden lg:w-80"
+                class="glass flex w-[min(18rem,80vw)] shrink-0 snap-start flex-col overflow-hidden lg:w-80"
             >
                 <img
                     v-if="project.image"
                     :src="project.image"
                     :alt="project.title"
-                    class="h-40 w-full object-cover"
+                    class="h-32 w-full object-cover sm:h-40"
                 />
                 <div
                     v-else
-                    class="flex h-40 w-full items-end bg-bg-raised p-4 font-slab text-3xl text-text-muted"
+                    class="flex h-32 w-full items-center justify-center bg-bg-raised font-slab text-6xl leading-none text-line sm:h-40"
                     aria-hidden="true"
                 >
-                    {{ project.title }}
+                    {{ monogram(project.title) }}
                 </div>
 
                 <div class="flex flex-1 flex-col gap-4 p-5">
                     <div>
-                        <h2 class="font-slab text-3xl leading-tight text-text-strong">
+                        <h2 class="font-slab text-[clamp(1.6rem,2.4vw,2rem)] leading-tight text-text-strong">
                             {{ project.title }}
                         </h2>
                         <p class="mt-1 font-body text-sm text-text-body">{{ project.blurb }}</p>

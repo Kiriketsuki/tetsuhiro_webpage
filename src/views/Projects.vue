@@ -80,6 +80,7 @@ const cards = ref([])
 const monogram = (title) =>
     title
         .split(' ')
+        .filter((word) => /^[A-Z0-9]/.test(word))
         .map((word) => word[0])
         .join('')
         .slice(0, 3)

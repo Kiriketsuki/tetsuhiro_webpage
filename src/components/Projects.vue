@@ -1,5 +1,20 @@
 <script setup>
+import { ref, watch } from 'vue'
 import { projects } from '../data/projects.js'
+import { useWaypoints } from '../composables/useWaypoints.js'
+
+// The pictures wait until the visitor gets to the skills section, one before
+// this one. They are most of a megabyte, and the island needs the bandwidth first.
+const PRELOAD_FROM = 2
+const { active } = useWaypoints()
+const showImages = ref(false)
+watch(
+    active,
+    (section) => {
+        if (section >= PRELOAD_FROM) showImages.value = true
+    },
+    { immediate: true }
+)
 
 // Same as the /projects page: initials when there is no screenshot.
 const monogram = (title) =>
@@ -31,8 +46,10 @@ const rows = (project) => [
             >
                 <img
                     v-if="project.image"
-                    :src="project.image"
+                    :src="showImages ? project.image : undefined"
                     :alt="project.title"
+                    loading="lazy"
+                    decoding="async"
                     class="h-32 w-full object-cover sm:h-40"
                 />
                 <div

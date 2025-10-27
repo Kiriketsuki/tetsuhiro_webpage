@@ -16,7 +16,7 @@
                 v-for="project in projects"
                 :key="project.id"
                 ref="cards"
-                class="glass flex min-w-0 flex-col overflow-hidden"
+                class="frame frame-line flex min-w-0 flex-col overflow-hidden"
             >
                 <img
                     v-if="project.image"

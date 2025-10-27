@@ -20,7 +20,7 @@
         </ul>
 
         <div class="grid w-full max-w-5xl items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <section v-for="root in trees" :key="root.skill.id" class="glass p-5 sm:p-6">
+            <section v-for="root in trees" :key="root.skill.id" class="frame frame-line p-5 sm:p-6">
                 <h2 class="sr-only">{{ root.skill.name }} and what grew from it</h2>
                 <ul class="tree">
                     <li

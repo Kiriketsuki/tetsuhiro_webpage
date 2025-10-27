@@ -1,44 +1,40 @@
 <template>
-    <div class="flex h-full w-screen items-end justify-center px-5 pb-24 lg:justify-end lg:px-16">
-        <div class="glass flex w-full max-w-md flex-col gap-4 p-6 sm:p-8">
-            <p class="label text-teal">Skills</p>
-            <h2 class="font-slab text-[clamp(2rem,4vw,3.25rem)] leading-none text-text-strong">
+    <div class="flex h-full w-screen items-end justify-center px-5 pb-24">
+        <article class="frame frame-violet flex w-full max-w-[24rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
+            <span class="frame-legend">03 / skills</span>
+            <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
                 Skill tree
             </h2>
-            <p class="font-body text-[clamp(0.95rem,1.1vw,1.05rem)] text-text-body">
-                The badges on the tree are what I work with as of late 2025. Mostly web and 3D,
-                with some Python on the side. The tree keeps growing, like any good game.
+            <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
+                What I work with as of late 2025. Mostly web and 3D, with Python on the side.
             </p>
-            <ul class="flex flex-wrap gap-2" aria-label="Skill branches">
-                <li
-                    v-for="branch in branches"
-                    :key="branch.id"
-                    class="chip"
-                    :style="{ '--chip': `var(--color-${branch.color})` }"
-                >
-                    {{ branch.label }} {{ count(branch.id) }}
-                </li>
-            </ul>
+            <dl class="rows text-sm">
+                <template v-for="branch in branches" :key="branch.id">
+                    <dt class="branch" :style="{ '--branch': `var(--color-${branch.color})` }">
+                        {{ branch.label }}
+                    </dt>
+                    <dd>{{ names(branch.id) }}</dd>
+                </template>
+            </dl>
             <router-link to="/skills" class="action">See the whole tree</router-link>
-        </div>
+        </article>
     </div>
 </template>
 
 <script setup>
 import { branches, skills } from '../data/skills.js'
 
-const count = (id) => skills.filter((skill) => skill.branch === id).length
+const names = (id) =>
+    skills
+        .filter((skill) => skill.branch === id)
+        .map((skill) => skill.name)
+        .join(', ')
 </script>
 
 <style scoped>
-.chip {
-    padding: 0.2rem 0.6rem;
-    border: 1px solid var(--chip);
-    border-radius: 999px;
-    color: var(--chip);
-    font-family: var(--font-label);
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+/* A coloured tick at the start of each branch row. */
+.branch {
+    border-left: 3px solid var(--branch);
+    padding-left: 0.6rem;
 }
 </style>

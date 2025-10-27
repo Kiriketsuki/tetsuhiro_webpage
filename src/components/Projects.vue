@@ -42,7 +42,7 @@ const rows = (project) => [
             <li
                 v-for="project in projects"
                 :key="project.id"
-                class="glass flex w-[min(18rem,80vw)] shrink-0 snap-start flex-col overflow-hidden lg:w-80"
+                class="frame frame-line flex w-[min(18rem,80vw)] shrink-0 snap-start flex-col overflow-hidden lg:w-80"
             >
                 <img
                     v-if="project.image"
@@ -108,31 +108,6 @@ const rows = (project) => [
     background-clip: text;
     background-position: left;
     animation: gradient_animation 5s ease infinite alternate;
-}
-
-.glass {
-    background: color-mix(in oklch, var(--color-bg-overlay) 80%, transparent);
-    backdrop-filter: blur(10px) saturate(170%);
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 16px;
-}
-
-.action {
-    display: inline-block;
-    align-self: flex-start;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    background: var(--color-ruby);
-    color: var(--color-bg-base);
-    font-family: var(--font-label);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.action:focus-visible {
-    outline: 2px solid var(--color-teal);
-    outline-offset: 2px;
 }
 
 .cards {

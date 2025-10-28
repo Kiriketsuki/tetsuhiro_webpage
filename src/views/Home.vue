@@ -1,13 +1,22 @@
 <template>
     <div>
         <Name v-if="showGate" @lifted="showGate = false" />
+        <div ref="blob" class="blob" :class="{ shown: blobShown }" aria-hidden="true"></div>
         <div id="home" class="w-screen flex flex-col items-center justify-between" :style="{ visibility: entered ? 'visible' : 'hidden' }">
-            <section class="h-screen w-full dodecahedron">
-                <div class="h-full lg:w-1/2 bg-transparent z-10 flex flex-col items-center justify-center font-slab lg:text-[clamp(3rem,9vw,9rem)] text-5xl text-secondary px-10 rounded-3xl w-full">
-                    Welcome
-                    <button type="button" class="view-scene" @click="sceneOnly = true">
-                        View Scene
-                    </button>
+            <section class="dodecahedron hero relative h-screen w-full">
+                <h1 class="sr-only">Jovian Lim, software engineer in Singapore</h1>
+
+                <div class="hero-inner">
+                    <div class="flex flex-col items-start gap-4">
+                        <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
+                        <p class="hero-role">software engineer, singapore</p>
+                        <button type="button" class="action hero-scene" @click="sceneOnly = true">
+                            view scene
+                        </button>
+                    </div>
+                    <div class="flex flex-row-reverse">
+                        <span ref="second" class="hero-word" aria-hidden="true">Lim</span>
+                    </div>
                 </div>
             </section>
             <section class="h-screen w-full about">
@@ -23,14 +32,14 @@
                 <Contact />
             </section>
         </div>
-        <button v-if="sceneOnly" type="button" class="view-scene back" @click="sceneOnly = false">
-            Back to page
+        <button v-if="sceneOnly" type="button" class="action view-back" @click="sceneOnly = false">
+            back to the page
         </button>
     </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Name from '../components/Name.vue'
@@ -39,15 +48,32 @@ import Skills from '../components/Skills.vue'
 import Projects from '../components/Projects.vue'
 import Contact from '../components/Contact.vue'
 import { useWaypoints, sections } from '../composables/useWaypoints.js'
+import { useScramble } from '../composables/useScramble.js'
+import { useBlob } from '../composables/useBlob.js'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const { active, reducedMotion, entered, setActive, goTo } = useWaypoints()
+const { scramble } = useScramble()
 const sceneOnly = ref(false)
 // The gate only shows on the first visit. Coming back from /projects skips it.
 const showGate = ref(!entered.value)
 
+const blob = ref(null)
+const first = ref(null)
+const second = ref(null)
+useBlob(blob)
+
+// The blob belongs to the title. It leaves with it.
+const blobShown = computed(() => entered.value && active.value === 0 && !sceneOnly.value)
+
 let trigger = null
+
+// The two words decode from noise once the gate is out of the way.
+const decodeTitle = (delay) => {
+    scramble(first.value, 1.4, { chars: 'lowerCase', delay, speed: 0.4 })
+    scramble(second.value, 1.1, { chars: 'lowerCase', delay: delay + 0.35, speed: 0.4 })
+}
 
 // Only the section in view shows. The camera moves to match it.
 const showSection = (index) => {
@@ -72,6 +98,7 @@ watch(active, showSection)
 watch(entered, (value) => {
     if (!value) return
     gsap.fromTo('#home', { autoAlpha: 0 }, { autoAlpha: 1, duration: reducedMotion.value ? 0 : 1, delay: reducedMotion.value ? 0 : 0.6 })
+    decodeTitle(0.7)
 })
 
 watch(sceneOnly, (value) => {
@@ -86,6 +113,7 @@ onMounted(async () => {
     window.scrollTo(0, 0)
     setActive(0)
     showSection(0)
+    if (entered.value) decodeTitle(0.2)
 
     trigger = ScrollTrigger.create({
         trigger: '#home',
@@ -113,31 +141,90 @@ body {
     background-color: var(--color-bg-base);
 }
 
-.dodecahedron {
-    text-shadow: 1px 1px black;
+/*
+ * The plants_in_space title: one word top left, one bottom right. The two
+ * words frame the portal and the dodecahedron instead of sitting on them.
+ */
+.hero-inner {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: clamp(2.5rem, 6vh, 4rem) clamp(1.5rem, 5vw, 4.5rem) clamp(6rem, 13vh, 8rem);
 }
 
-.view-scene {
-    z-index: 20;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    background: var(--color-ruby);
-    color: var(--color-bg-base);
+.hero-word {
+    font-family: var(--font-display);
+    font-size: clamp(5rem, 13vw, 11rem);
+    line-height: 0.8;
+    color: var(--color-text-strong);
+    text-shadow: 1px 1px 0 var(--color-bg-base);
+    user-select: none;
+}
+
+.hero-role {
+    margin-top: 0.9rem;
+    padding-left: 0.3rem;
+    color: var(--color-sand);
     font-family: var(--font-label);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
+    font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    text-shadow: none;
+    text-shadow: 1px 1px 0 var(--color-bg-base);
 }
 
-.view-scene:focus-visible {
-    outline: 2px solid var(--color-teal);
-    outline-offset: 2px;
+.hero-scene {
+    margin-left: 0.3rem;
+    text-shadow: 1px 1px 0 var(--color-bg-base);
 }
 
-.view-scene.back {
+/* rose, violet and sand, low and slow. */
+.blob {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
+    left: 30%;
+    top: 40%;
+    z-index: 0;
+    width: 36vmax;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: linear-gradient(to right, var(--color-rose), var(--color-violet), var(--color-sand));
+    filter: blur(90px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s;
+    animation: blob-turn 24s linear infinite;
+}
+
+.blob.shown {
+    opacity: 0.22;
+}
+
+@keyframes blob-turn {
+    from {
+        rotate: 0deg;
+    }
+    50% {
+        scale: 1 1.4;
+    }
+    to {
+        rotate: 360deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .blob {
+        animation: none;
+    }
+}
+
+.view-back {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.5rem;
+    z-index: 20;
+    text-shadow: 1px 1px 0 var(--color-bg-base);
 }
 </style>

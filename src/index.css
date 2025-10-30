@@ -122,3 +122,34 @@
         outline: none;
     }
 }
+
+/*
+ * One home section. The text sits on the side away from what the camera looks
+ * at: left or right on a landscape screen, at the bottom on a phone. The
+ * camera rig in src/scene/waypoints.js uses the same media query.
+ */
+@layer components {
+    .stop {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        width: 100vw;
+        height: 100%;
+        padding: 1.25rem 1.25rem 4.25rem;
+    }
+
+    @media (orientation: landscape) and (min-width: 768px) {
+        .stop {
+            align-items: center;
+            padding: 3rem clamp(1.5rem, 5vw, 4.5rem) 4.5rem;
+        }
+
+        .stop[data-side='left'] {
+            justify-content: flex-start;
+        }
+
+        .stop[data-side='right'] {
+            justify-content: flex-end;
+        }
+    }
+}

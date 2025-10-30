@@ -1,11 +1,14 @@
 import * as THREE from 'three'
 import gsap from 'gsap'
 import { watch } from 'vue'
+import { waypoints } from '../data/waypoints.js'
 
 // Blender cameras use a 36 mm sensor. The shots were framed at 16:9.
 const SENSOR = 36
 const FRAMED_ASPECT = 16 / 9
 const MAX_FOV = 75
+// Degrees past MAX_FOV per unit of zoom past 1.
+const ZOOM_HEADROOM = 35
 const vfovFromLens = (mm) => THREE.MathUtils.radToDeg(2 * Math.atan(SENSOR / FRAMED_ASPECT / (2 * mm)))
 
 // The same five shots as the Cam_* objects in island.glb. These are only used
@@ -13,14 +16,26 @@ const vfovFromLens = (mm) => THREE.MathUtils.radToDeg(2 * Math.atan(SENSOR / FRA
 const FALLBACK = [
     { position: [32, 32, 128], target: [2, 15, 0], lens: 38 }, // welcome, the portal
     { position: [-128, 9, 36], target: [-150, 3, 20], lens: 35 }, // about, the campfire
-    { position: [116, 15, 22], target: [146, 16, -18], lens: 28 }, // skills, the tree
+    { position: [179.6, 44.2, -18.9], target: [143.9, 24.5, -25.2], lens: 28 }, // skills, the tree
     { position: [150, 34, -18], target: [222, 20, -100], lens: 28 }, // projects, the volcano
     { position: [300, 290, 250], target: [50, 0, -30], lens: 30 }, // contact, the whole thing
-].map(({ position, target, lens }) => ({
-    position: new THREE.Vector3(...position),
-    target: new THREE.Vector3(...target),
-    fov: vfovFromLens(lens),
-}))
+].map(({ position, target, lens }) => toShot(position, target, lens))
+
+function toShot(position, target, lens) {
+    return {
+        position: new THREE.Vector3(...position),
+        target: new THREE.Vector3(...target),
+        fov: vfovFromLens(lens),
+    }
+}
+
+// Composition from the waypoint data: where the subject sits on screen and how
+// much wider the lens goes. See src/data/waypoints.js.
+const framing = waypoints.map(({ shift = [0, 0], tall = [0, 0], zoom = 1 }) => ({ shift, tall, zoom }))
+const FLAT = { shift: [0, 0], tall: [0, 0], zoom: 1 }
+// The same test as the .stop layout in index.css. Side panels on landscape
+// screens, a panel at the bottom everywhere else.
+const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
 
 // Long moves rise over the island instead of cutting through it.
 const LIFT_PER_METRE = 0.18
@@ -42,6 +57,8 @@ export function fitFov(fov, aspect) {
 export function shotsFromCameras(cameras) {
     if (cameras.length < FALLBACK.length) return FALLBACK
     return FALLBACK.map((fallback, i) => {
+        const override = waypoints[i]?.shot
+        if (override) return toShot(override.position, override.target, override.lens)
         const camera = cameras[i]
         const distance = fallback.position.distanceTo(fallback.target)
         return {
@@ -58,6 +75,9 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
     let shots = FALLBACK
     let tween = null
     let fov = shots[4].fov
+    // The frame tweens with the camera, so the subject slides across as it moves.
+    const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1 }
+    const sidePanels = window.matchMedia(SIDE_PANELS)
 
     const group = new THREE.Group()
     group.add(camera)
@@ -66,9 +86,19 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
     const target = new THREE.Object3D()
     scene.add(target)
 
+    // setViewOffset slides the picture without moving the camera, so the
+    // subject sits away from the text. Its units here are shares of the screen.
     const applyFov = () => {
-        camera.fov = fitFov(fov, camera.aspect)
-        camera.updateProjectionMatrix()
+        const [x, y] = sidePanels.matches ? [frame.sx, frame.sy] : [frame.tx, frame.ty]
+        const aspect = camera.aspect
+        // A wider stop may pass the phone cap, so the whole island still fits.
+        camera.fov = Math.min(MAX_FOV + (frame.zoom - 1) * ZOOM_HEADROOM, fitFov(fov, aspect) * frame.zoom)
+        camera.setViewOffset(aspect, 1, -x * aspect, y, aspect, 1)
+    }
+
+    const frameOf = (section) => {
+        const { shift, tall, zoom } = framing[section] ?? FLAT
+        return { sx: shift[0], sy: shift[1], tx: tall[0], ty: tall[1], zoom }
     }
 
     const jump = (section) => {
@@ -76,6 +106,7 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
         camera.position.copy(shot.position)
         target.position.copy(shot.target)
         fov = shot.fov
+        Object.assign(frame, frameOf(section))
         applyFov()
     }
     jump(4)
@@ -88,7 +119,8 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
             return
         }
         const shot = shots[section]
-        const from = { position: camera.position.clone(), target: target.position.clone(), fov }
+        const from = { position: camera.position.clone(), target: target.position.clone(), fov, frame: { ...frame } }
+        const to = frameOf(section)
         const lift = Math.min(MAX_LIFT, from.position.distanceTo(shot.position) * LIFT_PER_METRE)
         const progress = { t: 0 }
         tween = gsap.to(progress, {
@@ -101,6 +133,9 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
                 camera.position.y += Math.sin(Math.PI * t) * lift
                 target.position.lerpVectors(from.target, shot.target, t)
                 fov = THREE.MathUtils.lerp(from.fov, shot.fov, t)
+                Object.keys(frame).forEach((key) => {
+                    frame[key] = THREE.MathUtils.lerp(from.frame[key], to[key], t)
+                })
                 applyFov()
             },
         })
@@ -120,14 +155,19 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
     window.addEventListener('mousemove', onMouseMove)
 
     const stopResize = onResize ? onResize(applyFov) : () => {}
+    sidePanels.addEventListener('change', applyFov)
     const stop = watch(active, (section) => move(section))
 
-    return { group, target, move, jump, setShots, stop, stopResize, onMouseMove, getTween: () => tween }
+    const stopFrame = () => sidePanels.removeEventListener('change', applyFov)
+
+    return { group, target, move, jump, setShots, stop, stopResize, stopFrame, onMouseMove, getTween: () => tween }
 }
 
-export function disposeWaypoints(scene, { group, target, stop, stopResize, onMouseMove, getTween }, camera) {
+export function disposeWaypoints(scene, { group, target, stop, stopResize, stopFrame, onMouseMove, getTween }, camera) {
     stop()
     stopResize()
+    stopFrame()
+    camera.clearViewOffset()
     getTween()?.kill()
     window.removeEventListener('mousemove', onMouseMove)
     gsap.killTweensOf([camera.position, target.position, group.position])

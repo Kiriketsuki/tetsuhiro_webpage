@@ -1,5 +1,5 @@
 <template>
-    <div class="flex h-full w-screen items-center justify-center px-5 pb-24">
+    <div class="stop" :data-side="sideOf('contact')">
         <article class="frame flex w-full max-w-[25rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
             <span class="frame-legend">05 / contact</span>
             <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
@@ -31,6 +31,8 @@
 </template>
 
 <script setup>
+import { sideOf } from '../composables/useWaypoints.js'
+
 // As of October 2025. No Discord any more.
 const links = [
     { label: 'Email', text: 'limzh.jovian@gmail.com', href: 'mailto:limzh.jovian@gmail.com' },

@@ -1,5 +1,6 @@
 <script setup>
 import photo from '../assets/photo.jpg'
+import { sideOf } from '../composables/useWaypoints.js'
 
 const facts = [
     ['Now', 'Software Engineer, Aurrigo'],
@@ -10,7 +11,7 @@ const facts = [
 </script>
 
 <template>
-    <div class="flex h-full w-screen items-center justify-center px-5 pb-20">
+    <div class="stop" :data-side="sideOf('about')">
         <article class="frame frame-rose flex w-full max-w-[25rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
             <span class="frame-legend">02 / about</span>
 
@@ -18,7 +19,7 @@ const facts = [
                 <img
                     :src="photo"
                     alt="Portrait of Jovian Lim"
-                    class="portrait h-24 w-20 shrink-0 object-cover object-top sm:h-28 sm:w-24"
+                    class="portrait h-20 w-16 shrink-0 object-cover object-top sm:h-28 sm:w-24"
                 />
                 <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-[0.9] text-text-strong">
                     Jovian Lim
@@ -31,7 +32,7 @@ const facts = [
                 make 3D things, and this island is one of them.
             </p>
 
-            <dl class="rows text-sm">
+            <dl class="rows hidden text-sm sm:grid">
                 <template v-for="[key, value] in facts" :key="key">
                     <dt>{{ key }}</dt>
                     <dd>{{ value }}</dd>

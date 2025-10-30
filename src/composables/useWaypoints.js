@@ -1,7 +1,12 @@
 import { ref } from 'vue'
+import { waypoints } from '../data/waypoints.js'
 
 // Class names of the five h-screen sections on the home page, in camera order.
-export const sections = ['dodecahedron', 'about', 'skills', 'projects', 'contact']
+export const sections = waypoints.map((waypoint) => waypoint.section)
+
+// Which side of the screen a section's text sits on. The camera keeps the
+// subject on the other side.
+export const sideOf = (section) => waypoints.find((waypoint) => waypoint.section === section)?.side ?? 'none'
 
 const active = ref(0)
 const ready = ref(false)

@@ -1,11 +1,11 @@
 <template>
-    <div class="flex h-full w-screen items-end justify-center px-5 pb-24">
+    <div class="stop" :data-side="sideOf('skills')">
         <article class="frame frame-violet flex w-full max-w-[24rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
             <span class="frame-legend">03 / skills</span>
             <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
                 Skill tree
             </h2>
-            <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
+            <p class="hidden font-body text-sm text-text-body sm:block sm:text-[0.95rem]">
                 What I work with as of late 2025. Mostly web and 3D, with Python on the side.
             </p>
             <dl class="rows text-sm">
@@ -23,6 +23,7 @@
 
 <script setup>
 import { branches, skills } from '../data/skills.js'
+import { sideOf } from '../composables/useWaypoints.js'
 
 const names = (id) =>
     skills

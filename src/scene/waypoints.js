@@ -16,7 +16,7 @@ const vfovFromLens = (mm) => THREE.MathUtils.radToDeg(2 * Math.atan(SENSOR / FRA
 const FALLBACK = [
     { position: [32, 32, 128], target: [2, 15, 0], lens: 38 }, // welcome, the portal
     { position: [-128, 9, 36], target: [-150, 3, 20], lens: 35 }, // about, the campfire
-    { position: [179.6, 44.2, -18.9], target: [143.9, 24.5, -25.2], lens: 28 }, // skills, the tree
+    { position: [199.4, 47.8, -15.4], target: [143.9, 23.5, -25.2], lens: 70 }, // skills, the tree
     { position: [150, 34, -18], target: [222, 20, -100], lens: 28 }, // projects, the volcano
     { position: [300, 290, 250], target: [50, 0, -30], lens: 30 }, // contact, the whole thing
 ].map(({ position, target, lens }) => toShot(position, target, lens))
@@ -31,8 +31,8 @@ function toShot(position, target, lens) {
 
 // Composition from the waypoint data: where the subject sits on screen and how
 // much wider the lens goes. See src/data/waypoints.js.
-const framing = waypoints.map(({ shift = [0, 0], tall = [0, 0], zoom = 1 }) => ({ shift, tall, zoom }))
-const FLAT = { shift: [0, 0], tall: [0, 0], zoom: 1 }
+const framing = waypoints.map(({ shift = [0, 0], tall = [0, 0], zoom = 1, tallZoom = zoom }) => ({ shift, tall, zoom, tallZoom }))
+const FLAT = { shift: [0, 0], tall: [0, 0], zoom: 1, tallZoom: 1 }
 // The same test as the .stop layout in index.css. Side panels on landscape
 // screens, a panel at the bottom everywhere else.
 const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
@@ -76,7 +76,7 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
     let tween = null
     let fov = shots[4].fov
     // The frame tweens with the camera, so the subject slides across as it moves.
-    const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1 }
+    const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1, tzoom: 1 }
     const sidePanels = window.matchMedia(SIDE_PANELS)
 
     const group = new THREE.Group()
@@ -89,16 +89,16 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
     // setViewOffset slides the picture without moving the camera, so the
     // subject sits away from the text. Its units here are shares of the screen.
     const applyFov = () => {
-        const [x, y] = sidePanels.matches ? [frame.sx, frame.sy] : [frame.tx, frame.ty]
+        const [x, y, zoom] = sidePanels.matches ? [frame.sx, frame.sy, frame.zoom] : [frame.tx, frame.ty, frame.tzoom]
         const aspect = camera.aspect
         // A wider stop may pass the phone cap, so the whole island still fits.
-        camera.fov = Math.min(MAX_FOV + (frame.zoom - 1) * ZOOM_HEADROOM, fitFov(fov, aspect) * frame.zoom)
+        camera.fov = Math.min(MAX_FOV + Math.max(0, zoom - 1) * ZOOM_HEADROOM, fitFov(fov, aspect) * zoom)
         camera.setViewOffset(aspect, 1, -x * aspect, y, aspect, 1)
     }
 
     const frameOf = (section) => {
-        const { shift, tall, zoom } = framing[section] ?? FLAT
-        return { sx: shift[0], sy: shift[1], tx: tall[0], ty: tall[1], zoom }
+        const { shift, tall, zoom, tallZoom } = framing[section] ?? FLAT
+        return { sx: shift[0], sy: shift[1], tx: tall[0], ty: tall[1], zoom, tzoom: tallZoom }
     }
 
     const jump = (section) => {

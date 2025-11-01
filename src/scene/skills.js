@@ -1,83 +1,69 @@
 import * as THREE from 'three'
-import { skills, branchOf } from '../data/skills.js'
+import { skills, branchOf, logoColor, PALETTE } from '../data/skills.js'
 
-// Same colours as tokens.css. The canvas cannot read CSS variables.
-const COLORS = {
-    teal: '#54bbd2',
-    violet: '#a383e3',
-    amber: '#f5c252',
-    rose: '#ee8d9f',
-    moss: '#66a983',
-}
-const INK = '#f6f1e9'
-const FILL = 'rgba(11, 26, 49, 0.82)'
 const FONT = '"Fira Code", ui-monospace, monospace'
 
+// One square plate per skill: the real logo, the name under it, a solid rule in
+// the branch colour and a hairline inside it. Same look as the .frame panels.
 const CANVAS = 256
-const HEX_RADIUS = 120
-const TEXT_WIDTH = 196
-const MAX_FONT = 46
+const EDGE = 8
+const INNER = 20
+const LOGO = 112
+const LOGO_TOP = 40
+const NAME_Y = 206
+const NAME_WIDTH = 196
+const MAX_FONT = 34
 const MIN_FONT = 18
-// Metres. Big enough to read from the skills shot, about 45 m out.
-const BADGE_SIZE = 3.4
-const BOB = 0.12
-// Badges closer than this, as a share of their size, get pushed apart.
-const SPACING = 1.0
-const SPREAD_STEPS = 80
-const UP = new THREE.Vector3(0, 1, 0)
+const ICON_VIEWBOX = 24
+
+// Metres. The slots on a branch sit about two metres apart. From the skills
+// shot the closest pair is 1.5 m apart on screen, so 1.35 m plates never touch.
+const BADGE_SIZE = 1.35
+// A small sway, so the plates stay on their branch tips.
+const BOB = 0.04
 // Badges fade out when the camera is right on top of them (the projects shot
 // passes the tree) and when it is far away (the contact shot).
-const FADE_NEAR = [14, 26]
+const FADE_NEAR = [10, 18]
 const FADE_FAR = [110, 170]
 
-function hexPath(ctx, radius) {
-    ctx.beginPath()
-    for (let i = 0; i < 6; i++) {
-        const angle = Math.PI / 6 + (i * Math.PI) / 3
-        const x = CANVAS / 2 + Math.cos(angle) * radius
-        const y = CANVAS / 2 + Math.sin(angle) * radius
-        if (i === 0) ctx.moveTo(x, y)
-        else ctx.lineTo(x, y)
-    }
-    ctx.closePath()
-}
-
-// Largest font size that keeps the longest line inside the hex.
-function fitFont(ctx, lines) {
+// Largest font size that keeps the name inside the plate.
+function fitFont(ctx, text) {
     for (let size = MAX_FONT; size > MIN_FONT; size -= 2) {
         ctx.font = `500 ${size}px ${FONT}`
-        if (lines.every((line) => ctx.measureText(line).width <= TEXT_WIDTH)) return size
+        if (ctx.measureText(text).width <= NAME_WIDTH) return size
     }
     return MIN_FONT
 }
 
 function drawBadge(canvas, skill) {
     const ctx = canvas.getContext('2d')
-    const accent = COLORS[branchOf(skill)?.color] ?? COLORS.teal
+    const accent = PALETTE[branchOf(skill)?.color] ?? PALETTE.teal
     ctx.clearRect(0, 0, CANVAS, CANVAS)
 
-    // Outer glow first, then the panel, then a crisp edge on top.
+    // The plate and its two rules.
+    ctx.fillStyle = PALETTE.raised
+    ctx.fillRect(0, 0, CANVAS, CANVAS)
+    ctx.lineWidth = EDGE
+    ctx.strokeStyle = accent
+    ctx.strokeRect(EDGE / 2, EDGE / 2, CANVAS - EDGE, CANVAS - EDGE)
+    ctx.lineWidth = 2
+    ctx.strokeStyle = PALETTE.line
+    ctx.strokeRect(INNER, INNER, CANVAS - INNER * 2, CANVAS - INNER * 2)
+
+    // The logo is a 24 unit SVG path. Scale it into the top of the plate.
     ctx.save()
-    ctx.shadowColor = accent
-    ctx.shadowBlur = 22
-    hexPath(ctx, HEX_RADIUS)
-    ctx.fillStyle = FILL
-    ctx.fill()
+    ctx.translate((CANVAS - LOGO) / 2, LOGO_TOP)
+    ctx.scale(LOGO / ICON_VIEWBOX, LOGO / ICON_VIEWBOX)
+    ctx.fillStyle = logoColor(skill)
+    ctx.fill(new Path2D(skill.icon.path))
     ctx.restore()
 
-    hexPath(ctx, HEX_RADIUS)
-    ctx.lineWidth = 6
-    ctx.strokeStyle = accent
-    ctx.stroke()
-
-    const lines = skill.name.split(' ')
-    const size = fitFont(ctx, lines)
+    const size = fitFont(ctx, skill.name)
     ctx.font = `500 ${size}px ${FONT}`
-    ctx.fillStyle = INK
+    ctx.fillStyle = PALETTE.ink
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    const top = CANVAS / 2 - ((lines.length - 1) * size * 1.1) / 2
-    lines.forEach((line, i) => ctx.fillText(line, CANVAS / 2, top + i * size * 1.1))
+    ctx.fillText(skill.name, CANVAS / 2, NAME_Y)
 }
 
 function createBadge(skill, anisotropy) {
@@ -91,7 +77,15 @@ function createBadge(skill, anisotropy) {
     texture.anisotropy = anisotropy
 
     // No depth test. The branches would hide a badge behind them otherwise.
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, fog: false })
+    // No tone mapping, so the logo keeps its brand colour.
+    const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+    })
     const sprite = new THREE.Sprite(material)
     sprite.scale.setScalar(BADGE_SIZE)
     sprite.name = `skill-${skill.id}`
@@ -104,58 +98,16 @@ function createBadge(skill, anisotropy) {
     return { sprite, texture, material, redraw }
 }
 
-// Several slots sit on a branch that points at the skills camera, so their
-// badges stack up on screen. This pushes them apart in that camera's view plane
-// until none overlap, then turns the moves back into world offsets.
-function spreadForView(homes, view) {
-    if (!view) return homes
-    const forward = view.target.clone().sub(view.position).normalize()
-    const right = new THREE.Vector3().crossVectors(forward, UP).normalize()
-    const up = new THREE.Vector3().crossVectors(right, forward)
-    const points = homes.map((home) => {
-        const offset = home.clone().sub(view.position)
-        const depth = offset.dot(forward)
-        return { depth, x: offset.dot(right) / depth, y: offset.dot(up) / depth }
-    })
-    const moved = points.map((point) => ({ ...point }))
-
-    for (let step = 0; step < SPREAD_STEPS; step++) {
-        for (let i = 0; i < moved.length; i++) {
-            for (let j = i + 1; j < moved.length; j++) {
-                const a = moved[i]
-                const b = moved[j]
-                const need = (BADGE_SIZE * SPACING) / Math.min(a.depth, b.depth)
-                let dx = b.x - a.x
-                let dy = b.y - a.y
-                const gap = Math.hypot(dx, dy)
-                if (gap >= need) continue
-                if (gap < 1e-6) {
-                    dx = 1
-                    dy = 0
-                }
-                const push = (need - gap) / 2 / Math.max(gap, 1e-6)
-                a.x -= dx * push
-                a.y -= dy * push
-                b.x += dx * push
-                b.y += dy * push
-            }
-        }
-    }
-
-    return homes.map((home, i) => home.clone()
-        .addScaledVector(right, (moved[i].x - points[i].x) * points[i].depth)
-        .addScaledVector(up, (moved[i].y - points[i].y) * points[i].depth))
-}
-
-// Hangs one badge on each SkillSlot empty. They face the camera and bob a little.
-export function createSkillBadges(scene, slots, { camera, view, anisotropy = 4, reducedMotion } = {}) {
+// Seats one badge on each SkillSlot empty, right on the branch tip. They face
+// the camera and sway a few centimetres.
+export function createSkillBadges(scene, slots, { camera, anisotropy = 4, reducedMotion } = {}) {
     const group = new THREE.Group()
     group.name = 'skills'
     const used = slots.slice(0, skills.length)
-    const homes = spreadForView(used.map((slot) => slot.position), view)
+    if (used.length < skills.length) console.warn(`island.glb has ${used.length} skill slots for ${skills.length} skills`)
     const badges = used.map((slot, i) => {
         const badge = createBadge(skills[i], anisotropy)
-        badge.home = homes[i]
+        badge.home = slot.position.clone()
         badge.sprite.position.copy(badge.home)
         group.add(badge.sprite)
         return badge

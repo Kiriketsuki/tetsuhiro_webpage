@@ -31,6 +31,11 @@
         --frame: var(--color-line);
     }
 
+    /* A line-coloured legend would vanish, so it takes the muted text colour. */
+    .frame-line > .frame-legend {
+        color: var(--color-text-muted);
+    }
+
     /* The section label that sits in the top rule. */
     .frame-legend {
         position: absolute;

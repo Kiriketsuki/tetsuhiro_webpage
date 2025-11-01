@@ -1,105 +1,86 @@
 <template>
     <main class="flex min-h-screen w-screen flex-col items-center gap-10 px-5 pt-16 pb-32">
-        <header class="flex max-w-2xl flex-col items-center gap-4 text-center">
-            <p class="label text-teal">Projects</p>
+        <header class="flex w-full max-w-6xl flex-col gap-4">
+            <p class="label text-rose">04 / projects</p>
             <h1 class="font-slab text-[clamp(2.75rem,8vw,6rem)] leading-none text-text-strong">
                 Things I have made
             </h1>
-            <p class="font-body text-[clamp(0.95rem,1.2vw,1.1rem)] text-text-body">
+            <p class="max-w-2xl font-body text-[clamp(0.95rem,1.2vw,1.1rem)] text-text-body">
                 Work first, then school and side projects, then the older stuff. Some of it is not
-                public, so those cards only say what it was.
+                public, so those rows only say what it was.
             </p>
         </header>
 
-        <ul class="grid w-full max-w-6xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <li
-                v-for="project in projects"
-                :key="project.id"
-                ref="cards"
-                class="frame frame-line flex min-w-0 flex-col overflow-hidden"
-            >
-                <img
-                    v-if="project.image"
-                    :src="project.image"
-                    :alt="project.title"
-                    loading="lazy"
-                    class="aspect-[16/9] w-full object-cover"
-                />
-                <div
-                    v-else
-                    class="flex aspect-[16/9] w-full items-center justify-center bg-bg-raised font-slab text-[clamp(3rem,6vw,4.5rem)] leading-none text-line"
-                    aria-hidden="true"
-                >
-                    {{ monogram(project.title) }}
+        <div class="grid w-full max-w-6xl items-start gap-8 lg:grid-cols-[1fr_20rem]">
+            <section class="frame frame-rose p-4 pt-7 sm:p-7 sm:pt-9">
+                <span class="frame-legend">index</span>
+                <h2 class="sr-only">All projects</h2>
+                <ol class="border-t border-line">
+                    <ProjectRow
+                        v-for="(project, i) in projects"
+                        :key="project.id"
+                        :project="project"
+                        :number="i + 1"
+                        detail
+                        @peek="peekedIndex = i"
+                    />
+                </ol>
+            </section>
+
+            <!-- The hovered row, as a spec sheet. Wide screens only. -->
+            <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 pt-8 lg:flex" aria-hidden="true">
+                <span class="frame-legend">{{ String(peekedIndex + 1).padStart(2, '0') }}</span>
+                <div class="plate">
+                    <img v-if="peeked.image" :src="peeked.image" alt="" decoding="async" />
+                    <span v-else>{{ monogram(peeked.title) }}</span>
                 </div>
-
-                <div class="flex flex-1 flex-col gap-4 p-5">
-                    <div>
-                        <h2 class="font-slab text-[clamp(1.6rem,2.4vw,2rem)] leading-tight text-text-strong">
-                            {{ project.title }}
-                        </h2>
-                        <p class="mt-1 font-body text-sm text-text-body">{{ project.blurb }}</p>
-                    </div>
-
-                    <dl class="mt-auto grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
-                        <template v-for="[key, value] in rows(project)" :key="key">
-                            <dt class="label pt-0.5 text-text-faint">{{ key }}</dt>
-                            <dd class="min-w-0 font-body text-text-body">{{ value }}</dd>
-                        </template>
-                    </dl>
-
-                    <router-link v-if="project.action?.to" :to="project.action.to" class="action">
-                        {{ project.action.label }}
-                    </router-link>
-                    <a
-                        v-else-if="project.action?.href"
-                        :href="project.action.href"
-                        target="_blank"
-                        rel="noopener"
-                        class="action"
-                    >
-                        {{ project.action.label }}
-                    </a>
-                    <span v-else class="label text-text-faint">Not public</span>
-                </div>
-            </li>
-        </ul>
+                <p class="font-slab text-3xl leading-tight text-text-strong">{{ peeked.title }}</p>
+                <dl class="rows text-sm">
+                    <template v-for="[key, value] in rows(peeked)" :key="key">
+                        <dt>{{ key }}</dt>
+                        <dd>{{ value }}</dd>
+                    </template>
+                </dl>
+            </aside>
+        </div>
 
         <router-link to="/" class="action self-center">Back to the island</router-link>
     </main>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import VanillaTilt from 'vanilla-tilt'
-import { projects } from '../data/projects.js'
+import { computed, ref } from 'vue'
+import ProjectRow from '../components/ProjectRow.vue'
+import { monogram, projects } from '../data/projects.js'
 
-const cards = ref([])
-
-// Cards without a screenshot get the project's initials instead.
-const monogram = (title) =>
-    title
-        .split(' ')
-        .filter((word) => /^[A-Z0-9]/.test(word))
-        .map((word) => word[0])
-        .join('')
-        .slice(0, 3)
+// Kept as an index: the legend shows the row number.
+const peekedIndex = ref(0)
+const peeked = computed(() => projects[peekedIndex.value])
 
 const rows = (project) => [
     ['Stack', project.stack],
     ['Year', project.year],
     ['Role', project.role],
 ]
-
-// A small tilt on mouse only. Touch and reduced motion get flat cards.
-onMounted(() => {
-    const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!fine || calm) return
-    VanillaTilt.init(cards.value, { max: 6, speed: 600, glare: false, scale: 1 })
-})
-
-onBeforeUnmount(() => {
-    cards.value.forEach((card) => card.vanillaTilt?.destroy())
-})
 </script>
+
+<style scoped>
+.plate {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 10;
+    padding: 4px;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-line);
+    color: var(--color-line);
+    font-family: var(--font-display);
+    font-size: 4rem;
+    line-height: 1;
+}
+
+.plate img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+</style>

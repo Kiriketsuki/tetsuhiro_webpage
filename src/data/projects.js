@@ -21,7 +21,7 @@ export const projects = [
         blurb: 'plants_in_space. A shared 3D garden in the browser, built with Rykiel Goh.',
         image: null,
         stack: 'Vue, Three.js, Blender, socket.io',
-        year: '2024 to 2025',
+        year: '2024-25',
         role: 'Developer, with Rykiel Goh',
         action: { label: 'Visit site', href: 'https://aetherialverdancy.tetsuhiro.dev' },
     },
@@ -106,3 +106,15 @@ export const projects = [
         action: { label: 'Read more', to: '/projects/placeholders' },
     },
 ]
+
+// The home index shows the first few. /projects shows all of them.
+export const FEATURED = 6
+
+// Initials for the projects without a screenshot.
+export const monogram = (title) =>
+    title
+        .split(' ')
+        .filter((word) => /^[A-Z0-9]/.test(word))
+        .map((word) => word[0])
+        .join('')
+        .slice(0, 3)

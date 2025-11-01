@@ -23,7 +23,7 @@ const BADGE_SIZE = 1.35
 const BOB = 0.04
 // Badges fade out when the camera is right on top of them (the projects shot
 // passes the tree) and when it is far away (the contact shot).
-const FADE_NEAR = [10, 18]
+const FADE_NEAR = [16, 24]
 const FADE_FAR = [110, 170]
 
 // Largest font size that keeps the name inside the plate.

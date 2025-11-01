@@ -1,10 +1,10 @@
 <template>
-    <div class="w-screen flex flex-col items-center gap-24 my-24">
-        <h1 class="text-[clamp(2.75rem,8vw,6rem)] leading-none font-slab text-secondary">
+    <div class="case">
+        <h1 class="case-title">
             Dancing Tables
         </h1>
 
-        <div class="code border-8 w-[80vw] h-[80vh]">
+        <div class="case-hero frame frame-line">
             <embed src="https://dancing-tables.web.app/" type="" class="w-full h-full">
         </div>
 
@@ -105,56 +105,99 @@
             </div>
 
         </div>
+        <router-link to="/projects" class="action">All projects</router-link>
     </div>
 
 
 </template>
 
-<script>
-    import VanillaTilt from 'vanilla-tilt';
-
-    export default {
-        mounted() {
-            VanillaTilt.init(document.querySelectorAll(".image"), {
-                max: 10,
-            });
-        }
-    }
-</script>
-
 <style scoped>
-    @reference "../../index.css";
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .section {
-        @apply w-[70vw];
-    }
+/*
+ * The 2022 write-ups, reset into the frame style: a serif title over a rose
+ * rule, the demo in a solid frame, then text and pictures in two columns on
+ * wide screens and one on phones. No tilt and no gradient headings.
+ */
+.case {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(3rem, 8vw, 6rem);
+    width: 100vw;
+    padding: 4rem 1.25rem 8rem;
+}
 
-    .text {
-        @apply w-[50%] flex flex-col gap-8;
-    }
+.case-title {
+    width: min(70rem, 100%);
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid var(--color-rose);
+    color: var(--color-text-strong);
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 7vw, 5.5rem);
+    line-height: 1;
+}
 
-    .text > p {
-        @apply text-lg;
-    }
+.case-hero {
+    width: min(70rem, 100%);
+    height: min(80vh, 44rem);
+    padding: 6px;
+}
 
-    .text > h5 {
-        @apply text-4xl font-slab h-16;
-        background-image: var(--gradient);
-        background-clip: text;
-        color: transparent;
-        background-size: 500%;
-        animation: gradient_animation 10s ease infinite alternate;
-    }
+.case-hero > * {
+    width: 100%;
+    height: 100%;
+}
 
-    .text_left, .text_right {
-        @apply flex flex-row gap-8 justify-center items-center;
-    }
+.section {
+    width: min(70rem, 100%);
+}
 
-    .image {
-        @apply w-[50%] h-[50vh];
+.text {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.text > p {
+    max-width: 65ch;
+    color: var(--color-text-body);
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.text > h5 {
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-sand);
+    font-family: var(--font-label);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.text_left,
+.text_right {
+    display: grid;
+    gap: 2rem;
+    align-items: center;
+}
+
+@media (min-width: 900px) {
+    .text_left,
+    .text_right {
+        grid-template-columns: 1fr 1fr;
     }
+}
+
+.image {
+    aspect-ratio: 4 / 3;
+    padding: 4px;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-line);
+}
+
+img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 </style>

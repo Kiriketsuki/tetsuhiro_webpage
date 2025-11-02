@@ -19,7 +19,7 @@ const SHADOW_MAP_SMALL = 1024
 const isSmallScreen = () => window.matchMedia('(max-width: 767px)').matches
 
 export function createLights(scene) {
-    const hemisphere = new THREE.HemisphereLight(SKY, GROUND, 1.1)
+    const hemisphere = new THREE.HemisphereLight(SKY, GROUND, 1.3)
 
     const moon = new THREE.DirectionalLight(MOON, 1.8)
     moon.position.copy(ISLAND_MIDDLE).add(MOON_FROM)

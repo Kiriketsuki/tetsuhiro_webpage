@@ -48,10 +48,30 @@ const GLOW = {
     coral: 1.4,
 }
 
+// Albedo lift per material. The rock and the portal stones read near black at
+// night next to the Blender renders, so they get a brighter base colour.
+const LIFT = {
+    terrain_rock: 1.45,
+    terrain_volcanic: 1.2,
+    portal_stone: 1.7,
+    portal_stone_edge: 1.5,
+}
+// The ring picks up a little of the core's violet, like the render.
+const RING_GLOW = { names: ['portal_stone', 'portal_stone_edge'], color: 0xab85f4, strength: 0.12 }
+
 function tuneGlow(materials) {
     Object.entries(GLOW).forEach(([name, strength]) => {
         const material = materials.get(name)
         if (material) material.emissiveIntensity = strength
+    })
+    Object.entries(LIFT).forEach(([name, lift]) => {
+        materials.get(name)?.color.multiplyScalar(lift)
+    })
+    RING_GLOW.names.forEach((name) => {
+        const material = materials.get(name)
+        if (!material?.emissive) return
+        material.emissive.setHex(RING_GLOW.color)
+        material.emissiveIntensity = RING_GLOW.strength
     })
 }
 

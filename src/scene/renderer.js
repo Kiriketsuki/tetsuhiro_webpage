@@ -2,7 +2,9 @@ import * as THREE from 'three'
 
 // bg-base from tokens.css. The fog fades the island into the page colour.
 const BG_BASE = 0x03111e
-const EXPOSURE = 1.1
+// Up from 1.1. The rock and the portal ring were too dark next to the renders.
+// The sky colour is solved for this exposure, so the night stays the same.
+const EXPOSURE = 1.25
 // The world is about 500 m across and the contact shot sits 450 m out.
 const FOG_NEAR = 260
 const FOG_FAR = 1150

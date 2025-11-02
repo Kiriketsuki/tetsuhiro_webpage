@@ -67,7 +67,7 @@ island.ready.then(({ anchors, shots, slots }) => {
     if (anchors.campfire) extras.push(createCampfire(scene, anchors.campfire, { reducedMotion }))
     const views = shotsFromCameras(shots)
     rig.setShots(views)
-    extras.push(createSkillBadges(scene, slots, { camera, anisotropy: renderer.capabilities.getMaxAnisotropy(), reducedMotion }))
+    extras.push(createSkillBadges(scene, slots, { camera, anisotropy: renderer.capabilities.getMaxAnisotropy(), reducedMotion, tree: island.root?.getObjectByName('SkillTree') }))
     renderer.shadowMap.needsUpdate = true
 })
 

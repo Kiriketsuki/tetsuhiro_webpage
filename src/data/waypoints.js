@@ -29,8 +29,8 @@ export const waypoints = [
         section: 'skills',
         side: 'right',
         shift: [-0.15, -0.05],
-        tall: [0, 0.22],
-        tallZoom: 0.62,
+        tall: [0.02, 0.29],
+        tallZoom: 0.66,
         shot: { position: [199.4, 47.8, -15.4], target: [143.9, 23.5, -25.2], lens: 70 },
     },
     {

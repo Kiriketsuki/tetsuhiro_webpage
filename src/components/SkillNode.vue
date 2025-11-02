@@ -11,8 +11,8 @@ const branch = computed(() => branchOf(props.skill))
 </script>
 
 <template>
-    <li class="node">
-        <div class="row" :style="{ '--node': `var(--color-${branch?.color ?? 'teal'})` }">
+    <li class="node" :style="{ '--node': `var(--color-${branch?.color ?? 'teal'})` }">
+        <div class="row">
             <span class="logo" aria-hidden="true">
                 <svg viewBox="0 0 24 24" :fill="logoColor(skill)"><path :d="skill.icon.path" /></svg>
             </span>
@@ -27,13 +27,15 @@ const branch = computed(() => branchOf(props.skill))
 
 <style scoped>
 /*
- * The lines are drawn on the list items, not the rows, so a line runs the
- * full height of a branch with no gap. Each child draws its own elbow from
- * the line into the middle of its logo box.
+ * Each skill is a round pod on a drawn branch. The lines are drawn on the
+ * list items, not the rows, so a limb runs the full height with no gap. Each
+ * child draws its own curved elbow from the limb into the middle of its pod,
+ * and the elbow takes a little of the branch colour.
  */
 .node {
-    --box: 2.25rem;
+    --box: 2.5rem;
     --gap: 0.85rem;
+    --limb: color-mix(in oklab, var(--node) 45%, var(--color-line));
     list-style: none;
 }
 
@@ -49,14 +51,37 @@ const branch = computed(() => branchOf(props.skill))
     place-items: center;
     width: var(--box);
     height: var(--box);
-    background: var(--color-bg-base);
-    border: 1px solid var(--node);
-    border-radius: 2px;
+    background: radial-gradient(circle at 50% 35%, #16294a, var(--color-bg-raised));
+    border: 2px solid var(--node);
+    border-radius: 50%;
+    box-shadow: 0 0 0.9rem color-mix(in oklab, var(--node) 40%, transparent);
 }
 
 .logo svg {
     width: 1.2rem;
     height: 1.2rem;
+}
+
+.row:hover .logo {
+    animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0.9rem color-mix(in oklab, var(--node) 40%, transparent);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 1.5rem color-mix(in oklab, var(--node) 70%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .row:hover .logo {
+        animation: none;
+    }
 }
 
 .name {
@@ -74,7 +99,7 @@ const branch = computed(() => branchOf(props.skill))
     text-transform: uppercase;
 }
 
-/* The trunk line sits under the middle of the parent's logo box. */
+/* The limb sits under the middle of the parent's pod. */
 .children {
     margin-left: calc(var(--box) / 2);
 }
@@ -82,7 +107,7 @@ const branch = computed(() => branchOf(props.skill))
 .children > .node {
     position: relative;
     padding-top: var(--gap);
-    padding-left: 1.4rem;
+    padding-left: 1.6rem;
 }
 
 .children > .node::before {
@@ -90,21 +115,23 @@ const branch = computed(() => branchOf(props.skill))
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
-    border-left: 1px solid var(--color-line);
+    left: -1px;
+    border-left: 2px solid var(--limb);
 }
 
 .children > .node:last-child::before {
-    bottom: auto;
-    height: calc(var(--gap) + var(--box) / 2);
+    display: none;
 }
 
 .children > .node::after {
     content: '';
     position: absolute;
-    top: calc(var(--gap) + var(--box) / 2);
-    left: 0;
-    width: 1.4rem;
-    border-top: 1px solid var(--color-line);
+    top: 0;
+    left: -1px;
+    width: 1.6rem;
+    height: calc(var(--gap) + var(--box) / 2);
+    border-left: 2px solid var(--limb);
+    border-bottom: 2px solid var(--limb);
+    border-bottom-left-radius: 1rem;
 }
 </style>

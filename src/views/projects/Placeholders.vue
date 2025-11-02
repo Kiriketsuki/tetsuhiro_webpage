@@ -1,7 +1,7 @@
 <template>
     <div class="case">
         <h1 class="case-title">
-            Placeholders - Find My HDB
+            Find My HDB
         </h1>
 
         <div class="case-hero frame frame-line">
@@ -11,41 +11,40 @@
         <div class="text_center section">
             <div class="text" style="width: 100%;">
                 <h5>
-                    Introduction
+                    The brief
                 </h5>
 
                 <p>
-                    A project for my Software Engineering class.
+                    A team project for my software engineering module at NTU. Our team was called Placeholders, which tells you
+                    how long we spent on the name.
                 </p>
 
                 <p>
-                    For this project, we were required to use data provided by the government to create an application, be it a web app, mobile app, or desktop app. In the process
-                    of creating this app, we were required to use the Agile methodology taught in this class, as well as learn UML.
+                    The brief was to build an app on government open data, and to build it the proper way: Agile, sprints and
+                    UML from day one.
                 </p>
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <iframe src="https://data.gov.sg/dataset/resale-flat-prices/resource/f1765b54-a209-4718-8d38-a39237f502b3/view/093ff0f0-783f-4f6a-be52-7e506a8c58ca" frameBorder="0" class="w-full h-full"> </iframe> 
+                <iframe src="https://data.gov.sg/dataset/resale-flat-prices/resource/f1765b54-a209-4718-8d38-a39237f502b3/view/093ff0f0-783f-4f6a-be52-7e506a8c58ca" frameBorder="0" class="w-full h-full" title="HDB resale prices on data.gov.sg"> </iframe>
             </div>
 
             <div class="text">
                 <h5>
-                    Project Topic
+                    The idea
                 </h5>
 
                 <p>
-                    The data we decided to use was the resale prices of HDBs, and we obtained the data from <a href="https://data.gov.sg/dataset/resale-flat-prices">here</a>.
-                    We chose this dataset as it has a fair bit of data for us to work on, including type of flat, number of rooms, location, and resale price. Using this data,
-                    we decided to create an app that would allow users to enter their preferences for a flat, and our app would use the data collected to provide the most relevant
-                    listings
+                    We used the <a href="https://data.gov.sg/dataset/resale-flat-prices" class="text-link">HDB resale price data</a>.
+                    It has the flat type, the number of rooms, the town and the price, which is plenty to work with. You tell the
+                    app what flat you want, and it finds the listings that fit.
                 </p>
 
                 <p>
-                    We decided to go with a web application approach, instead of a mobile or desktop application, as I had prior experience with creating web applications, and
-                    as this class was about the process of engineering software, as compared to focusing on what language the software was programmed in, we felt that a web application
-                    would be the best approach.
+                    We built it as a web app. I had built web apps before, and the module cared more about the process than the
+                    language, so the web was the easy choice.
                 </p>
             </div>
         </div>
@@ -53,54 +52,50 @@
         <div class="text_left section">
             <div class="text">
                 <h5>
-                    The Software Engineering Process
+                    The process
                 </h5>
 
                 <p>
-                    Not only does the project required us to have a team of 6 working on the software, we were also required to adopt Agile methodology, with scrum masters, sprints, and reviews.
-                    With the help of our diagrams, clear role assignments, and a good understanding of Agile methodology and pair programming, we were able to push working updates to our web application
-                    in a timely fashion.
+                    There were six of us, with a scrum master, sprints and reviews. Clear roles and a bit of pair programming kept
+                    the updates coming on time.
                 </p>
 
                 <p>
-                    With the help of Git, we were able to demarcate our work into different branches, and merge them into the main branch when they were ready to be pushed to the live website.
-                    This allowed us to work on different parts of the project at the same time, and to ensure that the code we pushed to the live website was stable and bug-free.
-                    We also had to learn how to perform pull requests, as well as perform merge requests during our review meetings as part of the Agile methodology.
+                    Each feature lived on its own Git branch and went into main through a pull request, and we went through them
+                    together at each review. It was the first time most of us worked like that.
                 </p>
 
                 <p>
-                    From start to finish, we implemented proper software engineering procedure, with software requirement specification at the start, to creating a data dictionary,
-                    to using Agile to develop the application, and were thus able to create a satisfactory web application.
+                    We went from a requirements spec to a data dictionary to working software, one sprint at a time.
                 </p>
             </div>
 
             <div class="image">
-                <img src="../../assets/project_gallery/placeholders/placeholders_0.png" alt="">
+                <img src="../../assets/project_gallery/placeholders/placeholders_0.png" alt="A page from the Find My HDB web app.">
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/placeholders/placeholders_1.jpg" alt="">
+                <img src="../../assets/project_gallery/placeholders/placeholders_1.jpg" alt="One of the UML diagrams for Find My HDB.">
             </div>
             <div class="text">
                 <h5>
-                    UML Diagrams
+                    UML diagrams
                 </h5>
 
                 <p>
-                    Besides the Agile methodology, we also had to learn and implement the usage of UML diagrams. These diagrams were used to help us clearly understand every single cog's purpose in this machine.
-                    We included the Model View Controller pattern when designing the software, which emphasizes a separation between the logic and display.
+                    We drew a lot of diagrams: use cases, classes, sequences, a dialog map and more. The design followed Model View
+                    Controller, so the logic and the screens stayed apart.
                 </p>
 
                 <p>
-                    We came up with many diagrams, from use case diagrams, class diagrams, sequence diagrams, class relation diagram, key boundary classes, dialog map, and many more. All of which, can be viewed at
-                    our Github Repository.
+                    I was not sold on that many diagrams at first. By the end I got it: every part had a picture that said what it
+                    was for, and that made the whole team faster.
                 </p>
 
                 <p>
-                    For every step of the development process, there was a diagram to help us work efficiently, and in the end, we created a successful web application.
-                    Our final presentation can be viewed here <a href="https://youtu.be/d8rzBvEPVec"> here</a>, while the actual web page can be accessed <a href=""> here</a>.
+                    You can watch our <a href="https://youtu.be/d8rzBvEPVec" class="text-link">final presentation</a> on YouTube.
                 </p>
             </div>
 

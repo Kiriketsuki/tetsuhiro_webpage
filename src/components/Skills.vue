@@ -6,7 +6,8 @@
                 Skill tree
             </h2>
             <p class="hidden font-body text-sm text-text-body sm:block sm:text-[0.95rem]">
-                What I work with as of late 2025. Mostly web and 3D, with Python on the side.
+                What I reach for as of late 2025. Mostly web and 3D, and Python when there is
+                data to sort out.
             </p>
             <dl class="rows text-sm">
                 <template v-for="branch in branches" :key="branch.id">

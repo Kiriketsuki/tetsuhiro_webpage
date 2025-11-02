@@ -6,8 +6,8 @@
                 Say hello
             </h2>
             <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
-                Thanks for looking around. If you want to talk about a role, a project idea, or
-                anything on this island, email is the quickest way to reach me.
+                Thanks for walking around the island! If you want to talk about a role, a project,
+                or why there is a volcano, email is the quickest way to reach me.
             </p>
 
             <dl class="rows text-sm">

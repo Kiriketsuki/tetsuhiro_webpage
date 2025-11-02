@@ -26,7 +26,7 @@ const routes = [
         path: '/projects/placeholders',
         name: 'Placeholders',
         component: () => import('../views/projects/Placeholders.vue'),
-        meta: { title: 'Placeholders' },
+        meta: { title: 'Find My HDB' },
     },
     // One page for every featured project. An unknown id falls through to the 404.
     {

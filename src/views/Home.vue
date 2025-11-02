@@ -9,9 +9,9 @@
                 <div class="hero-inner">
                     <div class="flex flex-col items-start gap-4">
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
-                        <p class="hero-role">software engineer, singapore</p>
+                        <p class="hero-role">software engineer in singapore</p>
                         <button type="button" class="action hero-scene" @click="sceneOnly = true">
-                            view scene
+                            just the island
                         </button>
                     </div>
                     <div class="flex flex-row-reverse">
@@ -33,7 +33,7 @@
             </section>
         </div>
         <button v-if="sceneOnly" type="button" class="action view-back" @click="sceneOnly = false">
-            back to the page
+            bring the words back
         </button>
     </div>
 </template>

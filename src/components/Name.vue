@@ -4,8 +4,8 @@
 
         <p class="gate-readout" aria-live="polite">
             <template v-if="loadError">{{ loadError }}</template>
-            <template v-else-if="ready">island ready</template>
-            <template v-else>loading the island {{ percent }}%</template>
+            <template v-else-if="ready">the island is ready</template>
+            <template v-else>growing the island {{ percent }}%</template>
         </p>
 
         <div class="gate-bar" aria-hidden="true">

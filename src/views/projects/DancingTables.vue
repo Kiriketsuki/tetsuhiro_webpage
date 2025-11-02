@@ -11,24 +11,23 @@
         <div class="text_center section">
             <div class="text" style="width: 100%;">
                 <h5>
-                    Introduction
+                    How it started
                 </h5>
 
                 <p>
-                    Dancing Tables was my first foray into free-lancing as a web developer. When approached by the company, they requested a mindblowing
-                    website, with amazing effects, citing that they wanted an interactive, 3D website.
+                    Dancing Tables was my first freelance job. The client makes a table lifting robot for banquet halls, and they
+                    asked for a website that would wow people: interactive, in 3D, the works.
                 </p>
 
                 <p>
-                    Although it was a challenge, I took it upon myself to learn various different skills in order to create the website that they envisioned,
-                    and I succeeded.
+                    I had never built a 3D website before. I said yes anyway, learnt what I needed along the way, and shipped it.
                 </p>
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_0.png" alt="">
+                <img src="../../assets/project_gallery/dancing/dancing_0.png" alt="The banquet hall scene from the Dancing Tables site.">
             </div>
 
             <div class="text">
@@ -37,15 +36,13 @@
                 </h5>
 
                 <p>
-                    Before taking on this job, my experience with front-end development was the classic HTML, CSS, and JavaScript. I was able to create stunning
-                    2D websites, using CSS animations and Javascript libraries, pulling off tricks such as parallax scrolling and 3D hover effects. However, in order
-                    to make a fully 3D website, I needed a way to draw 3D models, and Three.js was the perfect solution.
+                    Before this, my front end work was plain HTML, CSS and JavaScript. I could do parallax and hover tricks, but a
+                    real 3D scene needed something else, so I picked up Three.js.
                 </p>
 
                 <p>
-                    I had to learn from scratch how to use Three.js, and its various intricacies, such as lighting, rendering, shadows, texture mapping, and more.
-                    In order to even render the page on various browsers and different devices, I had to learn how to optimize how Three.js was rendering the scene,
-                    how to manage models, and how to deal with lighting, without making the entire webpage looking like a mess.
+                    I learnt it from scratch: lights, shadows, textures and rendering. Then I learnt how to keep it fast enough for
+                    phones and older laptops, without the scene turning into a mess.
                 </p>
             </div>
         </div>
@@ -53,54 +50,51 @@
         <div class="text_left section">
             <div class="text">
                 <h5>
-                    3D Modeling
+                    3D modelling
                 </h5>
 
                 <p>
-                    The client wanted a fully fledged 3D scene to fully showcase the capabilities of their product, the Dancing Table. However, the client did not have any
-                    resources for me to pull upon, and it was up to me to create the models needed to flesh out the scene.
+                    The client wanted a full banquet hall to show the robot off, but they had no models to give me. So the models
+                    were my job too.
                 </p>
 
                 <p>
-                    I started to learn how to use Blender, and with my knowledge of photoshop, I was able to create an entire banquet hall, with fully furnished tables, as well
-                    as the product being used within the banquet hall, all while having the correct textures.
+                    I learnt Blender for it, and used what I knew from Photoshop for the textures. I built the hall, the furnished
+                    tables and the robot itself.
                 </p>
 
                 <p>
-                    Furthermore, as the intention was to showcase how the product works, I had learnt some basic animations to visually demonstrate the benefits of using their product,
-                    over a more traditional setup, with workers manually setting up the tables.
+                    I also learnt some basic animation, so the site could show the robot setting up a hall next to the old way,
+                    with staff moving every table by hand.
                 </p>
             </div>
 
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_1.png" alt="">
+                <img src="../../assets/project_gallery/dancing/dancing_1.png" alt="A furnished table in the banquet hall.">
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_2.png" alt="">
+                <img src="../../assets/project_gallery/dancing/dancing_2.png" alt="The table lifting robot in the banquet hall.">
             </div>
             <div class="text">
                 <h5>
-                    Interfacing with the client
+                    Working with a client
                 </h5>
 
                 <p>
-                    While the client whom sought me out was ernest and professional, he had a partner that was more difficult to work with. I was brought on as a web developer,
-                    and I do not know the ins and outs of their product, but the partner wanted me to be able to fully animate and showcase the product. 
+                    The person who hired me was great to work with. His partner was harder. I was there as a web developer, but he
+                    wanted full product animations from someone who did not know the product inside out.
                 </p>
 
                 <p>
-                    As previously mentioned, it was my first experience as a freelancer, and the client tried to low-ball me, while requesting a very high level of work, especially
-                    given that I had never dealt with 3D websites before. My experience before then was solely with web technology, and I did not expect to be asked to create
-                    3D models.
+                    It was my first freelance job, and the pay was low for what they asked. I did not know yet how to say so.
                 </p>
 
                 <p>
-                    Nonetheless, I was able to push myself, while not losing my client as a customer. I ended up being able to do what was required of me, and more, while being able
-                    to provide a product that I am satisfied with. This experience has taught me a lot on how to be a freelancer, as well as how to interact with clients, and now I am
-                    much more confident in my skills to work as a freelancer web developer.
+                    I still delivered everything on the list, kept the client happy, and ended up with a site I am proud of. I also
+                    learnt how to price my time, which was worth more than the pay.
                 </p>
             </div>
 

@@ -6,7 +6,7 @@ const facts = [
     ['Now', 'Software Engineer, Aurrigo'],
     ['Since', 'February 2025'],
     ['Before', 'NTU, Computer Science'],
-    ['Side', 'Blender and Three.js'],
+    ['Also', 'Blender and Three.js'],
 ]
 </script>
 
@@ -27,9 +27,9 @@ const facts = [
             </div>
 
             <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
-                I graduated from NTU in January 2025 and joined Aurrigo a month later. I build the
-                interfaces operators use to work with autonomous airside vehicles. On the side I
-                make 3D things, and this island is one of them.
+                Hello! I finished Computer Science at NTU in December 2024 and joined Aurrigo in
+                February 2025. There I build the screens people use to run driverless vehicles at
+                airports. Outside work I make 3D things, and this island is the biggest one so far.
             </p>
 
             <dl class="rows hidden text-sm sm:grid">

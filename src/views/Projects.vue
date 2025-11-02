@@ -6,8 +6,9 @@
                 Things I have made
             </h1>
             <p class="max-w-2xl font-body text-[clamp(0.95rem,1.2vw,1.1rem)] text-text-body">
-                Work first, then school and side projects, then the older stuff. Some of it is not
-                public, so those rows only say what it was.
+                Work comes first, then school and side projects. Each one has its own page with
+                screenshots. Further down are the older and smaller things, and a few that never had
+                a screen.
             </p>
         </header>
 

@@ -47,7 +47,7 @@ loaders.manager.onProgress = (url, loaded, total) => {
 }
 loaders.manager.onError = (url) => {
     console.error('Failed to load', url)
-    loadError.value = 'Something did not load. Reload the page to try again.'
+    loadError.value = 'Part of the island did not load. A reload usually sorts it out.'
 }
 const onIslandProgress = (event) => {
     if (!event.lengthComputable) return

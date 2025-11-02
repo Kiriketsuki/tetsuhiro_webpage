@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
+import { findProject } from '../data/projects.js'
 
 const routes = [
     { path: '/', name: 'Home', component: Home, meta: { title: 'Home' } },
@@ -16,18 +17,6 @@ const routes = [
         meta: { title: 'Projects' },
     },
     {
-        path: '/projects/fractals',
-        name: 'Fractals',
-        component: () => import('../views/projects/Fractals.vue'),
-        meta: { title: 'Fractals' },
-    },
-    {
-        path: '/projects/rrpss',
-        name: 'RRPSS',
-        component: () => import('../views/projects/RRPSS.vue'),
-        meta: { title: 'RRPSS' },
-    },
-    {
         path: '/projects/dancing_tables',
         name: 'DancingTables',
         component: () => import('../views/projects/DancingTables.vue'),
@@ -38,6 +27,17 @@ const routes = [
         name: 'Placeholders',
         component: () => import('../views/projects/Placeholders.vue'),
         meta: { title: 'Placeholders' },
+    },
+    // One page for every featured project. An unknown id falls through to the 404.
+    {
+        path: '/projects/:id',
+        name: 'Project',
+        component: () => import('../views/ProjectDetail.vue'),
+        meta: { title: (to) => findProject(to.params.id)?.title },
+        beforeEnter: (to) =>
+            findProject(to.params.id)
+                ? true
+                : { name: 'NotFound', params: { pathMatch: to.path.slice(1).split('/') }, replace: true },
     },
     {
         path: '/:pathMatch(.*)*',
@@ -53,7 +53,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    document.title = `${to.meta.title ?? 'Home'} | Jovian Lim`
+    const title = typeof to.meta.title === 'function' ? to.meta.title(to) : to.meta.title
+    document.title = `${title ?? 'Home'} | Jovian Lim`
 })
 
 export default router

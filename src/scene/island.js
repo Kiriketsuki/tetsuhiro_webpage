@@ -8,7 +8,7 @@ const CAMERA_PREFIX = 'Cam_'
 
 // Props that stand up off the ground. They throw shadows, the ground takes them.
 const CASTERS = ['Island', 'VolcanoIsland', 'Volcano', 'SkillTree', 'PortalLedge', 'PortalRing',
-    'Lanterns', 'Fences', 'ToriiPath', 'CherryGrove', 'Campfire']
+    'Lanterns', 'Fences', 'ToriiPath', 'CherryGrove', 'Campfire', 'SkillTreeCanopy']
 
 // Pulls the named empties and the five shot cameras out of the gltf. Everything
 // is read in world space so the rest of the scene never needs the hierarchy.
@@ -59,6 +59,19 @@ const LIFT = {
 // The ring picks up a little of the core's violet, like the render.
 const RING_GLOW = { names: ['portal_stone', 'portal_stone_edge'], color: 0xab85f4, strength: 0.12 }
 
+// The canopy takes its colour from the vertex colours painted in Blender. Its
+// normals point out from each leaf mass, so the clumps shade as one soft volume.
+const FOLIAGE = { name: 'foliage', roughness: 0.85 }
+
+function tuneFoliage(materials) {
+    const material = materials.get(FOLIAGE.name)
+    if (!material) return
+    material.vertexColors = true
+    material.roughness = FOLIAGE.roughness
+    material.metalness = 0
+    material.needsUpdate = true
+}
+
 function tuneGlow(materials) {
     Object.entries(GLOW).forEach(([name, strength]) => {
         const material = materials.get(name)
@@ -75,8 +88,8 @@ function tuneGlow(materials) {
     })
 }
 
-// The terrain carries custom split normals from Blender. Leave the normals alone:
-// no computeVertexNormals, no mergeVertices, no flat shading.
+// The terrain and the canopy carry custom split normals from Blender. Leave the
+// normals alone: no computeVertexNormals, no mergeVertices, no flat shading.
 function prepareMeshes(root) {
     const materials = new Map()
     root.traverse((node) => {
@@ -91,6 +104,7 @@ function prepareMeshes(root) {
         })
     })
     tuneGlow(materials)
+    tuneFoliage(materials)
     return materials
 }
 

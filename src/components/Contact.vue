@@ -26,12 +26,16 @@
             </dl>
 
             <a href="mailto:limzh.jovian@gmail.com" class="action">Send an email</a>
+            <p class="font-label text-[0.65rem] tracking-wider text-text-faint">v{{ version }}</p>
         </article>
     </div>
 </template>
 
 <script setup>
 import { sideOf } from '../composables/useWaypoints.js'
+import versionFile from '../../VERSION?raw'
+
+const version = versionFile.trim()
 
 // As of October 2025. No Discord any more.
 const links = [

@@ -31,3 +31,7 @@ npm run dev
 - `src/assets/models/island.glb` is the island, leaves included. The Draco decoder is in `public/draco/`, so it does not come from a CDN.
 - `src/assets/textures/` has the tiled terrain textures. `src/scene/terrain-material.js` maps them onto the island in world space.
 - `src/assets/projects/` has the project screenshots as WebP, one folder per project.
+
+## Credits
+
+Dodecahedron icons by Lorc, Delapouite and contributors, [game-icons.net](https://game-icons.net), CC BY 3.0. `scripts/icon-paths.mjs` copies the 12 icons that the faces use into `src/data/icon-paths.js`, and `src/scene/face-texture.js` draws them onto the faces at run time.

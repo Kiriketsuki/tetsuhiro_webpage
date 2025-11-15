@@ -26,7 +26,17 @@
             </dl>
 
             <a href="mailto:limzh.jovian@gmail.com" class="action">Send an email</a>
-            <p class="font-label text-[0.65rem] tracking-wider text-text-faint">v{{ version }}</p>
+            <p class="font-label text-[0.65rem] leading-relaxed tracking-wider text-text-faint">
+                Dodecahedron icons by Lorc, Delapouite and contributors,
+                <a
+                    href="https://game-icons.net"
+                    target="_blank"
+                    rel="noopener"
+                    class="underline decoration-line underline-offset-2 hover:text-text-muted"
+                    >game-icons.net</a
+                >, CC BY 3.0.
+                <span class="block">v{{ version }}</span>
+            </p>
         </article>
     </div>
 </template>

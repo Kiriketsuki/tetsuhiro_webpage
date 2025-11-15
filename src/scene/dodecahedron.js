@@ -1,11 +1,6 @@
 import * as THREE from 'three'
 import { interests } from '../data/interests.js'
-
-const textureUrls = import.meta.glob('../assets/dodecahedron/2025/*.webp', {
-    eager: true,
-    query: '?url',
-    import: 'default',
-})
+import { createFaceTexture } from './face-texture.js'
 
 // The geometry keeps the old dodecahedron.glb size. The group scales it down to
 // about 6 m across, which reads well from the welcome shot.
@@ -102,17 +97,14 @@ function buildGeometry() {
     return geometry
 }
 
-function buildMaterial(slug, loader) {
-    const url = textureUrls[`../assets/dodecahedron/2025/${slug}.webp`]
-    const map = loader.load(url)
-    map.colorSpace = THREE.SRGBColorSpace
-    map.anisotropy = 4
+function buildMaterial(interest) {
+    const map = createFaceTexture(interest)
     // The emissive map keeps the icons readable on the dark side of the island.
     return new THREE.MeshStandardMaterial({
         map,
         emissiveMap: map,
         emissive: 0xffffff,
-        emissiveIntensity: 0.55,
+        emissiveIntensity: 0.8,
         roughness: 0.6,
         metalness: 0,
     })
@@ -120,9 +112,8 @@ function buildMaterial(slug, loader) {
 
 export function createDodecahedron({ scene, loadingManager, position = HOME, size = SIZE }) {
     const home = position.clone()
-    const loader = new THREE.TextureLoader(loadingManager)
     const geometry = buildGeometry()
-    const materials = interests.map((item) => buildMaterial(item.slug, loader))
+    const materials = interests.map(buildMaterial)
     const mesh = new THREE.Mesh(geometry, materials)
 
     const edges = new THREE.LineSegments(

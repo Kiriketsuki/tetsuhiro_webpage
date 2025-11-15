@@ -10,6 +10,7 @@
     "ship": "vite build && firebase deploy --only hosting"
   },
   "dependencies": {
+    "@iconify-json/game-icons": "^1.2.3",
     "gsap": "^3.13.0",
     "simple-icons": "^15.18.0",
     "three": "^0.180.0",

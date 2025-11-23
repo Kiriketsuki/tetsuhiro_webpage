@@ -1,5 +1,5 @@
 <script setup>
-import photo from '../assets/photo.jpg'
+import photo from '../assets/about-2025.webp'
 import { sideOf } from '../composables/useWaypoints.js'
 
 const facts = [
@@ -18,7 +18,7 @@ const facts = [
             <div class="flex items-end gap-5">
                 <img
                     :src="photo"
-                    alt="Portrait of Jovian Lim"
+                    alt="Jovian Lim in a blue and gold NTU graduation gown, arms crossed, wearing tinted glasses"
                     class="portrait h-20 w-16 shrink-0 object-cover object-top sm:h-28 sm:w-24"
                 />
                 <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-[0.9] text-text-strong">

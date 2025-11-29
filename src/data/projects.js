@@ -164,7 +164,21 @@ const featured = [
     },
 ].map(withShots)
 
-export const projects = [...featured]
+// Side projects with no detail page yet. They link straight out.
+const more = [
+    {
+        id: 'trkixel',
+        title: 'TrKixel',
+        blurb: 'A pixel art engine that draws with triangles instead of squares. Trace, subdivide, export.',
+        image: null,
+        stack: 'Vue, Vite, Tailwind',
+        year: '2025',
+        role: 'Solo',
+        action: { label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/TrKixel' },
+    },
+]
+
+export const projects = [...featured, ...more]
 
 // Older and smaller things. No pictures, one line each.
 export const archive = [
@@ -197,11 +211,10 @@ export const findProject = (id) => projects.find((project) => project.id === id 
 // The home index shows the first few. /projects shows all of them.
 export const FEATURED = 6
 
-// Initials for the projects without a screenshot.
-export const monogram = (title) =>
-    title
-        .split(' ')
-        .filter((word) => /^[A-Z0-9]/.test(word))
-        .map((word) => word[0])
-        .join('')
-        .slice(0, 3)
+// Initials for the projects without a screenshot. A one word name in camel
+// case, like TrKixel, gives its capitals.
+export const monogram = (title) => {
+    const words = title.split(' ').filter((word) => /^[A-Z0-9]/.test(word))
+    if (words.length === 1) return words[0].replace(/[^A-Z0-9]/g, '').slice(0, 3)
+    return words.map((word) => word[0]).join('').slice(0, 3)
+}

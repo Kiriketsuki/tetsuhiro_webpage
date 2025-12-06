@@ -31,8 +31,9 @@ const featured = [
         stack: 'Flask, then FastAPI and uv, websockets',
         year: '2025',
         role: 'Software Engineer, Aurrigo',
-        coverAlt: 'Layout sketch of the stand screen: a vehicle list, the map, a side list and a mission panel across the bottom.',
+        coverAlt: 'Layout sketch of the stand screen since December: the map fills the screen, with floating panels for vehicles and missions.',
         gallery: [
+            'Before: the stand screen until December, with docked lists on both sides of the map.',
             'Layout sketch of remote supervision: camera tiles, a minimap, alerts and a stop panel.',
             'Sketch of the interaction patterns: a panel that shrinks to a pill, an expanding row, slide to authorise, press and hold.',
         ],
@@ -41,6 +42,7 @@ const featured = [
             'Auto-Connect is the software Aurrigo uses to run driverless vehicles on the airside of an airport. I set it up from the first architecture diagram in May 2025, and I was its only engineer.',
             'I wrote the first backend in Flask with MySQL, then rebuilt it in FastAPI with uv that September. The four operator screens, for fleet, stand, baggage area and remote supervision, talk to it over websockets.',
             'The tricky part is keeping a busy screen calm, so the thing that needs you right now is the first thing you see.',
+            'In December the stand screen went map-first, with its panels floating over the map.',
         ],
         links: [],
     },

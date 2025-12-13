@@ -178,6 +178,16 @@ const more = [
         role: 'Solo',
         action: { label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/TrKixel' },
     },
+    {
+        id: 'desktop-rice',
+        title: 'Desktop Rice',
+        blurb: 'My Arch and Hyprland desktop. kilour, a Go tool, pulls a palette from the wallpaper, and that palette themes the whole desktop, status bar included.',
+        image: null,
+        stack: 'Arch, Hyprland, Go, AGS',
+        year: '2025',
+        role: 'Solo, dots, kilour and kiex-status',
+        action: { label: 'View dots', href: 'https://github.com/Kiriketsuki/dots' },
+    },
 ]
 
 export const projects = [...featured, ...more]

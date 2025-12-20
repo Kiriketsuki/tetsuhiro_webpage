@@ -3,7 +3,7 @@
         <Name v-if="showGate" @lifted="showGate = false" />
         <div ref="blob" class="blob" :class="{ shown: blobShown }" aria-hidden="true"></div>
         <div id="home" class="w-screen flex flex-col items-center justify-between" :style="{ visibility: entered ? 'visible' : 'hidden' }">
-            <section class="dodecahedron hero relative h-screen w-full">
+            <section class="snap-section dodecahedron hero relative h-svh w-full">
                 <h1 class="sr-only">Jovian Lim, software engineer in Singapore</h1>
 
                 <div class="hero-inner">
@@ -19,16 +19,16 @@
                     </div>
                 </div>
             </section>
-            <section class="h-screen w-full about">
+            <section class="snap-section h-svh w-full about">
                 <About />
             </section>
-            <section class="h-screen w-full skills">
+            <section class="snap-section h-svh w-full skills">
                 <Skills />
             </section>
-            <section class="h-screen w-full projects">
+            <section class="snap-section h-svh w-full projects">
                 <Projects />
             </section>
-            <section class="h-screen w-full contact">
+            <section class="snap-section h-svh w-full contact">
                 <Contact />
             </section>
         </div>
@@ -52,6 +52,14 @@ import { useScramble } from '../composables/useScramble.js'
 import { useBlob } from '../composables/useBlob.js'
 
 gsap.registerPlugin(ScrollTrigger)
+// Phone toolbars grow and shrink the viewport while you scroll. Without this
+// ScrollTrigger re-measures mid-scroll and the snap points jump.
+ScrollTrigger.config({ ignoreMobileResize: true })
+
+// On touch screens the browser snaps natively (CSS scroll-snap), which works
+// with momentum scrolling instead of fighting it. Mouse and trackpad keep the
+// GSAP snap.
+const touch = window.matchMedia('(pointer: coarse)').matches
 
 const { active, reducedMotion, entered, setActive, goTo } = useWaypoints()
 const { scramble } = useScramble()
@@ -119,23 +127,36 @@ onMounted(async () => {
         trigger: '#home',
         start: 'top top',
         end: 'bottom bottom',
-        snap: {
-            snapTo: 1 / (sections.length - 1),
-            duration: { min: 0.2, max: 0.6 },
-            ease: 'power1.inOut',
-        },
+        snap: touch
+            ? false
+            : {
+                  snapTo: 1 / (sections.length - 1),
+                  duration: { min: 0.2, max: 0.6 },
+                  ease: 'power1.inOut',
+              },
         onUpdate: (self) => setActive(Math.round(self.progress * (sections.length - 1))),
     })
+    if (touch) document.documentElement.classList.add('touch-snap')
     window.addEventListener('keydown', onKey)
 })
 
 onBeforeUnmount(() => {
     trigger?.kill()
+    document.documentElement.classList.remove('touch-snap')
     window.removeEventListener('keydown', onKey)
 })
 </script>
 
 <style>
+html.touch-snap {
+    scroll-snap-type: y mandatory;
+}
+
+html.touch-snap .snap-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
 body {
     overflow-x: hidden;
     background-color: var(--color-bg-base);

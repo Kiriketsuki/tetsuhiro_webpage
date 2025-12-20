@@ -1,6 +1,6 @@
 <template>
     <Navbar id="navbar" />
-    <canvas id="webgl" class="w-screen h-screen"></canvas>
+    <canvas id="webgl" class="w-screen h-lvh"></canvas>
     <router-view />
 </template>
 

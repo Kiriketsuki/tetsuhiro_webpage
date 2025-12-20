@@ -100,9 +100,11 @@ const onHover = (event) => scramble(event.currentTarget.querySelector('.word'))
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: stretch;
-    padding: 0 clamp(0.5rem, 4vw, 4.5rem) env(safe-area-inset-bottom);
+    padding: 0 clamp(0.5rem, 4vw, 4.5rem);
     background: var(--color-bg-base);
     border-top: 1px solid var(--color-line);
+    /* Its own layer, so it stays put while the phone toolbar slides. */
+    transform: translateZ(0);
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.8s 0.6s, visibility 0s 1.4s;

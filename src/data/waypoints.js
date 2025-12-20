@@ -43,7 +43,8 @@ export const waypoints = [
         section: 'contact',
         side: 'right',
         shift: [-0.2, 0.04],
-        tall: [-0.1, 0.24],
+        tall: [0, 0.25],
         zoom: 1.4,
+        tallZoom: 1.7,
     },
 ]

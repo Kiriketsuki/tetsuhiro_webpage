@@ -171,7 +171,7 @@ const more = [
     {
         id: 'trkixel',
         title: 'TrKixel',
-        blurb: 'A pixel art engine that draws with triangles instead of squares. Trace, subdivide, export.',
+        blurb: 'I wanted pixel art on a triangle grid, so I built the editor for it. You can trace a picture, then split a triangle when you need finer detail.',
         image: null,
         stack: 'Vue, Vite, Tailwind',
         year: '2025',
@@ -181,7 +181,7 @@ const more = [
     {
         id: 'desktop-rice',
         title: 'Desktop Rice',
-        blurb: 'My Arch and Hyprland desktop. kilour, a Go tool, pulls a palette from the wallpaper, and that palette themes the whole desktop, status bar included.',
+        blurb: 'I cannot leave my desktop alone. kilour, a small Go tool I wrote, pulls a palette from the wallpaper, and that palette themes everything else, including the status bar I made.',
         image: null,
         stack: 'Arch, Hyprland, Go, AGS',
         year: '2025',

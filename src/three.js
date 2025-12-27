@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { watch } from 'vue'
 import { useWaypoints } from './composables/useWaypoints.js'
+import { useExplore } from './composables/useExplore.js'
 import { createRenderer } from './scene/renderer.js'
 import { createLights, createAnchorLights } from './scene/lights.js'
 import { createStars } from './scene/stars.js'
@@ -27,6 +28,13 @@ const sea = createSea(scene, { moonDirection: moon.position.clone().sub(moon.tar
 const stars = createStars(scene, renderer.getPixelRatio())
 const rig = createWaypoints({ scene, camera, active, reducedMotion, onResize })
 const post = createPost({ renderer, scene, camera, onResize })
+
+// Drag and pinch from ExplorePad.vue move the rig. Leaving eases back to the shot.
+const explore = useExplore()
+explore.connect({ pan: rig.pan, zoom: rig.zoom })
+watch(explore.exploring, (value) => {
+    if (!value) rig.release()
+})
 
 //? Models
 const loaders = createLoaders()

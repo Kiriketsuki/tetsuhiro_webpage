@@ -41,6 +41,10 @@ const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
 const LIFT_PER_METRE = 0.18
 const MAX_LIFT = 60
 const PARALLAX = 3
+// Look-around limits, as shares of the distance from the camera to its target.
+const PAN_LIMIT = 0.35
+const DOLLY_IN = 0.75
+const DOLLY_OUT = 0.6
 
 // Keeps the width of a 16:9 shot on narrow screens, so a phone still sees the
 // thing the camera points at. Wide screens keep the vertical fov as framed.
@@ -75,6 +79,10 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
     let shots = FALLBACK
     let tween = null
     let fov = shots[4].fov
+    let current = 4
+    // Look-around offsets on top of the current shot: sideways, up, and in.
+    const look = { x: 0, y: 0, dolly: 0 }
+    let lookTween = null
     // The frame tweens with the camera, so the subject slides across as it moves.
     const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1, tzoom: 1 }
     const sidePanels = window.matchMedia(SIDE_PANELS)
@@ -101,7 +109,16 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
         return { sx: shift[0], sy: shift[1], tx: tall[0], ty: tall[1], zoom, tzoom: tallZoom }
     }
 
+    const clearLook = () => {
+        lookTween?.kill()
+        look.x = 0
+        look.y = 0
+        look.dolly = 0
+    }
+
     const jump = (section) => {
+        current = section
+        clearLook()
         const shot = shots[section]
         camera.position.copy(shot.position)
         target.position.copy(shot.target)
@@ -118,6 +135,9 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
             jump(section)
             return
         }
+        // The move starts from wherever the visitor left the camera.
+        current = section
+        clearLook()
         const shot = shots[section]
         const from = { position: camera.position.clone(), target: target.position.clone(), fov, frame: { ...frame } }
         const to = frameOf(section)
@@ -146,6 +166,60 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
         jump(4)
     }
 
+    // The look-around axes come from the shot, so they stay put while you drag.
+    const axes = () => {
+        const shot = shots[current]
+        const forward = shot.target.clone().sub(shot.position)
+        const distance = forward.length()
+        forward.normalize()
+        const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize()
+        const up = new THREE.Vector3().crossVectors(right, forward)
+        return { shot, forward, right, up, distance }
+    }
+
+    const applyLook = () => {
+        const { shot, forward, right, up } = axes()
+        const offset = right.multiplyScalar(look.x).add(up.multiplyScalar(look.y))
+        target.position.copy(shot.target).add(offset)
+        camera.position.copy(shot.position).add(offset).addScaledVector(forward, look.dolly)
+    }
+
+    // dx and dy are in screen pixels. The scene follows the finger.
+    const pan = (dx, dy) => {
+        if (tween?.isActive()) return
+        lookTween?.kill()
+        const { distance } = axes()
+        const half = THREE.MathUtils.degToRad(camera.fov / 2)
+        const perPixel = (2 * (distance - look.dolly) * Math.tan(half)) / window.innerHeight
+        const limit = distance * PAN_LIMIT
+        look.x = THREE.MathUtils.clamp(look.x - dx * perPixel, -limit, limit)
+        look.y = THREE.MathUtils.clamp(look.y + dy * perPixel, -limit, limit)
+        applyLook()
+    }
+
+    // A factor above 1 moves in, below 1 moves out.
+    const zoom = (factor) => {
+        if (tween?.isActive() || !factor) return
+        lookTween?.kill()
+        const { distance } = axes()
+        const along = (distance - look.dolly) / factor
+        look.dolly = THREE.MathUtils.clamp(distance - along, -distance * DOLLY_OUT, distance * DOLLY_IN)
+        applyLook()
+    }
+
+    // Eases back to the framed shot when the visitor is done.
+    const release = () => {
+        if (!look.x && !look.y && !look.dolly) return
+        lookTween = gsap.to(look, {
+            x: 0,
+            y: 0,
+            dolly: 0,
+            duration: reducedMotion.value ? 0 : 0.8,
+            ease: 'power2.inOut',
+            onUpdate: applyLook,
+        })
+    }
+
     const onMouseMove = (e) => {
         if (reducedMotion.value) return
         const x = (e.clientX / window.innerWidth) * 2 - 1
@@ -160,15 +234,16 @@ export function createWaypoints({ scene, camera, active, reducedMotion, onResize
 
     const stopFrame = () => sidePanels.removeEventListener('change', applyFov)
 
-    return { group, target, move, jump, setShots, stop, stopResize, stopFrame, onMouseMove, getTween: () => tween }
+    return { group, target, move, jump, setShots, pan, zoom, release, stop, stopResize, stopFrame, onMouseMove, getTween: () => tween, getLookTween: () => lookTween }
 }
 
-export function disposeWaypoints(scene, { group, target, stop, stopResize, stopFrame, onMouseMove, getTween }, camera) {
+export function disposeWaypoints(scene, { group, target, stop, stopResize, stopFrame, onMouseMove, getTween, getLookTween }, camera) {
     stop()
     stopResize()
     stopFrame()
     camera.clearViewOffset()
     getTween()?.kill()
+    getLookTween()?.kill()
     window.removeEventListener('mousemove', onMouseMove)
     gsap.killTweensOf([camera.position, target.position, group.position])
     scene.remove(group)

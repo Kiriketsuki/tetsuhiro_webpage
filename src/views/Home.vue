@@ -35,6 +35,7 @@
         <button v-if="sceneOnly" type="button" class="action view-back" @click="sceneOnly = false">
             bring the words back
         </button>
+        <ExplorePad v-if="exploring" />
     </div>
 </template>
 
@@ -47,7 +48,9 @@ import About from '../components/About.vue'
 import Skills from '../components/Skills.vue'
 import Projects from '../components/Projects.vue'
 import Contact from '../components/Contact.vue'
+import ExplorePad from '../components/ExplorePad.vue'
 import { useWaypoints, sections } from '../composables/useWaypoints.js'
+import { useExplore } from '../composables/useExplore.js'
 import { useScramble } from '../composables/useScramble.js'
 import { useBlob } from '../composables/useBlob.js'
 
@@ -64,6 +67,9 @@ const touch = window.matchMedia('(pointer: coarse)').matches
 const { active, reducedMotion, entered, setActive, goTo } = useWaypoints()
 const { scramble } = useScramble()
 const sceneOnly = ref(false)
+const { exploring } = useExplore()
+// Both modes hide the words and leave the island on its own.
+const wordsHidden = computed(() => sceneOnly.value || exploring.value)
 // The gate only shows on the first visit. Coming back from /projects skips it.
 const showGate = ref(!entered.value)
 
@@ -73,7 +79,7 @@ const second = ref(null)
 useBlob(blob)
 
 // The blob belongs to the title. It leaves with it.
-const blobShown = computed(() => entered.value && active.value === 0 && !sceneOnly.value)
+const blobShown = computed(() => entered.value && active.value === 0 && !wordsHidden.value)
 
 let trigger = null
 
@@ -100,16 +106,20 @@ const onKey = (e) => {
     if (number >= 1 && number <= sections.length) goTo(number - 1)
 }
 
-watch(active, showSection)
+// A new section ends the look-around. The nav and keys 1 to 5 still work in it.
+watch(active, (index) => {
+    exploring.value = false
+    showSection(index)
+})
 
 // Fades the page in under the lifting gate.
 watch(entered, (value) => {
     if (!value) return
-    gsap.fromTo('#home', { autoAlpha: 0 }, { autoAlpha: 1, duration: reducedMotion.value ? 0 : 1, delay: reducedMotion.value ? 0 : 0.6 })
+    gsap.fromTo('#home', { autoAlpha: 0 }, { autoAlpha: wordsHidden.value ? 0 : 1, duration: reducedMotion.value ? 0 : 1, delay: reducedMotion.value ? 0 : 0.6 })
     decodeTitle(0.7)
 })
 
-watch(sceneOnly, (value) => {
+watch(wordsHidden, (value) => {
     gsap.to('#home', {
         autoAlpha: value ? 0 : 1,
         duration: reducedMotion.value ? 0 : 0.4,
@@ -142,6 +152,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
     trigger?.kill()
+    exploring.value = false
     document.documentElement.classList.remove('touch-snap')
     window.removeEventListener('keydown', onKey)
 })

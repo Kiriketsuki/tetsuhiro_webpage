@@ -5,6 +5,7 @@ import { sideOf } from '../composables/useWaypoints.js'
 const facts = [
     ['Now', 'Software Engineer, Aurrigo'],
     ['Since', 'February 2025'],
+    ['Teaching', 'Database Systems, Ngee Ann Poly'],
     ['Before', 'NTU, Computer Science'],
     ['Also', 'Blender and Three.js'],
 ]
@@ -30,6 +31,11 @@ const facts = [
                 Hello! I finished Computer Science at NTU in December 2024 and joined Aurrigo in
                 February 2025. There I build the screens people use to run driverless vehicles at
                 airports. Outside work I make 3D things, and this island is the biggest one so far.
+            </p>
+
+            <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
+                This month I also started teaching Database Systems to adult learners at Ngee Ann
+                Polytechnic. I am enjoying it a lot.
             </p>
 
             <dl class="rows hidden text-sm sm:grid">

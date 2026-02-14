@@ -193,11 +193,11 @@ const onHover = (event) => scramble(event.currentTarget.querySelector('.word'))
 
 .nav-item.active {
     color: var(--color-text-strong);
-    border-bottom-color: var(--color-rose);
+    border-bottom-color: var(--color-teal-action);
 }
 
 .nav-item:focus-visible {
-    outline: 2px solid var(--color-teal);
+    outline: 2px solid var(--color-teal-action-hover);
     outline-offset: -2px;
 }
 </style>

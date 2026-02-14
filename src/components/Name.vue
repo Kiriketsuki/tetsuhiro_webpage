@@ -104,7 +104,7 @@ const lift = () => {
 .gate-bar span {
     display: block;
     height: 100%;
-    background: var(--color-teal);
+    background: var(--color-teal-action);
     transform-origin: left;
     transition: transform 0.2s linear;
 }
@@ -135,7 +135,7 @@ const lift = () => {
 }
 
 .gate-enter:focus-visible {
-    outline: 2px solid var(--color-teal);
+    outline: 2px solid var(--color-teal-action-hover);
     outline-offset: 4px;
 }
 

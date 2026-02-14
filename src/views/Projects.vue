@@ -115,7 +115,7 @@ const rows = (project) => [
 }
 
 .line-title.text-link {
-    color: var(--color-sand);
+    color: var(--color-teal-action-hover);
 }
 
 .line-year {

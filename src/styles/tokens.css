@@ -5,6 +5,16 @@
     --color-bg-overlay: oklch(0.27 0.055 261.4); /* #172641 */
     --color-line: oklch(0.36 0.046 256.1); /* #2d3e55 */
 
+    /* frame plates, warm grey on the navy page */
+    --color-plate: #222222;
+    --color-plate-raised: #2a2a2a;
+    --color-plate-line: #333333;
+    --color-plate-edge: #4a4a4a;
+
+    /* interaction: links, actions, focus rings, the active nav underline */
+    --color-teal-action: #0d9488;
+    --color-teal-action-hover: #14b8a6;
+
     /* text */
     --color-text-strong: oklch(0.96 0.012 79.8); /* #f6f1e9 */
     --color-text-body: oklch(0.9 0.018 81.3); /* #e4ddd1 */

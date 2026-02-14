@@ -3,20 +3,62 @@
 @config "../tailwind.config.cjs";
 
 /*
- * Solid frames instead of glass. A flat night-blue plate, a crisp 1px rule in
- * an accent, a second hairline inside it, and a label set into the top rule
- * like a legend. Square corners, no shadow, no blur. The scene does the mood.
+ * Refined industrial frames. A solid warm-grey plate on the navy page, a 1px
+ * rim in an accent, a hairline inside it, and a label set into the top rule.
+ * Two opposite corners take a 12px chamfer. No shadow and no blur.
+ *
+ * clip-path cannot sit on the frame itself, because it would cut off the label
+ * that overhangs the top rule. The rim and the plate are two clipped layers
+ * behind the content instead. The plate is inset by 1px, so its cut is a
+ * little smaller and the rim keeps an even width along the diagonal.
  */
 @layer components {
     .frame {
         --frame: var(--color-sand);
+        --cut: 12px;
+        --cut-inner: 11.4px;
+        /* Rules and hover plates inside a frame follow the grey, not the navy. */
+        --color-line: var(--color-plate-line);
+        --color-bg-overlay: var(--color-plate-raised);
         position: relative;
-        background: var(--color-bg-raised);
-        border: 1px solid var(--frame);
-        border-radius: 2px;
+        isolation: isolate;
+    }
+
+    .frame::before,
+    .frame::after {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .frame::before {
+        inset: 0;
+        background: var(--frame);
+        clip-path: polygon(
+            var(--cut) 0,
+            100% 0,
+            100% calc(100% - var(--cut)),
+            calc(100% - var(--cut)) 100%,
+            0 100%,
+            0 var(--cut)
+        );
+    }
+
+    .frame::after {
+        inset: 1px;
+        background: var(--color-plate);
         box-shadow:
-            inset 0 0 0 4px var(--color-bg-raised),
-            inset 0 0 0 5px var(--color-line);
+            inset 0 0 0 5px var(--color-plate),
+            inset 0 0 0 6px var(--color-plate-line);
+        clip-path: polygon(
+            var(--cut-inner) 0,
+            100% 0,
+            100% calc(100% - var(--cut-inner)),
+            calc(100% - var(--cut-inner)) 100%,
+            0 100%,
+            0 var(--cut-inner)
+        );
     }
 
     .frame-rose {
@@ -28,7 +70,7 @@
     }
 
     .frame-line {
-        --frame: var(--color-line);
+        --frame: var(--color-plate-edge);
     }
 
     /* A line-coloured legend would vanish, so it takes the muted text colour. */
@@ -43,7 +85,7 @@
         left: 1.25rem;
         transform: translateY(-50%);
         padding: 0 0.5rem;
-        background: var(--color-bg-raised);
+        background: var(--color-plate);
         color: var(--frame);
         font-family: var(--font-label);
         font-size: 0.7rem;
@@ -87,13 +129,13 @@
         overflow-wrap: anywhere;
     }
 
-    /* Text buttons, plants_in_space style: no fill, a 2px rule that lights up. */
+    /* Text buttons: no fill, a 2px teal rule that lights up on hover. */
     .action {
         display: inline-block;
         align-self: flex-start;
         padding: 0.35rem 0;
-        border-bottom: 2px solid var(--color-line);
-        color: var(--color-sand);
+        border-bottom: 2px solid var(--color-teal-action);
+        color: var(--color-teal-action-hover);
         font-family: var(--font-label);
         font-size: 0.75rem;
         letter-spacing: 0.12em;
@@ -107,23 +149,23 @@
 
     .action:hover {
         color: var(--color-text-strong);
-        border-bottom-color: var(--color-rose);
+        border-bottom-color: var(--color-teal-action-hover);
     }
 
     .action:focus-visible {
-        outline: 2px solid var(--color-teal);
+        outline: 2px solid var(--color-teal-action-hover);
         outline-offset: 2px;
     }
 
     .text-link {
-        color: var(--color-sand);
+        color: var(--color-teal-action-hover);
         border-bottom: 1px solid transparent;
         transition: border-color 0.2s;
     }
 
     .text-link:hover,
     .text-link:focus-visible {
-        border-bottom-color: var(--color-rose);
+        border-bottom-color: var(--color-teal-action-hover);
         outline: none;
     }
 }

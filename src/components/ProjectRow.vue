@@ -137,11 +137,11 @@ const label = computed(() => String(props.number).padStart(2, '0'))
 }
 
 .index-row.linked:hover .index-title {
-    color: var(--color-sand);
+    color: var(--color-teal-action-hover);
 }
 
 .index-row:focus-visible {
-    outline: 2px solid var(--color-teal);
+    outline: 2px solid var(--color-teal-action-hover);
     outline-offset: -2px;
 }
 </style>

@@ -3,7 +3,7 @@ import { waypoints } from '../data/waypoints.js'
 import { skills, branchOf, logoColor, PALETTE } from '../data/skills.js'
 import { createTreeGrowth, disposeTreeGrowth, hangPoints, nearestBark } from './tree-growth.js'
 
-const FONT = '"Fira Code", ui-monospace, monospace'
+const FONT = '"JetBrains Mono", ui-monospace, monospace'
 
 // One round pod per skill: a soft halo in the branch colour, a dark disc with a
 // thin rim, the real logo and the name under it.
@@ -180,10 +180,10 @@ export function createSkillBadges(scene, slots, { camera, anisotropy = 4, reduce
     const phone = window.matchMedia(PHONE)
     const swinging = new THREE.Quaternion()
 
-    // The canvas may draw before Fira Code arrives. Draw again once it has.
-    document.fonts?.load(`500 ${MAX_FONT}px "Fira Code"`)
+    // The canvas may draw before JetBrains Mono arrives. Draw again once it has.
+    document.fonts?.load(`500 ${MAX_FONT}px "JetBrains Mono"`)
         .then(() => badges.forEach((badge) => badge.redraw()))
-        .catch((error) => console.warn('Fira Code did not load for the skill badges', error))
+        .catch((error) => console.warn('JetBrains Mono did not load for the skill badges', error))
 
     const update = (delta, time) => {
         growth?.update(delta, time)

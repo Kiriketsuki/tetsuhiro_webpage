@@ -48,6 +48,6 @@
 
     /* type */
     --font-display: "Instrument Serif", Georgia, serif;
-    --font-label: "Fira Code", ui-monospace, monospace;
+    --font-label: "JetBrains Mono", ui-monospace, monospace;
     --font-body: "Inter", system-ui, sans-serif;
 }

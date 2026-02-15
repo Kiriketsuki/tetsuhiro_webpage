@@ -9,7 +9,7 @@ export const interests = [
     { slug: 'the-greatest-estate-developer', title: 'The Greatest Estate Developer', kind: 'manhwa', icon: 'castle', since: 'Oct 2025' },
     { slug: 'anno-1800', title: 'Anno 1800', kind: 'game', icon: 'paddle-steamer', since: 'Oct 2025' },
     { slug: 'victoria-3', title: 'Victoria 3', kind: 'game', icon: 'top-hat', since: 'Oct 2025' },
-    { slug: 'ink-roguelike', title: 'Ink roguelikes', kind: 'game', icon: 'katana', since: 'Oct 2025' },
+    { slug: 'where-winds-meet', title: 'Where Winds Meet', kind: 'game', icon: 'swordman', since: 'Feb 2026' },
     { slug: 'mechanical-keyboards', title: 'Mechanical keyboards', kind: 'hobby', icon: 'keyboard', since: 'Oct 2025' },
     { slug: 'gym', title: 'Gym', kind: 'hobby', icon: 'weight-lifting-up', since: 'Oct 2025' },
     { slug: 'music', title: 'Music', kind: 'hobby', icon: 'musical-notes', since: 'Oct 2025' },

@@ -6,9 +6,9 @@
                 Skill tree
             </h1>
             <p class="max-w-2xl font-body text-[clamp(0.95rem,1.2vw,1.1rem)] text-text-body">
-                These are the {{ skills.length }} skills hanging off the tree on the island. Each
-                line shows what a skill grew out of, so Tailwind sits under Vue, and Vue sits under
-                JavaScript. I did commit to the tree idea.
+                These are the {{ skills.length }} skills in the sky over the island. Look through
+                the telescope to see them as stars. Each line shows what a skill grew out of, so
+                Tailwind sits under Vue, and Vue sits under JavaScript.
             </p>
             <ul class="legend" aria-label="Branches">
                 <li v-for="branch in branches" :key="branch.id" :style="{ '--node': `var(--color-${branch.color})` }">

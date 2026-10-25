@@ -55,6 +55,8 @@ uniform vec3 uEdgeTint;
 uniform float uGrain;
 uniform float uGrainScale;
 uniform float uVignette;
+uniform float uRain;
+uniform float uTime;
 varying vec2 vUv;
 
 #include <tonemapping_pars_fragment>
@@ -70,12 +72,42 @@ float lumaAt( vec2 uv ) {
     return squashedLuma( texture2D( tDiffuse, uv ).rgb );
 }
 
+float rainHash( vec2 p ) {
+    return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
+}
+
+// Rain on the window glass for the bedroom reveal. Each cell holds one drop that slides
+// down and leaves a short trail. The drops bend the picture like lenses. It costs no texture
+// fetch: it only moves the UV that the pass already samples. Returns the UV offset in xy and
+// a highlight in z.
+vec3 rainOnGlass( vec2 uv, float scale, float speed ) {
+    vec2 grid = uv * uAspect * scale;
+    vec2 cell = floor( grid );
+    float seed = rainHash( cell );
+    if ( seed < 0.6 ) return vec3( 0.0 );
+    vec2 local = fract( grid ) - 0.5;
+    float fall = fract( uTime * speed * ( 0.4 + seed ) + seed * 7.0 );
+    vec2 drop = vec2( ( seed - 0.5 ) * 0.5, 0.45 - fall * 0.9 );
+    vec2 toDrop = ( local - drop ) * vec2( 1.0, 1.4 );
+    float d = length( toDrop );
+    float lens = smoothstep( 0.16, 0.06, d );
+    float trail = smoothstep( 0.025, 0.0, abs( local.x - drop.x ) ) * ( 1.0 - smoothstep( drop.y, drop.y + 0.3, local.y ) ) * step( drop.y, local.y ) * 0.4;
+    return vec3( -toDrop * lens * 0.6 / scale, lens * 0.1 + trail * 0.05 );
+}
+
 void main() {
     // Paper space: one unit is the screen height, so the fields keep their shape on any aspect.
     vec2 paper = vUv * uAspect;
 
     vec2 wobble = texture2D( tPaper, paper * 0.8 ).gb - 0.5;
     vec2 uv = vUv + wobble * 2.0 * uWobble * uPixelRatio * uTexel;
+    float rainLight = 0.0;
+    if ( uRain > 0.001 ) {
+        vec3 near = rainOnGlass( vUv, 9.0, 0.35 );
+        vec3 far = rainOnGlass( vUv + 0.37, 17.0, 0.5 );
+        uv += ( near.xy + far.xy * 0.6 ) * uRain;
+        rainLight = ( near.z + far.z * 0.6 ) * uRain;
+    }
 
     vec3 hdr = texture2D( tDiffuse, uv ).rgb;
 
@@ -96,6 +128,8 @@ void main() {
     float value = dot( color, vec3( 0.2126, 0.7152, 0.0722 ) );
 
     color *= mix( vec3( 1.0 ), uEdgeTint, edge * uEdge );
+    // Wet glass catches a little of the room light and cools the view behind it.
+    color = mix( color, color * vec3( 0.86, 0.92, 1.0 ), uRain * 0.5 ) + rainLight * vec3( 0.55, 0.62, 0.72 );
 
     // Paper grain stays fixed to the screen, like the sheet under the paint.
     float grain = texture2D( tPaper, gl_FragCoord.xy / ( 256.0 * uGrainScale * uPixelRatio ) ).r;
@@ -126,6 +160,8 @@ export class WatercolourPass extends Pass {
             uGrain: { value: look.grain },
             uGrainScale: { value: look.grainScale },
             uVignette: { value: look.vignette },
+            uRain: { value: 0 },
+            uTime: { value: 0 },
         }
         this.material = new THREE.RawShaderMaterial({
             name: 'WatercolourComposite',

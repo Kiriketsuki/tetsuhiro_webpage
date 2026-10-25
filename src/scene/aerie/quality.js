@@ -31,7 +31,8 @@ export function createPipeline({ renderer, scene, camera, tier }) {
     target.texture.name = `aerie.main.${tier.name}`
     const composer = new EffectComposer(renderer, target)
     const watercolour = new WatercolourPass()
-    composer.addPass(new RenderPass(scene, camera))
+    const renderPass = new RenderPass(scene, camera)
+    composer.addPass(renderPass)
     composer.addPass(watercolour)
 
     const resize = (width, height) => {
@@ -45,7 +46,12 @@ export function createPipeline({ renderer, scene, camera, tier }) {
         watercolour.dispose()
         composer.dispose()
     }
-    return { composer, watercolour, pixelRatio, resize, dispose, render: () => composer.render() }
+    // Swaps what the scene pass draws, for the telescope's skill sky.
+    const setView = (nextScene, nextCamera) => {
+        renderPass.scene = nextScene
+        renderPass.camera = nextCamera
+    }
+    return { composer, watercolour, pixelRatio, resize, dispose, setView, render: () => composer.render() }
 }
 
 // Steps down one tier when the median frame time stays over budget. It never steps back

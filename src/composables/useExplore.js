@@ -1,8 +1,8 @@
 import { ref } from 'vue'
 
-// Look-around mode for the skill tree. The Skills card turns it on, the pad in
-// ExplorePad.vue turns gestures into pan and zoom, and the camera rig in
-// src/scene/waypoints.js does the moving. three.js connects the rig.
+// Look-around mode. The Skills card turns it on at the telescope, the pad in
+// ExplorePad.vue turns gestures into pan and zoom, and the scene manager moves the
+// camera or the skill sky. three.js connects them.
 const exploring = ref(false)
 let rig = null
 

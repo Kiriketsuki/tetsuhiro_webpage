@@ -11,6 +11,10 @@ import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
+import { createSkyTaxi, findDeck } from './aerie/sky-taxi.js'
+import { createCorkboard, findBoard } from './aerie/corkboard.js'
+import { createConstellation } from './aerie/constellation.js'
+import { projects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 
@@ -22,6 +26,13 @@ import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './a
 // single frames only.
 
 const AMBIENT_FPS = 30
+// The sky-taxi flight, and the move from the pad to the first stop after it lands.
+const ARRIVAL_FLIGHT = 4.2
+const ARRIVAL_SETTLE = 2.2
+// The rain on the bedroom window lasts for the move plus this long after it.
+const RAIN_LINGER = 1.4
+// The board size when Anchor_Corkboard gives a position but no size, in metres.
+const BOARD_SIZE = { width: 1.0, height: 0.7 }
 const MOBILE = '(max-width: 767px)'
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
@@ -46,7 +57,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
-    const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null }
+    const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, taxi: null, cards: null, constellation: null }
+    let arrival = null
+    let rain = null
+    // 'island' or 'sky'. The sky is the telescope's view of the skills.
+    let view = 'island'
     const loaders = createLoaders()
     const clock = new THREE.Clock(false)
     let seconds = 0
@@ -61,12 +76,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         parts.glow?.resize(bufferHeight(), camera)
         parts.waterfall?.resize(bufferHeight(), camera)
         parts.stars?.setPixelRatio(renderer.getPixelRatio())
+        parts.constellation?.setPixelRatio(renderer.getPixelRatio())
     }
 
     const buildPipeline = (index) => {
         tierIndex = index
         pipeline?.dispose()
         pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[index] })
+        if (view === 'sky' && parts.constellation) pipeline.setView(parts.constellation.scene, parts.constellation.camera)
         resizeSprites()
         state.dirty = true
     }
@@ -86,6 +103,32 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         if (submits.length > 120) submits = submits.slice(-60)
         hooks.after?.()
         state.dirty = false
+    }
+
+    // The taxi flight, the arrival hand-off and the rain envelope. Returns true while any of
+    // them needs frames.
+    const advanceEffects = (delta) => {
+        const flying = parts.taxi?.update(delta) ?? false
+        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) : false
+        if (arrival) {
+            arrival.t += delta
+            if (arrival.t >= ARRIVAL_FLIGHT) {
+                rig.goTo(arrival.next, ARRIVAL_SETTLE)
+                arrival = null
+            }
+        }
+        let wet = false
+        if (rain) {
+            rain.t += delta
+            const k = rain.t / rain.duration
+            // Up fast, a long hold, then the glass clears as the camera settles in the room.
+            const amount = k >= 1 ? 0 : Math.min(1, k * 5) * (1 - THREE.MathUtils.smoothstep(k, 0.6, 1))
+            pipeline.watercolour.uniforms.uRain.value = amount
+            pipeline.watercolour.uniforms.uTime.value = seconds
+            if (k >= 1) rain = null
+            wet = true
+        }
+        return flying || revealing || Boolean(arrival) || wet
     }
 
     const running = () => state.ready && state.wanted && !state.hidden && !state.lost && !state.reduced
@@ -108,8 +151,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         seconds += delta
         ambient += delta
         rig.update(delta)
+        const effects = advanceEffects(delta)
         const tickAmbient = ambientFps > 0 && ambient >= 1 / ambientFps
-        if (!rig.moving && !state.dirty && !tickAmbient) return
+        if (!rig.moving && !effects && !state.dirty && !tickAmbient) return
         if (tickAmbient) {
             parts.city?.update(seconds)
             parts.glow?.update(seconds)
@@ -145,6 +189,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         renderer.setSize(width, height, false)
         pipeline?.resize(width, height)
         rig.resize()
+        parts.constellation?.resize(width / height)
         resizeSprites()
         requestRender()
     }
@@ -169,6 +214,19 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     }
     canvas.addEventListener('webglcontextlost', onLost)
     canvas.addEventListener('webglcontextrestored', onRestored)
+
+    // Anchor_Corkboard faces out along its local +Z in the glTF frame. Without the anchor,
+    // a ray from the workshop camera finds the board.
+    const boardFrom = (root, cameras) => {
+        const node = root.getObjectByName('Anchor_Corkboard')
+        if (node) {
+            const normal = new THREE.Vector3(0, 0, 1).transformDirection(node.matrixWorld)
+            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal).normalize()
+            return { centre: node.getWorldPosition(new THREE.Vector3()), normal, right, up: new THREE.Vector3().crossVectors(normal, right), ...BOARD_SIZE }
+        }
+        const camera = cameras.find((c) => c.name === stops.workshop.camera)
+        return camera ? findBoard(root, camera) : null
+    }
 
     const anchor = (root, name) => root.getObjectByName(name)?.getWorldPosition(new THREE.Vector3()) ?? null
 
@@ -217,10 +275,30 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 scene.add(parts.waterfall.group)
             }
 
+            const padAnchor = anchor(root, 'Anchor_Pad')
+            if (padAnchor) {
+                parts.taxi = createSkyTaxi({ deck: findDeck(root, padAnchor), material: look.materials[0] })
+                scene.add(parts.taxi.group)
+            }
+
+            const board = boardFrom(root, gltf.cameras)
+            if (board) {
+                // The card atlas uses the site fonts, so it waits for them.
+                await Promise.all([document.fonts.load('52px "Instrument Serif"'), document.fonts.load('22px "JetBrains Mono"')]).catch(() => {})
+                parts.cards = createCorkboard({ board, projects })
+                scene.add(parts.cards.mesh)
+            }
+
+            await document.fonts.load('30px "JetBrains Mono"').catch(() => {})
+            parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
+            parts.constellation.resize(camera.aspect)
+
             rig.setShots(shotsFromStops(stops, gltf.cameras))
             resizeSprites()
-            // Compile every program before the reveal, so the first moves do not stall.
+            // Compile every program before the reveal, so the first moves and the first look
+            // through the telescope do not stall.
             await renderer.compileAsync(scene, camera)
+            await renderer.compileAsync(parts.constellation.scene, parts.constellation.camera)
             renderer.shadowMap.needsUpdate = true
             state.ready = true
             onProgress(1)
@@ -238,7 +316,24 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         parts,
         loaders,
         goTo: (id, { duration = 1.6 } = {}) => {
-            rig.goTo(id, state.reduced ? 0 : duration)
+            arrival = null
+            const time = state.reduced ? 0 : duration
+            if (id === 'bedroom' && time > 0 && rig.current !== 'bedroom') rain = { t: 0, duration: time + RAIN_LINGER }
+            rig.goTo(id, time)
+            requestRender()
+        },
+        // The gate lift: the taxi flies in and lands on the pad while the camera follows,
+        // then the camera moves on to `next`. Reduced motion parks the taxi and cuts.
+        arrive: (next) => {
+            if (state.reduced || !parts.taxi) {
+                parts.taxi?.park()
+                rig.goTo(next, 0)
+                requestRender()
+                return
+            }
+            parts.taxi.fly(ARRIVAL_FLIGHT)
+            rig.goTo('pad', ARRIVAL_FLIGHT)
+            arrival = { t: 0, next }
             requestRender()
         },
         // 0 stops the ambient clock: frames then draw only for camera moves and requests.
@@ -260,11 +355,27 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             update()
         },
         pan: (dx, dy) => {
-            rig.pan(dx, dy)
+            if (view === 'sky') parts.constellation.pan(dx, dy)
+            else rig.pan(dx, dy)
             requestRender()
         },
         zoom: (factor) => {
-            rig.zoom(factor)
+            if (view === 'sky') parts.constellation.zoom(factor)
+            else rig.zoom(factor)
+            requestRender()
+        },
+        // Swaps the picture between the island and the skill sky. `reveal` lights the stars
+        // up in order. Without it they all show at once.
+        showSky: (on, { reveal = true } = {}) => {
+            if (!parts.constellation) return
+            view = on ? 'sky' : 'island'
+            if (on) {
+                parts.constellation.open()
+                if (!reveal || state.reduced) parts.constellation.showAll()
+                pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+            } else {
+                pipeline.setView(scene, camera)
+            }
             requestRender()
         },
         release: () => {

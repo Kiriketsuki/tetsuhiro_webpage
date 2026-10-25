@@ -18,7 +18,7 @@
                 </template>
             </dl>
             <div class="flex flex-wrap gap-x-6 gap-y-2">
-                <button type="button" class="action" @click="exploring = true">Look around</button>
+                <button type="button" class="action" @click="exploring = true">Look through the telescope</button>
                 <router-link to="/skills" class="action">See the whole tree</router-link>
             </div>
         </article>

@@ -15,13 +15,8 @@ import {
 } from 'simple-icons'
 
 // What I use as of October 2025, and only things I have shipped or handed in.
-// The order matches SkillSlot_01 to _13 on the tree in island.glb, so the
-// first skill hangs on the first slot. The slots sit in three clusters, so
-// each cluster gets skills that belong together:
-//   01 to 04, the near branch: 3D and the odd ones out
-//   05 to 09, the far branch: the web front end
-//   10 to 13, the top branch: Python and the back end
-// parent is the skill this one grew out of, for the tree on /skills.
+// parent is the skill this one grew out of. It draws the tree on /skills and the
+// lines between the stars in the telescope's skill sky.
 // Logos are simple-icons (CC0).
 export const branches = [
     { id: 'web', label: 'Web', color: 'teal' },

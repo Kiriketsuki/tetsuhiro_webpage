@@ -22,11 +22,11 @@ const NIGHT = {
     sky: new THREE.Color(0x46619a),
     ground: new THREE.Color(0x1a1838),
     moon: new THREE.Color(0xb4c8ec),
-    warm: new THREE.Color(0xffa25a),
+    warm: new THREE.Color(0xff9142),
     rim: new THREE.Color(0x7f9fd8),
 }
 
-export function createToonUniforms({ moonDirection, bounces = [], warmStrength = 1.1 }) {
+export function createToonUniforms({ moonDirection, bounces = [], warmStrength = 1.7 }) {
     const spots = Array.from({ length: TOON_BOUNCES }, (_, i) => {
         const spot = bounces[i]
         return spot ? new THREE.Vector4(spot.x, spot.y, spot.z, spot.radius) : new THREE.Vector4(0, -1e4, 0, 0)
@@ -40,8 +40,8 @@ export function createToonUniforms({ moonDirection, bounces = [], warmStrength =
         uToonRim: { value: NIGHT.rim.clone().multiplyScalar(0.35) },
         uToonBounce: { value: spots },
         uToonSaturation: { value: 1.0 },
-        // 0 keeps pure flat facets, 1 is fully smooth. A little over half keeps the facets.
-        uToonSoftness: { value: 0.6 },
+        // 0 keeps pure flat facets, 1 is fully smooth. Three quarters keeps a hint of the facets.
+        uToonSoftness: { value: 0.78 },
     }
 }
 

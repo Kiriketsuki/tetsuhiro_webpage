@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { createToonMaterial, createToonUniforms } from './toon-material.js'
 import { softenGeometry } from './soft-normals.js'
+import { applyAutumn } from './autumn.js'
 
 // Puts the soft stylized night look on a loaded island_b GLB. Opaque parts share one toon material.
 // Glass gets a see-through toon material. Emissive parts become flat bright colour, and
@@ -10,7 +11,7 @@ import { softenGeometry } from './soft-normals.js'
 // tone mapper. `glow` is the sprite colour scale and `size` the sprite size in metres.
 // The screen and the ember get no sprite.
 const EMISSIVE = {
-    web_emit_warm: { gain: 0.42, glow: 0.07, size: 0.9 },
+    web_emit_warm: { gain: 0.52, glow: 0.11, size: 1.0 },
     web_emit_pad_white: { gain: 0.3, glow: 0.09, size: 0.7 },
     web_emit_pad_red: { gain: 0.32, glow: 0.12, size: 0.7 },
     web_emit_screen: { gain: 0.6, glow: 0, size: 0 },
@@ -23,10 +24,10 @@ const MAX_GLOWS = 600
 
 // Warm bounce spots: the anchor name and the reach in metres.
 const BOUNCES = [
-    ['Anchor_Workshop', 4.5],
-    ['Anchor_Entry_Light', 3.2],
-    ['Anchor_Bedroom', 3.6],
-    ['Anchor_BBQ', 2.4],
+    ['Anchor_Workshop', 5.2],
+    ['Anchor_Entry_Light', 3.8],
+    ['Anchor_Bedroom', 4.2],
+    ['Anchor_BBQ', 2.8],
 ]
 
 function emissiveColor(material) {
@@ -128,6 +129,12 @@ export function applyIslandLook(gltf) {
         }
     })
     old.forEach((material) => material.dispose())
+
+    const meshes = []
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) meshes.push(child)
+    })
+    applyAutumn(meshes)
 
     const materials = [opaque, ...replaced.values()]
     const dispose = () => {

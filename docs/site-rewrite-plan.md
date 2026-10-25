@@ -106,9 +106,7 @@ Every push to master deploys. Each phase must ship on its own.
 - The campfire stays, as a prop on the new island. The dodecahedron retires, because the bedroom replaces it.
 - Oct 2026 commits use the real date and go to master. The tag is `era/2026-10`.
 - `MOONSETHDRI.hdr` (368 MB, gitignored) is deleted with the other unused files.
-
-## Open decisions
-
-- Whether bloom is part of the desktop night look.
+- No bloom on any tier. Windows, lanterns and pad lights glow through emissive colour and soft glow sprites. This drops the bloom steps from the Phase 6 quality ladder.
+- The city below is faked with layered, pre-blurred images that simulate depth, not geometry.
 
 Full research output: the two workflow results from this session (`wyand22cf`, `wc3kkiqc7`).

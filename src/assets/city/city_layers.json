@@ -1,0 +1,61 @@
+{
+  "note": "Painted city layers from export_island_b.py --city-layers. Positions are in the GLB frame (metres, Y up). Each image is a top-down orthographic render of a sheared city, soft clipped as 1 - exp(-radiance * gain). Decode with radiance = -log(1 - v) / gain.",
+  "shear": 1.0,
+  "layers": [
+    {
+      "name": "far",
+      "file": "city_far.webp",
+      "centre": [
+        0.0,
+        -790.0,
+        -900.0
+      ],
+      "size": 8000.0,
+      "px": 512,
+      "blur_px": 3.0,
+      "metres_per_px": 15.625,
+      "gain": 6.0,
+      "peak": 0.03543,
+      "bytes": 3184
+    },
+    {
+      "name": "mid",
+      "file": "city_mid.webp",
+      "centre": [
+        0.0,
+        -764.0,
+        -600.0
+      ],
+      "size": 2800.0,
+      "px": 768,
+      "blur_px": 2.0,
+      "metres_per_px": 3.646,
+      "gain": 6.0,
+      "peak": 0.0493,
+      "bytes": 16218
+    },
+    {
+      "name": "near",
+      "file": "city_near.webp",
+      "centre": [
+        0.0,
+        -750.0,
+        -420.0
+      ],
+      "size": 1400.0,
+      "px": 1024,
+      "blur_px": 1.4,
+      "metres_per_px": 1.367,
+      "gain": 6.0,
+      "peak": 0.19968,
+      "bytes": 72128
+    }
+  ],
+  "mist": {
+    "file": "city_mist.webp",
+    "px": 512,
+    "bytes": 4306,
+    "tileable": true
+  },
+  "total_bytes": 95836
+}

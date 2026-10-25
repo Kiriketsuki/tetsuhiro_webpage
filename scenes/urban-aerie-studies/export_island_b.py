@@ -4,6 +4,10 @@ Run it from this folder with background Blender. Never run it inside the open so
 
     blender --factory-startup -b island_b_rolling_rim.blend --python export_island_b.py -- [--replace] [--no-compress]
 
+The painted city layers for the site come from a second mode, which also works on a copy:
+
+    blender --factory-startup -b island_b_rolling_rim.blend --python export_island_b.py -- --city-layers
+
 The script saves a copy first and only ever writes that copy. The source .blend stays untouched.
 """
 from pathlib import Path
@@ -553,6 +557,193 @@ def build():
     assert report['source_untouched']
     return report
 
+# ---- painted city layers ------------------------------------------------------------------------
+# The site fakes the distant city with a few pre-blurred images on planes under the island.
+# This stage renders them from the city meshes that the GLB leaves out.
+
+CITY_WORK=ROOT/'island_b_city_layers.blend'
+CITY_DIR=SITE/'src'/'assets'/'city'
+CITY_MANIFEST=CITY_DIR/'city_layers.json'
+CITY_OBJECTS=('LP_SS_City_Ground_and_Roads','LP_SS_City_River','LP_SS_Distant_City_Fine_Blocks','NA_LP_SS_Far_Ground_Extension')
+CITY_GROUND_Z=-750.0
+# The shear leans every wall back by 45 degrees, so a top-down camera sees the south faces and their
+# windows. A camera that looks north and down at 45 degrees sees a rooftop exactly where the
+# shear paints it on the ground plane.
+CITY_SHEAR=1.0
+CITY_SAMPLES=32
+# Each layer: name, centre (Blender x, y), size in metres, output pixels, blur sigma in output
+# pixels, WebP quality, plane height in the three.js frame. Farther layers cover more ground, at
+# fewer metres per pixel and with more blur.
+CITY_LAYERS=(
+    ('far',(0.0,900.0),8000.0,512,3.0,85,-790.0),
+    ('mid',(0.0,600.0),2800.0,768,2.0,72,-764.0),
+    ('near',(0.0,420.0),1400.0,1024,1.4,76,-750.0),
+)
+# Window light field. Each window is about a metre, so at these scales it averages away. The
+# stage lifts the warm window light and adds a wide soft halo, so the streets read as a carpet
+# of light. CITY_GLOW_M is the halo radius in metres. The halo is baked into the image, so the
+# site needs no bloom pass for it.
+CITY_WINDOW_LIFT=2.0
+CITY_GLOW=3.0
+CITY_GLOW_M=9.0
+# Made-up outer districts on the far layer: their brightness relative to the real city and the
+# distance over which they fade. CITY_BUILT is the ground rectangle of the real blocks (Blender x, y).
+CITY_SUBURBS=1.6
+CITY_SUBURB_FALLOFF_M=3500.0
+CITY_BUILT=((-940.0,-460.0),(940.0,1570.0))
+# The road slab and the river end in hard rectangles that show at the far scale, so the far
+# layer leaves them out. At 15 m per pixel the roads between blocks do not show anyway.
+CITY_FAR_HIDE=('LP_SS_City_Ground_and_Roads','LP_SS_City_River')
+# The river reads too cyan at night next to the toon island, so the copy darkens it.
+CITY_RIVER=('SS_City_River',(0.016,0.04,0.065),0.02)
+# The soft clip keeps the bright windows in 8 bits. The site undoes it with -log(1 - v) / gain.
+# One fixed gain puts the night ground near the middle of the 8-bit range in every layer.
+CITY_GAIN=6.0
+MIST=('mist',512,6,70)
+
+def gaussian(px,sigma):
+    """Blurs an (H, W, C) array with a separable Gaussian. Edges repeat, so the border stays dark."""
+    if sigma<=0:return px
+    r=max(1,int(math.ceil(sigma*3)));k=np.exp(-0.5*(np.arange(-r,r+1)/sigma)**2);k/=k.sum()
+    for axis in (0,1):
+        pad=[(0,0)]*px.ndim;pad[axis]=(r,r);p=np.pad(px,pad,mode='edge');out=np.zeros_like(px)
+        n=px.shape[axis]
+        for i,w in enumerate(k):out+=w*np.take(p,range(i,i+n),axis=axis)
+        px=out
+    return px
+
+def window_light(px,metres_per_px):
+    """Lifts the warm windows and adds a soft halo around them. Warm windows have far more red
+    than blue, and the night ground is the other way round, so red minus blue finds them."""
+    warm=np.clip(px[...,0]-px[...,2],0,None)[...,None]*np.array([1.0,0.57,0.22],np.float32)
+    halo=gaussian(warm,max(1.2,CITY_GLOW_M/metres_per_px))
+    return px+warm*CITY_WINDOW_LIFT+halo*CITY_GLOW
+
+def save_webp(scene,px,path,quality):
+    """Writes a linear (H, W, 3) array as an sRGB WebP through the Standard view transform."""
+    h,w,_=px.shape;img=bpy.data.images.new(path.stem,w,h,alpha=False,float_buffer=True)
+    rgba=np.ones((h,w,4),np.float32);rgba[...,:3]=px;img.pixels.foreach_set(rgba.ravel())
+    s=scene.render.image_settings;s.file_format='WEBP';s.color_mode='RGB';s.quality=quality
+    img.save_render(str(path),scene=scene);bpy.data.images.remove(img)
+    return path.stat().st_size
+
+def city_camera(scene,centre,size,px):
+    cam=bpy.data.objects.get('City_Layer_Camera')
+    if not cam:
+        cam=bpy.data.objects.new('City_Layer_Camera',bpy.data.cameras.new('City_Layer_Camera'));scene.collection.objects.link(cam)
+    cam.data.type='ORTHO';cam.data.ortho_scale=size;cam.data.clip_start=1;cam.data.clip_end=2000
+    cam.location=(centre[0],centre[1],CITY_GROUND_Z+400);cam.rotation_euler=(0,0,0)
+    scene.camera=cam;scene.render.resolution_x=scene.render.resolution_y=px*2;scene.render.resolution_percentage=100
+
+def render_linear(scene,path):
+    """Renders the scene to a half-float EXR and returns the pixels at half size, top row first."""
+    s=scene.render.image_settings;s.file_format='OPEN_EXR';s.color_depth='16';s.color_mode='RGB'
+    scene.render.filepath=str(path)
+    with bpy.context.temp_override(scene=scene):bpy.ops.render.render(write_still=True,scene=scene.name)
+    img=bpy.data.images.load(str(path));w,h=img.size;px=np.empty(w*h*4,np.float32);img.pixels.foreach_get(px)
+    bpy.data.images.remove(img)
+    px=px.reshape(h,w,4)[...,:3]
+    # Box filter 2x2. The windows are about a metre across, so the supersample keeps them as dots.
+    return px.reshape(h//2,2,w//2,2,3).mean(axis=(1,3))[::-1]
+
+def layer_rect(layer,lo,hi):
+    """Returns the pixel rows and columns of a Blender ground rectangle in one layer image (top row is north)."""
+    _,(cx,cy),size,px,*_=layer;mpp=size/px
+    c0,c1=int((lo[0]-cx+size/2)/mpp),int((hi[0]-cx+size/2)/mpp)
+    r0,r1=int((cy+size/2-hi[1])/mpp),int((cy+size/2-lo[1])/mpp)
+    return slice(max(r0,0),min(r1,px)),slice(max(c0,0),min(c1,px))
+
+def suburbs(far,far_layer,mid,mid_layer,seed=3):
+    """Fills the far ground with dim copies of the real city light, so lights reach toward the horizon.
+
+    Each copy is the light above the ground level of the built area in the mid render, shrunk to the
+    far scale and turned by a random quarter turn. A slow noise field thins the copies out, and their
+    weight falls off with distance from the real city."""
+    rows,cols=layer_rect(mid_layer,CITY_BUILT[0],CITY_BUILT[1]);crop=mid[rows,cols]
+    light=np.clip(crop-np.median(crop.reshape(-1,3),axis=0),0,None)
+    scale=(mid_layer[2]/mid_layer[3])/(far_layer[2]/far_layer[3])
+    light=gaussian(light,0.5/scale);side=int(min(light.shape[:2])*scale)
+    idx=(np.arange(side)/scale).astype(int);tile=light[idx][:,idx]
+    rng=np.random.default_rng(seed);px=far.shape[0]
+    mask=0.35+0.65*mist_field(px,24,seed=seed+1)
+    city_rows,city_cols=layer_rect(far_layer,CITY_BUILT[0],CITY_BUILT[1])
+    inside=np.zeros((px,px,1),np.float32);inside[city_rows,city_cols]=1
+    keep_out=1-np.clip(gaussian(inside,side*0.12)*1.4,0,1)
+    centre=np.array([(city_rows.start+city_rows.stop)/2,(city_cols.start+city_cols.stop)/2])
+    metres=far_layer[2]/far_layer[3]
+    # Copies overlap by half a tile under a Hann window. The windows sum to one, so no seam shows.
+    hann=np.sin(np.pi*(np.arange(side)+0.5)/side)**2;window=(hann[:,None]*hann[None,:])[...,None]
+    pad=side;acc=np.zeros((px+2*pad,px+2*pad,3),np.float32);step=side//2
+    for r in range(-step,px,step):
+        for c in range(-step,px,step):
+            d=np.linalg.norm(np.array([r+side/2,c+side/2])-centre)*metres
+            piece=np.rot90(tile,rng.integers(4))*window*math.exp(-d/CITY_SUBURB_FALLOFF_M)
+            acc[r+pad:r+pad+side,c+pad:c+pad+side]+=piece
+    out=far+acc[pad:pad+px,pad:pad+px]*CITY_SUBURBS*mask[...,None]*keep_out
+    return out
+
+def mist_field(px,sigma,seed=7):
+    """Returns a tileable cloud mask in 0..1. Filtered white noise in the frequency domain wraps by construction."""
+    rng=np.random.default_rng(seed);f=np.fft.fftfreq(px)[:,None]**2+np.fft.fftfreq(px)[None,:]**2
+    # A Gaussian blur of sigma pixels is exp(-2 pi^2 sigma^2 f^2) in the frequency domain.
+    amp=np.where(f>0,1/np.maximum(f,1e-9)**0.9,0)*np.exp(-2*math.pi**2*sigma**2*f)
+    n=np.real(np.fft.ifft2(np.fft.fft2(rng.standard_normal((px,px)))*amp));n=(n-n.mean())/n.std()
+    t=np.clip((n+0.5)/2.6,0,1);return t*t*(3-2*t)
+
+def city_layers():
+    assert Path(bpy.data.filepath).resolve()==SOURCE.resolve(),bpy.data.filepath
+    source_hash=sha256(SOURCE)
+    bpy.ops.wm.save_as_mainfile(filepath=str(CITY_WORK),check_existing=False)
+    scene=bpy.data.scenes[SCENE];CITY_DIR.mkdir(parents=True,exist_ok=True)
+    keep=set(CITY_OBJECTS)
+    # Only the sun and the world light the city. The area lights of the island scene light hard
+    # rectangles of ground, and those show as boxes once the layers are blurred and laid out.
+    for ob in scene.objects:
+        ob.hide_render=ob.name not in keep and not (ob.type=='LIGHT' and ob.data.type=='SUN')
+        # Sun shadows change precision across an orthographic view and leave light bands on the ground.
+        if ob.type=='LIGHT':ob.data.use_shadow=False
+    shear=Matrix(((1,0,0,0),(0,1,CITY_SHEAR,-CITY_SHEAR*CITY_GROUND_Z),(0,0,1,0),(0,0,0,1)))
+    for name in CITY_OBJECTS:
+        ob=bpy.data.objects[name];ob.matrix_world=shear@ob.matrix_world
+    river=bpy.data.materials[CITY_RIVER[0]];bsdf=principled(river)
+    bsdf.inputs['Base Color'].default_value=(*CITY_RIVER[1],1);bsdf.inputs['Emission Color'].default_value=(*CITY_RIVER[1],1)
+    bsdf.inputs['Emission Strength'].default_value=CITY_RIVER[2]
+    v=scene.view_settings;v.view_transform='Standard';v.look='None';v.exposure=0;v.gamma=1
+    scene.eevee.taa_render_samples=CITY_SAMPLES;scene.render.film_transparent=False
+    tmp=Path(tempfile.mkdtemp(prefix='city_layers_'));layers=[]
+    renders={}
+    for name,centre,size,px,sigma,quality,height in CITY_LAYERS:
+        for hidden in CITY_FAR_HIDE:bpy.data.objects[hidden].hide_render=name=='far'
+        city_camera(scene,centre,size,px);renders[name]=window_light(render_linear(scene,tmp/f'{name}.exr'),size/px)
+    spec={l[0]:l for l in CITY_LAYERS}
+    # The bare far ground still shows wide horizontal bands of light. The median of each row is the
+    # ground there, because the city covers less than a quarter of each row, so the stage swaps it
+    # for one flat ground value.
+    far=renders['far'];rows=np.median(far,axis=1,keepdims=True)
+    renders['far']=suburbs(far-rows+np.median(rows,axis=0,keepdims=True),spec['far'],renders['mid'],spec['mid'])
+    for name,centre,size,px,sigma,quality,height in CITY_LAYERS:
+        lin=gaussian(renders[name],sigma)
+        peak=float(np.percentile(lin.max(axis=2),99.7));gain=CITY_GAIN
+        path=CITY_DIR/f'city_{name}.webp';bytes_=save_webp(scene,1-np.exp(-lin*gain),path,quality)
+        layers.append({'name':name,'file':path.name,'centre':[centre[0],height,-centre[1]],'size':size,'px':px,
+                       'blur_px':sigma,'metres_per_px':round(size/px,3),'gain':round(gain,4),'peak':round(peak,5),'bytes':bytes_})
+    name,px,sigma,quality=MIST;m=mist_field(px,sigma)
+    path=CITY_DIR/'city_mist.webp';bytes_=save_webp(scene,np.repeat(m[...,None],3,axis=2)**2.2,path,quality)
+    mist={'file':path.name,'px':px,'bytes':bytes_,'tileable':True}
+    manifest={'note':'Painted city layers from export_island_b.py --city-layers. Positions are in the GLB frame (metres, Y up). '
+                     'Each image is a top-down orthographic render of a sheared city, soft clipped as 1 - exp(-radiance * gain). '
+                     'Decode with radiance = -log(1 - v) / gain.','shear':CITY_SHEAR,'layers':layers,'mist':mist,
+              'total_bytes':sum(l['bytes'] for l in layers)+mist['bytes']}
+    CITY_MANIFEST.write_text(json.dumps(manifest,indent=2),encoding='utf-8')
+    shutil.rmtree(tmp,ignore_errors=True)
+    manifest['source_untouched']=sha256(SOURCE)==source_hash
+    assert manifest['source_untouched']
+    return manifest
+
 if __name__=='__main__':
-    result=build()
-    print('EXPORT_DONE',json.dumps({k:{'tris':result[k]['tris'],'draws':result[k]['draws']} for k in ('desktop','lod1')}))
+    if '--city-layers' in ARGS:
+        result=city_layers()
+        print('CITY_LAYERS_DONE',json.dumps({l['name']:l['bytes'] for l in result['layers']}),result['total_bytes'])
+    else:
+        result=build()
+        print('EXPORT_DONE',json.dumps({k:{'tris':result[k]['tris'],'draws':result[k]['draws']} for k in ('desktop','lod1')}))

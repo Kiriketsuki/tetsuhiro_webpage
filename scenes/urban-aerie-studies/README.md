@@ -1,5 +1,53 @@
 # Urban aerie house studies
 
+## Cozy interiors: 25 October 2026
+
+Working file: `island_b_cozy_interiors.blend`, scene `Island_B_Cozy_Interiors`. The three rooms of the house are rebuilt as one set. Each room has one purpose, a human-scale layout and one material language: oak and walnut, sage, oat, clay and dusk linen, warm ceramic, aged brass and charcoal. These values match the rooftop dining set and the telescope, so the two terraces stay as they are.
+
+- Workshop (projects): one built-in oak worktop runs along the rear wall. Its left half is the computer desk under the rear window, with a three-drawer pedestal, two monitors on one arm, a mechanical keyboard on a desk mat, a brass desk lamp and a five-star chair. Its right half is a maker bench under the project corkboard. The corkboard stays where it was, and a brass picture light now sits above it. A cable tray, one riser and a floor strip keep the cables tidy. The left wall has a tool bench with a pegboard of tools and a stool, and open shelves with a small 3D printer stand by the front glass. A linear pendant hangs over the desk.
+- Lounge (living floor): a sage sofa under the rear window faces the front glass across an oat rug and an oak coffee table. A clay armchair, a reading lamp with a glowing drum shade, a small painted landscape and a woven pendant complete the room. A low console under the right window holds books, records, a turntable and two speakers.
+- Bedroom (top floor, personal space): the bed stands against the left wall, with a sage headboard, a dusk duvet and a clay throw. The bedside lamp sits on the front side of the bed, so it glows at the front window. A window seat with cushions, headphones and a handheld console fills the rear window. A keepsake shelf in the rear-left corner faces the site's bedroom camera through the balcony door.
+
+The keepsakes replace the dodecahedron. They come from `src/data/interests.js` and the deleted face list in git history. Each one is a plain stylised object, never a logo or game art:
+
+| Interest | Keepsake |
+| --- | --- |
+| Elden Ring | a golden tree |
+| Tears of the Kingdom, Breath of the Wild | a floating island on a stand, a sword above the bed |
+| God of War | a round shield and an axe above the bed |
+| Attack on Titan | a dark green cloak on a hook |
+| TFT | a hex board with a knight and a pawn |
+| Nergigante | a dark dragon head with pale spikes |
+| Crusader Kings | a crown on a cushion |
+| Anno 1800 | a paddle steamer on a stand |
+| Victoria 3 | a top hat |
+| The Greatest Estate Developer | a small castle and a row of volumes |
+| Where Winds Meet | a bamboo hat and a jian by the door |
+| Music, gym, games | a guitar, headphones, dumbbells, game cases, a controller and a handheld |
+
+Each room also gets an oak floor and a plaster ceiling. Before, the lounge and bedroom showed the dark roof slab as their floor.
+
+`cozy_interiors.py` builds the scene from `Island_B_Rolling_Rim`, with `cozy_kit.py` (shapes, palette and room glow) and `cozy_rooms.py` (layouts). The build copies the scene and swaps in shallow collection copies that leave out three objects: the old `..._Room_Life` box props, `SS_NA_Bedroom_Comforts` and the old bedside light. Objects stay shared, and every source mesh fingerprint matches. The build measures each room box from the house by ray casts and lays the furniture out from those walls. One new point light replaces the old bedside light. Lamps, shades and screens use the shared `LP_SS_A_warm` and `LP_SS_A_screen` materials. A smooth warm field around each lamp lifts the base colour of every `CI_*` material, and the export bakes that field into COLOR_0, so the web gets the room glow without a light. No colour varies per face.
+
+All 82 recorded contacts touch the house, a floor or a rug within 12 mm. The check hides each layer and every layer above it: finishes rest on the house, rugs on the finishes and furniture on either. No furniture vertex below 1.0 m enters a door zone (workshop entrance, both lounge doors, bedroom balcony door). The bedroom is still the highest room.
+
+| Mesh | Tris | Mobile GLB |
+| --- | --- | --- |
+| `SS_CI_Room_Finishes`, `SS_CI_Rugs` | 108 | kept |
+| `SS_CI_Workshop_Furniture` + `_Interior_Detail` | 1,296 + 1,192 | detail dropped |
+| `SS_CI_Lounge_Furniture` + `_Interior_Detail` | 996 + 510 | detail dropped |
+| `SS_CI_Bedroom_Furniture` + `_Interior_Detail` | 1,958 + 592 | detail dropped |
+| Total new, old props removed | 6,652, 1,392 | |
+
+`export_island_b.py` now reads this revision. The `SS_CI_*` objects join into a new mesh family, `Interiors`, with 9 existing web materials and no new one. Thinning group 4 drops the `Interior_Detail` meshes from the mobile GLB. `Anchor_Bedroom` now marks the centre of the bedroom furniture, and a new `Anchor_Lounge` marks the lounge. The work copy is `island_b_cozy_web_export.blend` and the report is `island_b_cozy_web_export_report.json`. The earlier work copy and report stay.
+
+| GLB | Triangles | Primitives | Size |
+| --- | --- | --- | --- |
+| `src/assets/models/island_b.glb` | 117,196 | 51 | 930 KB |
+| `src/assets/models/island_b_lod1.glb` | 69,439 | 48 | 515 KB |
+
+The watercolour lab shows the workshop and bedroom stops with both GLBs and logs no errors. The corkboard cards still find the board. `npm run check` passes. Renders: `renders/cozy-interiors/before` and `renders/cozy-interiors/after`. Build and render: `cozy_interiors.py`. Evidence: `island_b_cozy_interiors_report.json`.
+
 ## Watercolour lab and painted city: 25 October 2026
 
 The dev server serves a lab at `/lab/watercolour.html`. It loads `island_b.glb` (or `island_b_lod1.glb` on a phone or with `?lod=1`) in the Phase 6 look. `vite.config.js` does not list the lab as a build input, so the live site never contains it. Other options are `?tier=0..3`, `?still` and `?cam=hero|workshop|telescope|bedroom|pad|arrival`.

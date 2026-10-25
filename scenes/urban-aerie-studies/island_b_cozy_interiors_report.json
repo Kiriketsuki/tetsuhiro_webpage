@@ -1,0 +1,253 @@
+{
+  "scene": "Island_B_Cozy_Interiors",
+  "file": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_cozy_interiors.blend",
+  "source": "Island_B_Rolling_Rim",
+  "dropped_from_scene": [
+    "DR_GE_MH_RA_JG_RF_CO_PT_SH_SS_UA_B_Atelier_Room_Life",
+    "SS_NA_Bedroom_Comforts",
+    "SS_NA_Bedside_Lamp"
+  ],
+  "collection_copies": [
+    "CI_DR_GE_MH_RA_JG_RF_CO_PT_SH_UA_B_Atelier",
+    "CI_DR_GE_MH_RA_JG_RF_CO_PT_SH_UA_B_Atelier_House",
+    "CI_RR_Arrival_and_Room_Story"
+  ],
+  "rooms": {
+    "workshop": {
+      "Z0": 1.05,
+      "C": 3.91,
+      "L": -7.18,
+      "R": -2.82,
+      "B": 4.93,
+      "F": 0.587,
+      "Z": 1.07,
+      "floor_xy": [
+        -5.6,
+        3.45
+      ]
+    },
+    "living": {
+      "Z0": 4.24,
+      "C": 7.06,
+      "L": -7.98,
+      "R": -3.75,
+      "B": 5.18,
+      "F": 1.17,
+      "Z": 4.26,
+      "floor_xy": [
+        -6.2,
+        2.55
+      ]
+    },
+    "bedroom": {
+      "Z0": 7.39,
+      "C": 10.36,
+      "L": -6.93,
+      "R": -3.5,
+      "B": 5.23,
+      "F": 1.62,
+      "Z": 7.41,
+      "floor_xy": [
+        -5.9,
+        2.85
+      ]
+    }
+  },
+  "lamps": [
+    {
+      "at": [
+        -4.84,
+        4.49,
+        2.12
+      ],
+      "radius": 1.7,
+      "strength": 0.55
+    },
+    {
+      "at": [
+        -5.52,
+        4.51,
+        3.12
+      ],
+      "radius": 2.2,
+      "strength": 0.32
+    },
+    {
+      "at": [
+        -3.62,
+        4.755,
+        2.91
+      ],
+      "radius": 1.1,
+      "strength": 0.3
+    },
+    {
+      "at": [
+        -7.66,
+        4.76,
+        5.56
+      ],
+      "radius": 2.1,
+      "strength": 0.62
+    },
+    {
+      "at": [
+        -5.75,
+        3.48,
+        5.86
+      ],
+      "radius": 2.4,
+      "strength": 0.38
+    },
+    {
+      "at": [
+        -5.45,
+        3.41,
+        4.752
+      ],
+      "radius": 0.7,
+      "strength": 0.2
+    },
+    {
+      "at": [
+        -6.72,
+        2.27,
+        8.21
+      ],
+      "radius": 1.9,
+      "strength": 0.62
+    },
+    {
+      "at": [
+        -5.0,
+        3.6,
+        9.31
+      ],
+      "radius": 2.4,
+      "strength": 0.3
+    }
+  ],
+  "objects": {
+    "SS_CI_Room_Finishes": {
+      "tris": 72,
+      "faces": 36,
+      "smooth_faces": 0
+    },
+    "SS_CI_Rugs": {
+      "tris": 36,
+      "faces": 18,
+      "smooth_faces": 0
+    },
+    "SS_CI_Workshop_Furniture": {
+      "tris": 1296,
+      "faces": 688,
+      "smooth_faces": 0
+    },
+    "SS_CI_Workshop_Interior_Detail": {
+      "tris": 1192,
+      "faces": 578,
+      "smooth_faces": 0
+    },
+    "SS_CI_Lounge_Furniture": {
+      "tris": 996,
+      "faces": 502,
+      "smooth_faces": 0
+    },
+    "SS_CI_Lounge_Interior_Detail": {
+      "tris": 510,
+      "faces": 245,
+      "smooth_faces": 0
+    },
+    "SS_CI_Bedroom_Furniture": {
+      "tris": 1958,
+      "faces": 906,
+      "smooth_faces": 0
+    },
+    "SS_CI_Bedroom_Interior_Detail": {
+      "tris": 592,
+      "faces": 282,
+      "smooth_faces": 0
+    }
+  },
+  "materials": [
+    "CI_Oak_wood",
+    "CI_Walnut_wood",
+    "CI_Floor_wood",
+    "CI_Ceiling_plaster",
+    "CI_Sage_Linen",
+    "CI_Oat_Linen",
+    "CI_Clay_Linen",
+    "CI_Dusk_Linen",
+    "CI_Pine_Linen",
+    "CI_Rug_Clay",
+    "CI_Rug_Oat",
+    "CI_Warm_Ceramic",
+    "CI_Plant_leaf",
+    "CI_Charcoal",
+    "CI_Aged_Brass",
+    "CI_Blade_Brushed_Steel",
+    "CI_Mustard_paper",
+    "CI_Teal_paper",
+    "CI_Plum_paper",
+    "CI_Cream_paper",
+    "CI_Straw_paper",
+    "CI_Pegboard_Cork",
+    "LP_SS_A_metal",
+    "LP_SS_A_warm",
+    "LP_SS_A_screen"
+  ],
+  "new_lights": [
+    "SS_CI_Bedside_Lamp"
+  ],
+  "tris_total": 6652,
+  "tris_detail": 2294,
+  "tris_removed": 1392,
+  "contacts": {
+    "checked": 82,
+    "passed": 82,
+    "failed": []
+  },
+  "clearance": {
+    "workshop": {
+      "zones": [
+        [
+          -5.6,
+          -4.4,
+          0.59,
+          1.89
+        ]
+      ],
+      "vertices_inside": 0
+    },
+    "living": {
+      "zones": [
+        [
+          -7.45,
+          -6.35,
+          1.17,
+          2.07
+        ],
+        [
+          -4.55,
+          -3.75,
+          4.18,
+          5.18
+        ]
+      ],
+      "vertices_inside": 0
+    },
+    "bedroom": {
+      "zones": [
+        [
+          -4.95,
+          -3.6,
+          1.62,
+          2.62
+        ]
+      ],
+      "vertices_inside": 0
+    }
+  },
+  "bedroom_is_highest_room": true,
+  "source_preserved": true
+}

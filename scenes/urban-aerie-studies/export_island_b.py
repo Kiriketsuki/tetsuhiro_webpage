@@ -1,12 +1,12 @@
-"""Web export of Island_B_Rolling_Rim: baked vertex colours, about 24 web materials, a dozen joined meshes and a Draco GLB.
+"""Web export of Island_B_Cozy_Interiors: baked vertex colours, about 24 web materials, a dozen joined meshes and a Draco GLB.
 
 Run it from this folder with background Blender. Never run it inside the open source file.
 
-    blender --factory-startup -b island_b_rolling_rim.blend --python export_island_b.py -- [--replace] [--no-compress]
+    blender --factory-startup -b island_b_cozy_interiors.blend --python export_island_b.py -- [--replace] [--no-compress]
 
 The painted city layers for the site come from a second mode, which also works on a copy:
 
-    blender --factory-startup -b island_b_rolling_rim.blend --python export_island_b.py -- --city-layers
+    blender --factory-startup -b island_b_cozy_interiors.blend --python export_island_b.py -- --city-layers
 
 The script saves a copy first and only ever writes that copy. The source .blend stays untouched.
 """
@@ -19,11 +19,12 @@ from mathutils.bvhtree import BVHTree
 
 ROOT=Path(__file__).resolve().parent
 SITE=ROOT.parent.parent
-SOURCE=ROOT/'island_b_rolling_rim.blend'
-SCENE='Island_B_Rolling_Rim'
+# The 25 October 2026 export read island_b_rolling_rim.blend. Its work copy and report keep their names.
+SOURCE=ROOT/'island_b_cozy_interiors.blend'
+SCENE='Island_B_Cozy_Interiors'
 WEB_SCENE='Island_B_Web'
-WORK=ROOT/'island_b_web_export.blend'
-REPORT=ROOT/'island_b_web_export_report.json'
+WORK=ROOT/'island_b_cozy_web_export.blend'
+REPORT=ROOT/'island_b_cozy_web_export_report.json'
 # The site imports its models from src/assets/models with a ?url import, so the GLBs sit beside island.glb.
 MODELS=SITE/'src'/'assets'/'models'
 OUT_DESKTOP=MODELS/'island_b.glb'
@@ -82,12 +83,15 @@ FAMILY=[
     ('Rock',('Shore_Stones','Stream_Banks','Bridge_Abutments')),
     ('Paths',('Flagstone','Footbridge','Bridge_Beams','Rail_Bearing','Lookout_Access_Step','City_Lookout')),
     ('Props',('SS_TL_','Path_Lanterns','Handmade_Wear')),
+    ('Interiors',('SS_CI_',)),
     ('House',('DR_','SS_NA_')),
 ]
 
 # Thinning groups. Each loose part gets a rank from a smooth noise field, so parts leave in
 # coherent patches, never as per-part random speckle. 'desktop' and 'lod1' give the fraction each stage keeps.
-THIN={1:('Folded_Leaves',dict(desktop=.55,lod1=.08)),2:('Angular_Meadow',dict(desktop=1,lod1=.35)),3:('Ground_Planting',dict(desktop=1,lod1=.5))}
+# The interior detail meshes hold books, tools and small desk items. The mobile GLB drops all of them.
+THIN={1:('Folded_Leaves',dict(desktop=.55,lod1=.08)),2:('Angular_Meadow',dict(desktop=1,lod1=.35)),3:('Ground_Planting',dict(desktop=1,lod1=.5)),
+      4:('Interior_Detail',dict(desktop=1,lod1=0))}
 THIN_FREQUENCY=1.1;THIN_SEED=Vector((5.3,1.9,8.1))
 
 CAMERAS=[  # (name, source camera, aim object or None)
@@ -99,7 +103,7 @@ CAMERAS=[  # (name, source camera, aim object or None)
 ]
 ANCHORS={  # name: source object whose world bounding-box centre marks the spot
     'Anchor_Workshop':'SS_NA_Workshop_Project_Corkboard','Anchor_Telescope':'SS_TL_Telescope',
-    'Anchor_Bedroom':'SS_NA_Bedroom_Comforts','Anchor_Pad':'SS_NA_Sky_Taxi_Pad.001','Anchor_BBQ':'SS_TL_BBQ_Pit',
+    'Anchor_Bedroom':'SS_CI_Bedroom_Furniture','Anchor_Lounge':'SS_CI_Lounge_Furniture','Anchor_Pad':'SS_NA_Sky_Taxi_Pad.001','Anchor_BBQ':'SS_TL_BBQ_Pit',
     'Anchor_Lookout':'NA_BC_JG_RF_CO_PT_SH_SS_UA_City_Lookout.001',
 }
 LIGHT_ANCHORS={'Anchor_Entry_Light':'SS_NA_Entry_Downlight','Anchor_Warm_Rim':'NA_LP_SS_Warm_Horizon','Anchor_Cool_Rim':'NA_Rock_Rim'}

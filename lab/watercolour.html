@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Watercolour lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #03111e; overflow: hidden; }
+      canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+      #hud {
+        position: fixed; top: 8px; left: 8px; max-width: calc(100vw - 32px);
+        font: 11px/1.45 ui-monospace, Consolas, monospace; color: #cfe0f5;
+        background: rgba(3, 12, 26, 0.72); padding: 8px 10px; border-radius: 6px;
+        white-space: pre; pointer-events: none;
+      }
+      #controls {
+        position: fixed; bottom: 8px; left: 8px; right: 8px; display: flex; flex-wrap: wrap; gap: 4px;
+        font: 11px ui-monospace, Consolas, monospace;
+      }
+      #controls button, #controls select {
+        font: inherit; color: #cfe0f5; background: rgba(3, 12, 26, 0.8);
+        border: 1px solid #2a3f5f; border-radius: 4px; padding: 4px 7px; cursor: pointer;
+      }
+      #controls button[aria-pressed='true'] { border-color: #ffb36b; color: #ffd8b0; }
+    </style>
+  </head>
+  <body>
+    <!-- Dev-only lab for the Phase 6 watercolour look. vite.config.js does not list it as a
+         build input, so the production build never contains it. -->
+    <canvas id="lab"></canvas>
+    <div id="hud">loading</div>
+    <div id="controls"></div>
+    <script type="module" src="/src/lab/watercolour.js"></script>
+  </body>
+</html>

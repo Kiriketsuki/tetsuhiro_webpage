@@ -1,5 +1,38 @@
 # Urban aerie house studies
 
+## Watercolour lab and painted city: 25 October 2026
+
+The dev server serves a lab at `/lab/watercolour.html`. It loads `island_b.glb` (or `island_b_lod1.glb` on a phone or with `?lod=1`) in the Phase 6 look. `vite.config.js` does not list the lab as a build input, so the live site never contains it. Other options are `?tier=0..3`, `?still` and `?cam=hero|workshop|telescope|bedroom|pad|arrival`.
+
+The look lives in `src/scene/aerie/`, ready for Phase 4:
+
+- `toon-material.js`: one MeshLambertMaterial patch with one `customProgramCacheKey`. It replaces the light loop with a fixed rig in uniforms: a 4-step moon ramp on NearestFilter, a cool hemisphere and up to four warm bounce spots at the workshop, entry, bedroom and barbecue anchors. Each facet has one normal, so it gets one moon step. Colour comes only from the baked vertex colours and the smooth bounce field.
+- `composite-pass.js`: replaces OutputPass. It does Neutral tone mapping, luminance Sobel edge darkening, low-frequency pigment pools in dark areas, a paper grain multiply, a 1.6 px screen-UV wobble and a vignette, in 12 texture fetches. `paper-texture.js` builds its noise at startup. No tier has bloom.
+- `glow-sprites.js`: one `THREE.Points` call of soft additive sprites over the emissive windows, lanterns and pad lights.
+- `city-backdrop.js` and `sky.js`: the painted city and a gradient night dome.
+- `quality.js`: the ladder drops MSAA, then the pixel ratio. A governor steps down when the median frame time stays over budget. Reduced motion renders one frame.
+
+`export_island_b.py -- --city-layers` renders the city that the GLB leaves out. It saves `island_b_city_layers.blend` first and checks that the source hash does not change. A shear leans every wall back by 45 degrees, so a top-down orthographic camera sees the south faces and their windows. Only the sun and the world light the city, with no shadows. The stage lifts the warm windows, adds a 9 m halo and blurs each layer more with distance. The far layer leaves out the road slab and the river, flattens the ground rows, and gains dim made-up districts copied from the real city light. Each image is soft clipped as `1 - exp(-radiance * 6)` and the site decodes it.
+
+| Layer | Ground | Pixels | Blur | Plane height | Size |
+| --- | --- | --- | --- | --- | --- |
+| far | 8000 m | 512 | 3.0 px | -790 | 3.2 kB |
+| mid | 2800 m | 768 | 2.0 px | -764 | 16.2 kB |
+| near | 1400 m | 1024 | 1.4 px | -750 | 72.1 kB |
+| mist (tileable) | two veils at -430 and -70 | 512 | | | 4.3 kB |
+
+All four files total 95.8 kB. The manifest is `src/assets/city/city_layers.json`. The near layer twinkles its warm windows in a cheap shader.
+
+Measured in the app's Chromium pane on an RTX 4070 (ANGLE D3D11), with the GPU timer query:
+
+| View | GLB | Tier | Buffer | GPU ms | Calls | Tris | Programs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Arrival, desktop | desktop | msaa4, dpr 1 | 1024 x 768 | 2.84 | 53 | 114,215 | 9 |
+| Arrival, desktop | desktop | no-msaa, dpr 1 | 1024 x 768 | 2.13 | 53 | 114,215 | 9 |
+| Arrival, phone emulation | lod1 | no-msaa, dpr 2 | 750 x 1624 | 3.41 | 50 | 68,752 | 9 |
+
+Screenshots: `renders/watercolour-lab/`. Not done yet: shadows, the waterfall, stars, a phone-friendly camera framing and a Kuwahara pass.
+
 ## Current web export: 25 October 2026
 
 `export_island_b.py` turns `Island_B_Rolling_Rim` into web GLBs for the three.js site. Run it with background Blender from this folder:

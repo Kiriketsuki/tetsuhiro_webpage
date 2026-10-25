@@ -8,8 +8,8 @@ import * as THREE from 'three'
 // The scene needs no three.js lights, so a late light can never recompile the island.
 
 const CACHE_KEY = 'aerie-toon-v1'
-// At most this many warm bounce spots, near the lit windows and the entry light.
-export const TOON_BOUNCES = 4
+// At most this many warm bounce spots: lit windows, the entry light and the campfire.
+export const TOON_BOUNCES = 5
 
 // Moon light steps over half-Lambert (n.l * 0.5 + 0.5). Nearest filtering keeps each step
 // hard, and a flat facet has one normal, so each facet gets exactly one step.
@@ -97,9 +97,19 @@ float toonNoise( vec3 x ) {
 
 // The normal is in view space. Multiplying by viewMatrix from the left side applies the
 // transpose, which turns a view-space direction back into world space.
+//
+// The moon casts the only shadow. The scene holds one DirectionalLight for it, so three.js
+// sets up the shadow map, and this block reads that map directly. Soft PCF edges read as a
+// wash, not as a hard line through the facets.
 const FRAGMENT_LIGHT = /* glsl */ `
 vec3 toonN = normalize( ( vec4( normal, 0.0 ) * viewMatrix ).xyz );
-float toonStep = texture2D( uToonRamp, vec2( dot( toonN, uToonMoonDir ) * 0.5 + 0.5, 0.5 ) ).r;
+float toonShadow = 1.0;
+#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+    DirectionalLightShadow toonMoonShadow = directionalLightShadows[ 0 ];
+    toonShadow = getShadow( directionalShadowMap[ 0 ], toonMoonShadow.shadowMapSize, toonMoonShadow.shadowIntensity,
+        toonMoonShadow.shadowBias, toonMoonShadow.shadowRadius, vDirectionalShadowCoord[ 0 ] );
+#endif
+float toonStep = texture2D( uToonRamp, vec2( dot( toonN, uToonMoonDir ) * 0.5 + 0.5, 0.5 ) ).r * toonShadow;
 vec3 toonLight = mix( uToonGround, uToonSky, toonN.y * 0.5 + 0.5 ) + uToonMoon * toonStep;
 vec3 toonWarm = vec3( 0.0 );
 for ( int i = 0; i < ${TOON_BOUNCES}; i ++ ) {

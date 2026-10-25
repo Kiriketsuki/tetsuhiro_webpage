@@ -83,6 +83,7 @@ export function applyIslandLook(gltf) {
 
     const swap = (mesh, source) => {
         old.add(source)
+        mesh.userData.webMaterial = source.name
         const glow = EMISSIVE[source.name]
         if (glow) {
             if (!replaced.has(source.name)) {

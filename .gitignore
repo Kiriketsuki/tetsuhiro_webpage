@@ -22,7 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-src/assets/models/MOONSETHDRI.hdr
 
 # firebase cache
 .firebase

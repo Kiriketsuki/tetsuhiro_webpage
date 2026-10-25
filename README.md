@@ -28,7 +28,7 @@ npm run dev
 
 - `src/three.js` starts the scene. Each part of the scene has its own file in `src/scene/`: the island, the sea, the lights, the campfire, the skill pods, the post processing and so on.
 - `src/data/` holds the projects, the skills and the dodecahedron faces, so all the content sits in one place.
-- `src/assets/models/island.glb` is the island, leaves included. The Draco decoder is in `public/draco/`, so it does not come from a CDN.
+- `src/assets/models/island.glb` is the island, leaves included. The Draco decoder is in `public/draco/r180/`, so it does not come from a CDN. A new decoder goes in a new folder, because Firebase caches that path for a year.
 - `src/assets/textures/` has the tiled terrain textures. `src/scene/terrain-material.js` maps them onto the island in world space.
 - `src/assets/projects/` has the project screenshots as WebP, one folder per project.
 

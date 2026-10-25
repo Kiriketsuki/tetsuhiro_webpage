@@ -10,9 +10,11 @@ import { useRoute } from 'vue-router'
 import gsap from 'gsap'
 import Navbar from './components/Navbar.vue'
 import { useWaypoints } from './composables/useWaypoints.js'
+import { useScene } from './composables/useScene.js'
 
 const route = useRoute()
 const { ready } = useWaypoints()
+useScene()
 
 // The scene only shows on the home page, once it has loaded.
 const showScene = computed(() => ready.value && route.name === 'Home')
@@ -47,6 +49,15 @@ watch(
         z-index: -1;
         opacity: 0;
         visibility: hidden;
+    }
+
+    /* src/three.js adds this when WebGL fails. A moonlit night sky in CSS
+       stands in for the island. */
+    canvas.scene-fallback {
+        background:
+            radial-gradient(circle at 72% 18%, oklch(0.931 0.03 243.4 / 0.35) 0, transparent 9rem),
+            radial-gradient(ellipse at 50% 120%, var(--color-sea) 0, transparent 60%),
+            linear-gradient(to bottom, var(--color-bg-raised), var(--color-bg-base) 70%);
     }
     
     router-view {

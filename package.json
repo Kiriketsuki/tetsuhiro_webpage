@@ -7,14 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "ship": "vite build && firebase deploy --only hosting"
+    "ship": "vite build && firebase deploy --only hosting",
+    "check": "vite build && node scripts/size-budget.mjs",
+    "size-budget": "node scripts/size-budget.mjs"
   },
   "dependencies": {
+    "@fontsource/instrument-serif": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@iconify-json/game-icons": "^1.2.3",
     "gsap": "^3.13.0",
     "simple-icons": "^15.18.0",
     "three": "^0.180.0",
-    "vanilla-tilt": "^1.8.1",
     "vue": "^3.5.22",
     "vue-router": "^4.5.1"
   },

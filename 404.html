@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <!-- Firebase serves this file for any path that firebase.json does not rewrite.
+         Vite builds it as a second entry, so it gets the site CSS and fonts.
+         The markup copies src/views/NotFound.vue. -->
+    <link rel="stylesheet" href="/src/index.css" />
+    <style>
+      body {
+        margin: 0;
+        font-family: var(--font-body);
+        background-color: var(--color-bg-base);
+      }
+    </style>
+    <title>Not found | Jovian Lim</title>
+  </head>
+  <body>
+    <main class="flex h-screen w-screen items-center justify-center px-5">
+      <article class="frame frame-rose flex max-w-md flex-col gap-4 p-8 pt-10">
+        <span class="frame-legend">404</span>
+        <h1 class="font-slab text-5xl leading-none text-text-strong">Nothing grows here</h1>
+        <p class="font-body text-text-body">
+          This page does not exist. Maybe it moved, or the link has a typo. The island is
+          still where you left it.
+        </p>
+        <a href="/" class="action">Back to the island</a>
+      </article>
+    </main>
+  </body>
+</html>

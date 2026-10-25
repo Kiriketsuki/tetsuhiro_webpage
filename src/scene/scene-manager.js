@@ -82,7 +82,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const buildPipeline = (index) => {
         tierIndex = index
         pipeline?.dispose()
-        pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[index] })
+        pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[index], small })
         if (view === 'sky' && parts.constellation) pipeline.setView(parts.constellation.scene, parts.constellation.camera)
         resizeSprites()
         state.dirty = true
@@ -123,8 +123,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const k = rain.t / rain.duration
             // Up fast, a long hold, then the glass clears as the camera settles in the room.
             const amount = k >= 1 ? 0 : Math.min(1, k * 5) * (1 - THREE.MathUtils.smoothstep(k, 0.6, 1))
-            pipeline.watercolour.uniforms.uRain.value = amount
-            pipeline.watercolour.uniforms.uTime.value = seconds
+            pipeline.grade.uniforms.uRain.value = amount
+            pipeline.grade.uniforms.uTime.value = seconds
             if (k >= 1) rain = null
             wet = true
         }

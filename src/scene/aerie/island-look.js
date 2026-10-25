@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { createToonMaterial, createToonUniforms } from './toon-material.js'
+import { softenGeometry } from './soft-normals.js'
 
-// Puts the watercolour look on a loaded island_b GLB. Opaque parts share one toon material.
+// Puts the soft stylized night look on a loaded island_b GLB. Opaque parts share one toon material.
 // Glass gets a see-through toon material. Emissive parts become flat bright colour, and
 // their faces turn into glow sprites.
 
@@ -120,13 +121,17 @@ export function applyIslandLook(gltf) {
         child.material = Array.isArray(child.material)
             ? child.material.map((m) => swap(child, m))
             : swap(child, child.material)
+        if (child.material === opaque) {
+            const soft = softenGeometry(child.geometry)
+            if (soft !== child.geometry) child.geometry.dispose()
+            child.geometry = soft
+        }
     })
     old.forEach((material) => material.dispose())
 
     const materials = [opaque, ...replaced.values()]
     const dispose = () => {
         materials.forEach((material) => material.dispose())
-        uniforms.uToonRamp.value.dispose()
     }
     return { uniforms, materials, glowSpots: spots.slice(0, MAX_GLOWS), dispose }
 }

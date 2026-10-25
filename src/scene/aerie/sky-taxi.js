@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { softenGeometry } from './soft-normals.js'
 
 // The sky-taxi that brings the visitor in. It flies over the city and lands on the pad
 // while the camera follows, then stays parked there as a prop. The body uses the shared
@@ -52,7 +53,7 @@ function bodyGeometry() {
     const merged = mergeGeometries(pieces)
     merged.computeVertexNormals()
     pieces.forEach((piece) => piece.dispose())
-    return merged
+    return softenGeometry(merged)
 }
 
 function lightMeshes() {

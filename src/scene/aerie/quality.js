@@ -1,26 +1,28 @@
 import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { WatercolourPass } from './composite-pass.js'
+import { GradePass } from './grade-pass.js'
+import { GlowPass } from './glow-pass.js'
 
-// Quality ladder without bloom. No tier has Kuwahara yet, so the ladder drops MSAA first
-// and then the pixel ratio. Reduced motion is not a tier: it renders one frame.
+// The quality ladder. The soft glow runs on the desktop only, and the ladder drops it
+// first, then MSAA, then the pixel ratio. Reduced motion is not a tier: it renders one frame.
 export const TIERS = [
-    { name: 'msaa4', samples: 4, maxPixelRatio: 2 },
-    { name: 'no-msaa', samples: 0, maxPixelRatio: 2 },
-    { name: 'dpr-1.5', samples: 0, maxPixelRatio: 1.5 },
-    { name: 'dpr-1', samples: 0, maxPixelRatio: 1 },
+    { name: 'glow-msaa4', samples: 4, maxPixelRatio: 2, glow: true },
+    { name: 'msaa4', samples: 4, maxPixelRatio: 2, glow: false },
+    { name: 'no-msaa', samples: 0, maxPixelRatio: 2, glow: false },
+    { name: 'dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false },
+    { name: 'dpr-1', samples: 0, maxPixelRatio: 1, glow: false },
 ]
 
 // Frame budgets from docs/site-rewrite-plan.md.
 export const BUDGET_MS = { desktop: 16.7, mobile: 22 }
 
-// A phone already draws at 2x or 3x, so it starts without MSAA.
-export const startTier = (mobile) => (mobile ? 1 : 0)
+// A phone already draws at 2x or 3x, so it starts without MSAA, and it never gets the glow.
+export const startTier = (mobile) => (mobile ? 2 : 0)
 
-// Builds the composer for one tier: the scene into a half-float target, then the
-// watercolour composite to the screen.
-export function createPipeline({ renderer, scene, camera, tier }) {
+// Builds the composer for one tier: the scene into a half-float target, the glow on the
+// desktop tier, then the grade pass to the screen.
+export function createPipeline({ renderer, scene, camera, tier, small = false }) {
     const pixelRatio = Math.min(tier.maxPixelRatio, window.devicePixelRatio || 1)
     renderer.setPixelRatio(pixelRatio)
     const size = renderer.getSize(new THREE.Vector2())
@@ -30,20 +32,23 @@ export function createPipeline({ renderer, scene, camera, tier }) {
     })
     target.texture.name = `aerie.main.${tier.name}`
     const composer = new EffectComposer(renderer, target)
-    const watercolour = new WatercolourPass()
     const renderPass = new RenderPass(scene, camera)
+    const grade = new GradePass()
+    const glow = tier.glow && !small ? new GlowPass() : null
     composer.addPass(renderPass)
-    composer.addPass(watercolour)
+    if (glow) composer.addPass(glow)
+    composer.addPass(grade)
+    grade.setGlow(glow?.texture ?? null)
 
     const resize = (width, height) => {
         composer.setPixelRatio(pixelRatio)
         composer.setSize(width, height)
-        watercolour.setPixelRatio(pixelRatio)
     }
     resize(size.x, size.y)
 
     const dispose = () => {
-        watercolour.dispose()
+        grade.dispose()
+        glow?.dispose()
         composer.dispose()
     }
     // Swaps what the scene pass draws, for the telescope's skill sky.
@@ -51,7 +56,7 @@ export function createPipeline({ renderer, scene, camera, tier }) {
         renderPass.scene = nextScene
         renderPass.camera = nextCamera
     }
-    return { composer, watercolour, pixelRatio, resize, dispose, setView, render: () => composer.render() }
+    return { composer, grade, pixelRatio, resize, dispose, setView, render: () => composer.render() }
 }
 
 // Steps down one tier when the median frame time stays over budget. It never steps back

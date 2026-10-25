@@ -4,7 +4,7 @@ import { stops } from '../data/stops.js'
 import { TIERS } from '../scene/aerie/quality.js'
 import { createGpuTimer } from './gpu-timer.js'
 
-// Dev-only lab for the watercolour look on the urban aerie island. Open
+// Dev-only lab for the soft stylized look on the urban aerie island. Open
 // /lab/watercolour.html on the dev server. The live site does not load this file.
 // Query options: ?lod=0|1 picks the GLB, ?tier=0..3 pins a tier, ?still renders one frame,
 // ?cam=<stop id> picks the start stop.
@@ -77,7 +77,7 @@ function writeHud() {
     gpuMs = gpu.poll() ?? gpuMs
     const tier = manager.tier
     hud.textContent = [
-        `watercolour lab  ${manager.lod === 1 ? 'island_b_lod1.glb' : 'island_b.glb'}  ${currentStop}`,
+        `aerie lab  ${manager.lod === 1 ? 'island_b_lod1.glb' : 'island_b.glb'}  ${currentStop}`,
         `tier ${tier.name}  msaa ${tier.samples}  dpr ${tier.pixelRatio}  ${reducedMotion ? 'still' : 'on demand'}`,
         `renders ${((frames * 1000) / (now - last)).toFixed(0)}/s  cpu submit ${manager.submitMs.toFixed(2)} ms  gpu ${gpuMs === null ? 'n/a' : gpuMs.toFixed(2) + ' ms'}`,
         `calls ${info.render.calls}  tris ${info.render.triangles}  points ${info.render.points}`,

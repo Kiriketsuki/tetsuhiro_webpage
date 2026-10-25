@@ -1,0 +1,122 @@
+{
+  "scene": "Island_B_Night_Arrival",
+  "file": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_night_arrival.blend",
+  "source": "Island_B_Dining_Rear_Facade",
+  "night": {
+    "exposure": 0.05000000074505806,
+    "light_scale": {
+      "LP_SS_Blue_Fill": 0.45,
+      "LP_SS_Soft_Foreground_Fill": 0.45,
+      "LP_SS_Cool_Sky_Key": 0.8,
+      "LP_SS_Falls_Rim": 0.7
+    },
+    "underglow_w": 1600.0
+  },
+  "island": {
+    "soil_band_z": [
+      -2.09,
+      1.237
+    ],
+    "crown_gradient_objects": [
+      "NA_Grove_01_Faceted_Crown",
+      "NA_Grove_01_Folded_Leaves",
+      "NA_Grove_02_Faceted_Crown",
+      "NA_Grove_02_Folded_Leaves",
+      "NA_Grove_03_Faceted_Crown",
+      "NA_Grove_03_Folded_Leaves",
+      "NA_Grove_04_Faceted_Crown",
+      "NA_Grove_04_Folded_Leaves",
+      "NA_Grove_05_Faceted_Crown",
+      "NA_Grove_05_Folded_Leaves"
+    ],
+    "rock_facet_value_range": [
+      0.642,
+      1.354
+    ]
+  },
+  "pad": {
+    "pad_centre": [
+      15.199999809265137,
+      -2.9000000953674316
+    ],
+    "pad_radius": 2.5,
+    "pad_top": 1.0,
+    "post_ground_z": [
+      0.274,
+      0.735,
+      0.728,
+      0.505,
+      0.46,
+      0.558,
+      0.468
+    ],
+    "strut_rock_hits": [
+      [
+        14.6,
+        -4.18,
+        -1.25
+      ],
+      [
+        16.07,
+        -1.55,
+        -0.11
+      ]
+    ],
+    "ramp": [
+      [
+        11.050000190734863,
+        -5.900000095367432,
+        0.7049999833106995
+      ],
+      [
+        13.173945426940918,
+        -4.364617824554443,
+        1.0
+      ]
+    ],
+    "cleared_parts": {
+      "NA_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents.001": 8,
+      "NA_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 548,
+      "NA_B5_B4_BC_SS_JG_Overhanging_Edge_Grass.001": 54
+    },
+    "object": "SS_NA_Sky_Taxi_Pad"
+  },
+  "paths": {
+    "NA_Entry_Flagstone_Path": {
+      "length": 7.29,
+      "stones": 60
+    },
+    "NA_Lookout_Flagstone_Path": {
+      "length": 1.04,
+      "stones": 9
+    },
+    "cleared_parts": {
+      "NA_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Ground_Planting.001": 80,
+      "NA_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents.001": 6,
+      "NA_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 533,
+      "NA_BC_JG_RF_CO_SS_PT_Fine_Handmade_Wear.001": 6
+    }
+  },
+  "corkboard": {
+    "wall_y": 4.93,
+    "centre": [
+      -3.62,
+      4.905,
+      2.55
+    ],
+    "size": [
+      1.22,
+      0.86
+    ],
+    "cards": 10
+  },
+  "bedroom": {
+    "lamp": [
+      -3.9800000190734863,
+      4.550000190734863,
+      7.349999904632568
+    ],
+    "rug_floor_z": 7.35
+  },
+  "source_preserved": true
+}

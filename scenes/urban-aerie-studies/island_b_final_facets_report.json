@@ -1,0 +1,71 @@
+{
+  "connected_components": 1,
+  "boundary_edges": 0,
+  "non_manifold_edges": 0,
+  "vertices": 10277,
+  "faces": 20550,
+  "scene": "Island_B_Final_Facets",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_final_facets.blend",
+  "before": {
+    "rock": {
+      "triangles": 7862,
+      "median_face_area": 0.1271
+    },
+    "grass": {
+      "triangles": 4962,
+      "median_face_area": 0.1284
+    },
+    "soil": {
+      "triangles": 876,
+      "median_face_area": 0.1415
+    }
+  },
+  "after": {
+    "rock": {
+      "triangles": 11794,
+      "median_face_area": 0.0939
+    },
+    "grass": {
+      "triangles": 7442,
+      "median_face_area": 0.0858
+    },
+    "soil": {
+      "triangles": 1314,
+      "median_face_area": 0.0945
+    }
+  },
+  "facet_multiplier": 1.5,
+  "tips_before": {
+    "main": [
+      -7.870692253112793,
+      0.4643982946872711,
+      -16.650081634521484
+    ],
+    "overhang": [
+      11.343131065368652,
+      0.5688523650169373,
+      -7.3496551513671875
+    ]
+  },
+  "tips_after": {
+    "main": [
+      -10.07069206237793,
+      1.5643982887268066,
+      -16.650081634521484
+    ],
+    "overhang": [
+      13.242904663085938,
+      -0.6310049295425415,
+      -7.3496551513671875
+    ]
+  },
+  "edge_splits": {
+    "rock": 1966,
+    "grass": 1240,
+    "soil": 219
+  },
+  "source_terrain_and_props_unchanged": true,
+  "all_triangles_flat": true,
+  "max_critical_contact_delta": 5.7220458984375e-06,
+  "plants_following_ground": 8
+}

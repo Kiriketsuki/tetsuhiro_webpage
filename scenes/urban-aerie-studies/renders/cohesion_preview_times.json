@@ -1,0 +1,22 @@
+[
+  {
+    "shot": "pond_waterline",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\Cohesion_pond_waterline_preview.png",
+    "seconds": 1.55
+  },
+  {
+    "shot": "stream_bank",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\Cohesion_stream_bank_preview.png",
+    "seconds": 0.51
+  },
+  {
+    "shot": "bridge_contacts",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\Cohesion_bridge_contacts_preview.png",
+    "seconds": 0.71
+  },
+  {
+    "shot": "house_contacts",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\Cohesion_house_contacts_preview.png",
+    "seconds": 0.88
+  }
+]

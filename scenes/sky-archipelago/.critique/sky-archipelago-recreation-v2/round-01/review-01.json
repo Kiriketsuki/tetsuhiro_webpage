@@ -1,0 +1,250 @@
+{
+  "reviewer_id": "reviewer-r01",
+  "snapshot_id": "503de64f0e2a29c2847494b755abde3237b1cb23196406dd857d887ebdb07774",
+  "rubric_hash": "a8ea44052cf2d73c2807f4844d17dcaa16d53adb2803381200ba81f9126629d5",
+  "scores": {
+    "composition": {
+      "score": 10,
+      "evidence": [
+        "Snapshot integrity: all 27 files in snapshot.json match their sha256 values. renders/final.png measures 3840x2160.",
+        "L1 terrace torii: red-pixel mask centroid (312, 850) px = (0.081, 0.393). Expanded box x -0.01..0.21, y 0.29..0.62. PASS.",
+        "L2 terrace floor and railing: railing spans x 0..745, y 1090..1390, lawn and walkway x 0..900, y 1000..2160. Estimated centre (450, 1450) = (0.117, 0.671). Box x -0.05..0.35, y 0.45..0.83. PASS.",
+        "L3 central cliff and waterfall: extent x 1850..3070, y 950..1800. Estimated centre (2460, 1375) = (0.641, 0.637). Box x 0.39..0.82, y 0.35..0.87. PASS.",
+        "L4 central lake: blue-pixel mask centroid (2518, 1024) = (0.656, 0.474). Box x 0.49..0.79, y 0.36..0.56. PASS.",
+        "L5 hero cluster: extent x 1960..3000, y 0..900. Estimated centre (2480, 450) = (0.646, 0.208). Box x 0.48..0.78, y -0.05..0.45. PASS.",
+        "L6 ground city in cloud gap: blue low-value mask centroid (1563, 1402) = (0.407, 0.649). Box x 0.23..0.61, y 0.50..0.97. PASS.",
+        "L7 lower right lamp bridge: extent x 2690..3670, y 1770..2010. Estimated centre (3180, 1890) = (0.828, 0.875). Box x 0.66..0.97, y 0.75..0.95. PASS.",
+        "L8 right cliff with waterfall: extent x 3350..3840, y 800..1690. Estimated centre (3595, 1245) = (0.936, 0.576). Box x 0.82..1.05, y 0.28..0.72. PASS.",
+        "L9 upper right island with towers: extent x 3170..3840, y 0..820. Estimated centre (3500, 410) = (0.911, 0.190). Box x 0.75..1.05, y -0.05..0.35. PASS.",
+        "L10 distant islands with falls: extent x 770..1920, y 150..950. Estimated centre (1345, 550) = (0.350, 0.255). Box x 0.13..0.51, y 0.09..0.41. PASS.",
+        "Cross-check: scene_report.json landmark_centres_cam_reference gives terrace_torii (0.097, 0.428), central_lake (0.672, 0.471), hero_towers (0.639, 0.248), lamp_bridge (0.828, 0.862), all consistent with my measurements."
+      ],
+      "reason": "All ten landmark centres fall inside their expanded reference boxes. Masked centroids are measured. The other centres are estimates from object extents on a 0.1 grid overlay, and every one sits at least 0.04 inside its box edge.",
+      "next_fix": "None within the agreed scope."
+    },
+    "light-colour": {
+      "score": 4,
+      "evidence": [
+        "C1 UNMET: the brightest 128 px blocks are terrace lanterns and torii lanterns (block (0,768) mean L 146, (0,896) L 145) and home windows ((128,0) L 140). The city gap region (1300,1000)-(1900,1900) has mean L 63, hue 252, only slightly brighter than the clouds beside it at L 51 to 58. The city does not read as a glow.",
+        "C2 MET: window and lamp pixels at hue 15..55: hero slab window (2383,392) hue 28, home window (0,45) hue 29, terrace lantern (72,1216) hue 38, terrace lantern (78,1216) hue 47, cylinder lantern top (2209,69) hue 19. Open sky pixels at hue 210..290: (700,40) 265, (800,60) 262, (3100,60) 264, (3200,40) 263, (1300,40) 245.",
+        "C3 UNMET: lamp_bridge crop (render px 2649..3609, 1566..2106) shows deck luminance uniform and dark under the 12 lamps. No light pool shows on the deck or piers.",
+        "C4 UNMET: foreground_terrace crop shows no lantern reflection on the walkway or terrace floor. The lake in central_waterfall_lip crop reflects shore lanterns as vertical smears, but the terrace half fails.",
+        "C5 MET: hero_tower_tops crop shows red aircraft lights on at least seven tower tops, for example local (65,200), (415,287), (688,75), (785,197), (850,85), (910,98). Flying craft carry lights, for example the craft at final (1500,1003) and in the distant_islands crop at local (760..810, 135..145)."
+      ],
+      "reason": "Two of five conditions are met: hue split and aircraft lights. The city glow is missing, the lamp bridge casts no pools and the terrace floor reflects nothing.",
+      "next_fix": "Make the ground city emissive and warm enough that the cloud gap is among the brightest large areas (mean L above about 120). Add short-falloff warm pools under the bridge lamps on the deck, and give the terrace walkway a wet reflective coat that shows lantern smears."
+    },
+    "atmosphere": {
+      "score": 2,
+      "evidence": [
+        "C1 UNMET: luminance standard deviation by plane: terrace (0,1026,960,1566) 28.6, central cliff (1950,1100,2900,1500) 25.0, hero towers (1950,100,2900,800) 36.3, far islands (750,270,1700,810) 20.8. Contrast does not step down. Mean hue: central 270, towers 263, far 261, so no progressive shift to blue.",
+        "C2 UNMET: clouds read as flat translucent ellipses. Cloud regions have low internal contrast (left of gap L std 10.1, right of gap 11.8, lower cloud sea 9.8) and show no lit top against a shaded underside. The dark blobs at top right (around 2900..3300, 0..300) are flat silhouettes.",
+        "C3 MET: central falls dissolve into soft mist that blends into the cloud layer near y 1700..1800 (crop 2300..3000, 1500..2000). Right cliff fall widens and fades near y 1550..1700 (crop 3300..3840, 800..1800). Mist objects Central_Falls_Mist.0..3 and Right_Cliff_Mist exist in scene_report.json.",
+        "C4 UNMET: the cloud gap itself is cool and dark (hue 252, L 63). Warm tints on clouds come as disc-shaped patches (for example (1250,1600) hue 337) that do not radiate from the city. The central island underside stays violet (hue 270 at (2350,1500)).",
+        "C5 UNMET: open sky is flat. Column x 900 reads hue 263..269, value 48..49 from y 10 to y 190. Column x 3150 reads hue 259..266, value 48..49 from y 10 to y 280. No wash toward a lighter warmer tone shows before the cloud edge."
+      ],
+      "reason": "Only the waterfall mist condition is met. Depth planes, cloud volume, city glow and sky gradient are all missing.",
+      "next_fix": "Add distance-based fog that lowers contrast and pushes far planes toward blue. Replace the flat cloud discs with volumetric or layered clouds that have lit tops and shaded bases. Light the clouds near the gap from below with a warm city glow. Give the world sky a vertical gradient from deep blue-violet to a lighter warm tone near the cloud line."
+    },
+    "rock": {
+      "score": 8,
+      "evidence": [
+        "C1 MET: central_waterfall_lip crop shows a smooth curved island rim and cliff silhouette. foreground_terrace crop rock edges at local (0..700, 270..470) curve smoothly. Islet silhouettes in lamp_bridge crop curve smoothly.",
+        "C2 UNMET: central_waterfall_lip crop shows only thin dark root lines (Central_Island_Roots curves), for example local x 15, 300, 500. No vertical columns or fractures divide the cliff face.",
+        "C3 MET: central_waterfall_lip crop shows horizontal strata bands across the cliff face at local y 230..540.",
+        "C4 MET: green grass rim runs along the island lip at local y 200..225, and moss patches sit on ledges at local (280..360, 385) and (500..560, 405).",
+        "C5 MET: central island tapers to a hanging point near final (2480, 1720). Islets in lamp_bridge crop taper with hanging spikes, for example local (480..560, 0..140)."
+      ],
+      "reason": "Four of five conditions are met. The cliff faces lack vertical columns or fractures.",
+      "next_fix": "Add vertical column or fracture relief to the cliff faces, for example a Voronoi-driven displacement or a vertical strata mask, so columns break the horizontal bands."
+    },
+    "vegetation": {
+      "score": 8,
+      "evidence": [
+        "C1 MET: shore of central island (final 1900..2860, 820..1060) shows rounded broadleaf trees, a narrow upright tree near final (2110, 970) and pale pink sakura near (2630, 905) and (3350, 925). scene_report.json Tree_Library lists Broadleaf, Cypress, Pine, Sakura and Shrub sources.",
+        "C2 MET: foreground tree beside the home tower shows a trunk and a branch fork at final (480..600, 400..490). foreground_terrace crop shows a trunk at local (920..960, 300..540).",
+        "C3 MET: foliage breaks into clumps with gaps in both the terrace crop (local 720..960, 90..330) and the shore trees.",
+        "C4 UNMET: sakura crowns at final (2610..2650, 890..920) and (3330..3380, 920..945) read as pale smooth cotton-like blobs with only two or three lobes. No pink cluster breakup shows at 100%.",
+        "C5 MET: trees of several sizes grow on the lake shore, on the terrace and along the right cliff edge (scene_report.json lists 70 central, 9 terrace and 14 right-cliff trees)."
+      ],
+      "reason": "Four of five conditions are met. Sakura blossom lacks internal breakup.",
+      "next_fix": "Build sakura crowns from many small blossom clusters with gaps and two pink tones, so internal breakup reads at 100% crop."
+    },
+    "water": {
+      "score": 6,
+      "evidence": [
+        "C1 MET: central_waterfall_lip crop shows six separate strands with dark cliff gaps between them at local x 570..870.",
+        "C2 MET: strands show vertical streaks and fade as they fall. Luminance down strand x 2510 falls from 164 at y 1090 to 74..80 by y 1490. Strands dissolve into mist near y 1700..1800.",
+        "C3 UNMET: the strand tops at the lip are smooth pale ribbons. No foam, spray or churn shows at the spill point (zoom of final 2440..2840, 1040..1200).",
+        "C4 UNMET: a green grass rim about 8 to 15 px wide separates the lake edge from every strand top (zoom of final 2440..2840, 1040..1200). The strands start on the grass, not at the water.",
+        "C5 MET: the lake surface carries a rippled noise pattern and reflects shore lanterns as vertical smears (final 2240, 1110 and 2500, 1100)."
+      ],
+      "reason": "Three of five conditions are met. The falls do not meet the lake and show no foam at the lip.",
+      "next_fix": "Cut a spillway notch through the grass rim so the lake surface runs straight into the falls, and add a foam band or spray particles at the lip."
+    },
+    "props": {
+      "score": 10,
+      "evidence": [
+        "C1 MET: terrace torii (final 0..700, 560..1180) shows two red pillars, a red shimaki, a black kasagi whose right end rises (zoom 300..800, 520..760) and a lower nuki tie beam. lib/props.py torii() builds the kasagi with a cubic end lift.",
+        "C2 MET: foreground_terrace crop lanterns at local (0..150, 100..380) and (360..500, 45..290) show a base, a post, a glowing firebox and a roof with finial. scene_report.json Terrace_Lantern.0..3 use Lantern_Stone and Lantern_Fire.",
+        "C3 MET: foreground_terrace crop railing shows separate posts at local x 290, 600, 890 and a top rail.",
+        "C4 MET: stairs show individual treads at foreground_terrace crop local (120..480, 0..180).",
+        "C5 MET: lamp_bridge crop shows three piers with arched braces and 12 lamp posts along the deck. scene_report.json lists Lamp_Bridge_Lower_Right_Lamp_Posts and 12 lamp lights."
+      ],
+      "reason": "All five prop conditions are met at 100% crop and are confirmed in the scene report.",
+      "next_fix": "None within the agreed scope."
+    },
+    "variety": {
+      "score": 6,
+      "evidence": [
+        "Ten tallest hero towers in final.png by apparent top, left to right (massing, facade, crown):",
+        "T1 x 1975..2040, top y 300: box, window grid, flat with lit halo bar. FAIL (shares box and grid with T7, T8, T9).",
+        "T2 x 2150..2260, top y 70: cylinder, curtain grid, lantern top. PASS.",
+        "T3 x 2260..2440, top y 380: slab, horizontal bands, flat. PASS.",
+        "T4 x 2380..2490, top y 10: setback tiers at y 240 and y 540, window grid, flat cap. PASS.",
+        "T5 x 2500..2580, top y 10: slender octagonal shaft, window grid, gothic spire with finials. PASS.",
+        "T6 x 2500..2610, mast top y 185: needle shaft under a disc, curtain grid, lit disc ring with mast. PASS.",
+        "T7 x 2580..2670, top y 150: box, window grid, stepped crown. FAIL (box and grid with T1, T8, T9).",
+        "T8 x 2680..2780, top y 270: box, window grid, pyramid. FAIL (grid and pyramid with T9).",
+        "T9 x 2780..2900, top y 180: box or hexagonal prism, window grid, pyramid. FAIL (grid and pyramid with T8).",
+        "T10 x 2880..3000, top y 10: cluster of thin shafts, window grid, twin spires. PASS.",
+        "scene_report.json labels 12 towers with distinct facades (ribbed, piers, diagrid, louvre, panel), but in hero_tower_tops crop those facades all read as the same dark grid with scattered cream windows."
+      ],
+      "reason": "Six of the ten tallest towers pass. Four box towers share the same window-grid facade, and two of them share a pyramid crown.",
+      "next_fix": "Make the labelled facades visible in the render: deep ribs or piers that cast shadow, a diagonal diagrid, louvre fins and stone panels. Give T8 and T9 different crowns, for example a tiered pagoda roof with eaves on one of them."
+    },
+    "facade": {
+      "score": 8,
+      "evidence": [
+        "C1 UNMET: zoom of final (2260..2460, 380..560) shows lit windows as flat cream rounded rectangles in a dark strip. Frames and mullions read as faint flat dividers with no shadow line, so windows do not read as recessed.",
+        "C2 MET: dark spandrel bands separate storeys on the slab tower (same zoom, bands every about 19 px).",
+        "C3 MET: the tower at x 2380..2490 steps back at y 240 and y 540, and the tower at x 2580..2670 has a stepped crown.",
+        "C4 MET: crowns carry a lantern top (2210, 70), a gothic spire with finials (2540, 10), pyramids and twin spires.",
+        "C5 MET: aircraft lights on at least seven tops, masts at (2545, 185) and a balcony band on the home tower. scene_report.json shows Aircraft_Light and Neon_Sign on every Hero_Tower object."
+      ],
+      "reason": "Four of five conditions are met. Windows do not read as recessed at 100% crop.",
+      "next_fix": "Deepen the window inset and let the frames cast a visible shadow line, or paint a dark wet-edge rim on the top and one side of each window cell."
+    },
+    "home": {
+      "score": 10,
+      "evidence": [
+        "I1 PASS: lib/home.py places the tower on util.REG['terrace']. Home_Room_Ceiling_Light sits at (-32.75, 53.4), inside Terrace_Upper_Rock (centre (-32.86, 41.37), size 27.4 x 37.6). final.png shows the tower at x 0..560, y 0..260 above the terrace shrine.",
+        "I2 PASS: Home_Tower_Exterior height_m 42.7. The shortest hero tower, Hero_Tower.06_stacked, is 126.0 m.",
+        "I3 PASS: final.png crop (0..960, 0..540) shows lit cream windows, black frames and mullions, and a glass-railed balcony band at y 70..200.",
+        "I4 PASS: collection tree has Home_Interior (22 objects) nested under Home_Building. Its objects sit at the home tower position.",
+        "I5 PASS: Home_Room_Floor_Slab and Home_Room_Ceiling_Slab are 7.2 x 7.2 x 0.3. lib/home.py lines 110 to 115 build inner walls 0.2 m thick.",
+        "I6 PASS: 16 separate Home_Window_Glass objects, each 0.02 m thick, sit between Home_Window_Frames.",
+        "I7 PASS: glass panes on the x faces (x0..x3) and y faces (y0..y3). home_interior.png shows glass on two walls meeting at a corner column.",
+        "I8 PASS: scene_report.json home.clear_height 3.0, inside 2.4..3.2.",
+        "I9 PASS: Cam_Home at (-35.35, 50.9, 23.92) lies inside the room footprint and between floor z 22.366 and ceiling z 25.366. home_interior.png shows the hero tower city through the glass.",
+        "I10 PASS: Home_Room_Ceiling_Light (AREA, 260 W) exists. Home_Interior holds only slabs, floor finish, walls, frames and glass. No furniture shows in home_interior.png."
+      ],
+      "reason": "All ten home items pass with scene report and render evidence. The floor of 8 is met.",
+      "next_fix": "None within the agreed scope."
+    },
+    "toon-shading": {
+      "score": 8,
+      "evidence": [
+        "C1 MET: min-filtered row across the cylinder tower (final 2140..2280, y 500) shows plateaus at 43..49, then 37, then 24..27 with soft transitions over about 12 px. lib/materials.py uses ShaderToRGB into a ValToRGB ramp with soft band edges.",
+        "C2 UNMET: the lake reflects lanterns as soft smears, but the terrace floor in foreground_terrace crop shows no reflection at all, so the wet-floor half fails.",
+        "C3 MET: shadow pixels: central cliff (2200,1300) sat 0.31, (2350,1500) sat 0.30, islet underside (2700,2050) sat 0.33, right cliff (3600,1100) sat 0.28, tower shadow side (2420,700) sat 0.37. None has all channels below 10.",
+        "C4 MET: luminance across the islet top edge at x 2600 runs 88, 81, 65, 60, 61, 66, 69 from cloud into grass, a soft darker rim about 8 below the interior. No uniform black ink outline appears in any crop.",
+        "C5 MET: chromatic hue shares in 30 degree bins: 210..300 = 68.9 percent, 300..360 = 11.3 percent, 0..30 = 5.8 percent, 60..120 = 10.0 percent, 120..150 = 2.7 percent, 150..210 = 0.8 percent. That groups into five families. Near-white pixels (v above 0.85, s below 0.15) cluster on lanterns, the lantern-top tower, craft lights and lit home windows."
+      ],
+      "reason": "Four of five conditions are met. The wet terrace floor does not reflect lights.",
+      "next_fix": "Give the terrace floor a reflective layer that turns lantern reflections into soft painted smears, matching the lake treatment."
+    },
+    "watercolour-texture": {
+      "score": 6,
+      "evidence": [
+        "C1 MET: paper grain shows at 100% in sky and cloud. Grain standard deviation: dark sky (600,20)-(900,100) 1.6, sky (1450,10)-(1600,60) 9.6, cloud (950,1500)-(1150,1800) 10.1, cliff (2000,1150)-(2200,1300) 6.9. lib/camera.py multiplies the Paper001 scan over the frame.",
+        "C2 MET: lamp_bridge crop cloud area shows soft darker blotches and blooms inside the wash at local (0..400, 0..300) and (380..520, 300..380).",
+        "C3 UNMET: the largest area, the upper sky, is one flat colour with the grain multiplied on top. Column x 900 holds hue 263..269 and value 48..49 from y 10 to y 190. This reads as uniform noise, not layered washes with hue drift.",
+        "C4 UNMET: distant_islands crop keeps crisp silhouettes, sharp window grids and separate leaf clumps on far islands. Far islands do not dissolve into simpler washes.",
+        "C5 MET: the paper scan is one 4K image stretched to the frame (lib/camera.py crop and scale nodes). No tiling seam or repeated patch shows in the six crops."
+      ],
+      "reason": "Three of five conditions are met. Large washes lack layered hue drift, and detail does not loosen with distance.",
+      "next_fix": "Paint the sky and cloud washes with two or three overlapping translucent layers that drift in hue. Reduce detail and edge sharpness with distance, for example by depth-driven blur or a larger Kuwahara radius on far planes."
+    },
+    "structure": {
+      "score": 10,
+      "evidence": [
+        "C1 MET: scene_report.json collections include Terrace, Central_Island, Hero_Towers, Distant_Islands, Bridges, Ground_City, Sky_Clouds and Home_Building with Home_Interior.",
+        "C2 MET: a regex over all 911 object names finds no default name such as Cube.001. Names include Terrace_Lantern.0, Hero_Tower.01_cylinder and Home_Window_Glass.x0lo.",
+        "C3 MET: 45 role-named materials, for example Rock, Tower_Curtain_Glass, Lantern_Fire, Torii_Red. Aircraft_Light has 148 users.",
+        "C4 MET: build.py lines 13 to 33 expose SEED, WORLD_SCALE, HERO_TOWER_COUNT, DISTANT_ISLAND_COUNT, CENTRAL_TREE_COUNT, CLOUD_BLOB_COUNT and other counts as named constants.",
+        "C5 MET: checklist.md records build time 25.4 s and render time 38.7 s for final.png, matching renders/times.json and build_log.txt."
+      ],
+      "reason": "All five structure conditions are met.",
+      "next_fix": "None within the agreed scope."
+    }
+  },
+  "gates": {
+    "artifacts": {
+      "result": "pass",
+      "evidence": [
+        "Opened with Pillow: renders/final.png 3840x2160, renders/compare.png 3840x2700, renders/home_interior.png 1920x1080.",
+        "Read as text: checklist.md, credits.md, build.py. Parsed scene_report.json as JSON (911 objects, 45 materials).",
+        "All 27 snapshot files match their sha256 values."
+      ],
+      "reason": "Every required file opens and final.png measures exactly 3840x2160."
+    },
+    "elements": {
+      "result": "fail",
+      "evidence": [
+        "Present: 1 terrace cliff (final 0..1200, 900..2160), 2 shrine (0..560, 330..560), 3 red torii (0..700, 560..1180), 4 lit lanterns, 5 stairs, 6 railing, 8 central island with lake, 9 six-strand falls, 10 trees and sakura on central island, 11 shrines and torii on central island (shore zoom), 12 tower cluster, 14 arched bridges with lamps, 17 mist below falls, 18 red aircraft lights, 19 flying craft, 20 home tower top left.",
+        "Element 7 missing: the terrace walkway in foreground_terrace crop shows no wet reflection of the lanterns.",
+        "Element 15 incomplete: the cloud gap (final 1150..1950, 950..1900) shows city specks but no river, even after median filtering and autocontrast. Ground_City_River exists in scene_report.json but does not read in the render.",
+        "Element 13 likely missing (estimate): about 14 to 18 distant islands are distinguishable in final.png, fewer than 24, although scene_report.json lists 37 Distant_Island objects.",
+        "Element 16 doubtful: Sky_Clouds objects render as flat translucent ellipses (low internal contrast, L std about 10) rather than volumetric clouds."
+      ],
+      "reason": "At least two of the 20 elements are not visible in the render: the wet reflective terrace floor and the river in the ground city. The island count and cloud volume are further likely misses."
+    },
+    "no-faceting": {
+      "result": "fail",
+      "evidence": [
+        "foreground_terrace crop: the tree foliage at local (720..960, 90..330), final (720..960, 1116..1356), shows straight-edged polygon leaf cards with flat per-card tones (zoom of final 710..960, 1110..1360). The same angular cards show on the tree beside the home tower at final (230..800, 200..490).",
+        "central_waterfall_lip crop: no facets. Rim, lake edge and strands curve smoothly.",
+        "hero_tower_tops crop: no facets on curved subjects. The cylinder tower is smooth. Prisms and pyramids are intended forms.",
+        "lamp_bridge crop: no facets. Arches and islet silhouettes curve smoothly.",
+        "ground_city_cloud_gap crop: no facets on curved subjects.",
+        "distant_islands crop: far-plane island cones show some straight segments, but the gate covers foreground and midground only."
+      ],
+      "reason": "Foreground foliage in the terrace crop reads as flat-shaded polygon shards where the subject, a leaf mass, is curved."
+    },
+    "rebuild": {
+      "result": "pass",
+      "evidence": [
+        "build_log.txt records all 22 steps from reset scene to compositor and ends with BUILD COMPLETE in 25.4s, with no error line.",
+        "renders/times.json build_s 25.4 matches the log. scene_report.json (Blender 5.2.3 LTS, 911 objects) is written by the same build.py run.",
+        "checklist.md states that the round opened an empty file with wm.read_homefile(use_empty=True), ran build.py and rendered final.png from the rebuilt scene with render.py."
+      ],
+      "reason": "The snapshot evidence shows a clean build from reset to compositor and ties the reviewed renders to that run. I could not run Blender to reproduce it, and the rebuild paragraph in checklist.md is a fixed string in make_checklist.py, not output of the run."
+    },
+    "licensing": {
+      "result": "pass",
+      "evidence": [
+        "External files loaded (lib/materials.py tex_path, lib/camera.py compositor, scene_report.json images): bark_brown_02, brown_planks_05, clay_roof_tiles_02, cliff_side, concrete_tile_facade, rock_tile_floor (diff and nor, 2k) and Paper001_4K-JPG_Displacement.jpg.",
+        "credits.md lists each of these with its Poly Haven or ambientCG source URL and CC0 1.0 licence. It also lists mossy_rock, which no material loads."
+      ],
+      "reason": "Every loaded external asset comes from Poly Haven or ambientCG under CC0 and appears in credits.md with its URL."
+    },
+    "scope": {
+      "result": "pass",
+      "evidence": [
+        "git -c safe.directory=* status: branch master up to date with origin, only untracked path is scenes/.",
+        "git status --porcelain -- src returns nothing.",
+        "git log --oneline -5 top commit 601e427 dated 2026-02-15, matching git_status.txt. No commit was made in this work."
+      ],
+      "reason": "Changes stay under scenes/sky-archipelago/, nothing under src/ changed, and no new commit exists."
+    }
+  },
+  "findings": [
+    "A distant tower at final (1535..1630, 0..245) renders as floating window specks with no visible body.",
+    "Hanging root curves render near pure black: sampled pixels with all channels below 10 cluster at final x 720..960, y 1500..2160.",
+    "The right-cliff torii in the reference sits on the cliff. In the render it stands on separate islets (final 3440, 1060 and 3700, 1980), linked by bridges.",
+    "Window and lamp hues fall in range but saturation is low (window s 0.11 to 0.17), so warm light reads cream, not amber, against the violet scene.",
+    "credits.md says the rain is procedural, but rain is out of scope and no rain appears in the render.",
+    "The rebuild paragraph in checklist.md is hard-coded in make_checklist.py. A rebuilt render or pixel comparison saved by the run would make the rebuild gate verifiable."
+  ]
+}

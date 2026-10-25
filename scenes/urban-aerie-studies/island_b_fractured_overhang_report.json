@@ -1,0 +1,20 @@
+{
+  "connected_components": 1,
+  "boundary_edges": 0,
+  "non_manifold_edges": 0,
+  "vertices": 5327,
+  "faces": 10650,
+  "all_faces_flat": true,
+  "cap_unchanged": true,
+  "secondary_tip": [
+    11.3,
+    0.8,
+    -10.444
+  ],
+  "source": "B Undercut Shelf",
+  "method": "Irregular side patches and one continuous underside; two joined rock masses; no repeated ledge heights.",
+  "scene": "Island_B_Fractured_Overhang",
+  "body": "Island_B2_Connected_Terrain",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_fractured_overhang.blend",
+  "source_unchanged": true
+}

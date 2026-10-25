@@ -1,0 +1,42 @@
+{
+  "run_id": "sky-archipelago-recreation-v2",
+  "predecessor": "sky-archipelago-recreation",
+  "status": "running",
+  "started_at_utc": "2026-10-22T13:47:28Z",
+  "config_hash": "6959251e6dc108088447ddf7e1b22f68fc893e0a0fcbadf12b7ab9a8dbb25aa9",
+  "rubric_hash": "a8ea44052cf2d73c2807f4844d17dcaa16d53adb2803381200ba81f9126629d5",
+  "rounds_consumed": 1,
+  "best_round": 1,
+  "rounds": [
+    {
+      "round": 1,
+      "snapshot": "round-01/snapshot.json",
+      "snapshot_id": "503de64f0e2a29c2847494b755abde3237b1cb23196406dd857d887ebdb07774",
+      "reviews": [
+        "round-01/review-01.json"
+      ],
+      "result": "round-01/result.json",
+      "changes": "Baseline: full scene built from scratch, watercolour paint group, paper and wet-edge compositor.",
+      "review_started_utc": "2026-10-22T14:02:03Z",
+      "status": "revise",
+      "dimension_scores": {
+        "reference-match": "5.9",
+        "surface-fidelity": "7.9",
+        "architecture": "8.2",
+        "art-style": "7",
+        "editability": "10"
+      },
+      "overall": "7.56",
+      "failed_gates": [
+        "elements",
+        "no-faceting"
+      ],
+      "failed_score_conditions": [
+        "reference-match",
+        "surface-fidelity",
+        "art-style"
+      ],
+      "completed_utc": "2026-10-22T14:18:56Z"
+    }
+  ]
+}

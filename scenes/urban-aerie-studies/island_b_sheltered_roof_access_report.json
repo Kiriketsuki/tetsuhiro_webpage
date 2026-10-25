@@ -1,0 +1,229 @@
+{
+  "scene": "Island_B_Sheltered_Roof_Access",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_sheltered_roof_access.blend",
+  "source_scene_unchanged": true,
+  "terrain_trees_water_unchanged": true,
+  "old_timber_parts_replaced": 125,
+  "supports": [
+    {
+      "xy": [
+        -5.94,
+        2.1
+      ],
+      "terrain": 0.40000152587890625,
+      "top": 4.22,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        -5.94,
+        6.06
+      ],
+      "terrain": 0.3999977111816406,
+      "top": 4.22,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        -5.94,
+        0.87
+      ],
+      "terrain": 0.3999977111816406,
+      "top": 4.22,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        -1.58,
+        0.87
+      ],
+      "terrain": 0.39999961853027344,
+      "top": 4.22,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        -0.71,
+        0.48
+      ],
+      "terrain": 0.40814781188964844,
+      "top": 12.98,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        1.51,
+        0.48
+      ],
+      "terrain": 0.5977764129638672,
+      "top": 12.98,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        -0.71,
+        6.68
+      ],
+      "terrain": 0.4084320068359375,
+      "top": 12.98,
+      "foot_embed": 0.09
+    },
+    {
+      "xy": [
+        1.51,
+        6.68
+      ],
+      "terrain": 0.33768463134765625,
+      "top": 12.98,
+      "foot_embed": 0.09
+    }
+  ],
+  "flights": [
+    {
+      "lane_center": -0.15,
+      "from": [
+        -0.15,
+        1.4,
+        1.0
+      ],
+      "to": [
+        -0.15,
+        5.85,
+        4.3
+      ],
+      "steps": 18,
+      "rise": 0.18333333333333332,
+      "tread": 0.24722222222222218,
+      "width": 1.0
+    },
+    {
+      "lane_center": 0.95,
+      "from": [
+        0.95,
+        5.85,
+        4.3
+      ],
+      "to": [
+        0.95,
+        1.4,
+        7.45
+      ],
+      "steps": 18,
+      "rise": 0.17500000000000002,
+      "tread": 0.24722222222222218,
+      "width": 1.0
+    },
+    {
+      "lane_center": -0.15,
+      "from": [
+        -0.15,
+        1.4,
+        7.45
+      ],
+      "to": [
+        -0.15,
+        5.85,
+        10.66
+      ],
+      "steps": 18,
+      "rise": 0.17833333333333334,
+      "tread": 0.24722222222222218,
+      "width": 1.0
+    }
+  ],
+  "minimum_stair_headroom": 2.3050003051757812,
+  "covered_tread_samples": 54,
+  "terrace_levels": [
+    7.45,
+    10.66
+  ],
+  "pergola_clear_height": 2.14,
+  "roof_extent": [
+    -1.78,
+    1.78,
+    0.2,
+    6.94
+  ],
+  "new_objects": [
+    "SS_RA_Grounded_Timber_Supports",
+    "SS_RA_Decks_and_Connected_Stair_Treads",
+    "SS_RA_Terrace_and_Stair_Guards",
+    "SS_RA_Continuous_Stair_Canopy",
+    "SS_RA_Stair_Weather_Screens",
+    "SS_RA_Pergola_and_Door_Details"
+  ],
+  "entry_refinement": "Removed obstructing mid-terrace guard; extended rear rooftop entry and moved pergola post to perimeter.",
+  "rooftop_entry_clear_width": 0.81,
+  "mid_terrace_entry_clear_width": 0.84,
+  "route_checks": {
+    "routes": {
+      "second_block_terrace": [
+        [
+          0.95,
+          0.93,
+          7.45
+        ],
+        [
+          -1.1,
+          0.93,
+          7.45
+        ],
+        [
+          -1.1,
+          1.83,
+          7.45
+        ],
+        [
+          -5.6,
+          1.83,
+          7.45
+        ],
+        [
+          -5.6,
+          5.8,
+          7.45
+        ]
+      ],
+      "rooftop": [
+        [
+          -0.15,
+          6.18,
+          10.66
+        ],
+        [
+          -2.1,
+          6.18,
+          10.66
+        ],
+        [
+          -3.5,
+          5.0,
+          10.66
+        ]
+      ],
+      "rear_turn": [
+        [
+          -0.15,
+          6.25,
+          4.3
+        ],
+        [
+          0.95,
+          6.25,
+          4.3
+        ]
+      ]
+    },
+    "horizontal_body_rays": 105,
+    "sampled_clear_width": 0.48,
+    "obstructions": 0,
+    "floor_gaps": 0
+  },
+  "reviewed_renders": [
+    "three_quarter",
+    "supports",
+    "roof_access",
+    "stair_side",
+    "island"
+  ]
+}

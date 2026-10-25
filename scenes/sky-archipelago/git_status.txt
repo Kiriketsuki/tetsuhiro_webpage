@@ -1,0 +1,19 @@
+$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	scenes/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+$ git log --oneline -5
+601e427 chore: bump version to 26.2.1.0
+51cc20d feat(scene): where winds meet replaces the ink roguelike face
+75e68cc feat(ui): switch mono to JetBrains Mono
+4f6d6b3 feat(ui): refined industrial frames
+939d102 feat: bento layout on the auto-connect page
+
+$ git status --porcelain -- src
+(empty means nothing under src/ changed)

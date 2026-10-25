@@ -1,0 +1,72 @@
+{
+  "connected_components": 1,
+  "boundary_edges": 0,
+  "non_manifold_edges": 0,
+  "vertices": 6852,
+  "faces": 13700,
+  "scene": "Island_B_Offset_Spurs",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_offset_spurs.blend",
+  "before": {
+    "rock": {
+      "triangles": 7776,
+      "median_face_area": 0.1359
+    },
+    "grass": {
+      "triangles": 2778,
+      "median_face_area": 0.2066
+    },
+    "soil": {
+      "triangles": 96,
+      "median_face_area": 1.3666
+    }
+  },
+  "after": {
+    "rock": {
+      "triangles": 7862,
+      "median_face_area": 0.1271
+    },
+    "grass": {
+      "triangles": 4962,
+      "median_face_area": 0.1284
+    },
+    "soil": {
+      "triangles": 876,
+      "median_face_area": 0.1415
+    }
+  },
+  "main_tip": [
+    -7.870692253112793,
+    0.4643982946872711,
+    -16.650081634521484
+  ],
+  "small_spurs": [
+    [
+      -12.75,
+      2.88,
+      1.55,
+      2.65
+    ],
+    [
+      0.7,
+      -2.54,
+      1.45,
+      2.15
+    ],
+    [
+      -9.0,
+      5.1,
+      1.6,
+      2.3
+    ],
+    [
+      -7.0,
+      -6.0,
+      1.45,
+      2.5
+    ]
+  ],
+  "source_unchanged": true,
+  "rock_vertices_adjusted": 2240,
+  "plant_objects_following_ground": 8,
+  "all_triangles_flat": true
+}

@@ -1,0 +1,73 @@
+{
+  "scene": "Island_B_Rolling_Rim",
+  "file": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_rolling_rim.blend",
+  "source": "Island_B_Night_Arrival",
+  "topology_boundary_nonmanifold": {
+    "before": [
+      0,
+      0
+    ],
+    "after": [
+      0,
+      0
+    ]
+  },
+  "max_promontory_push": 1.884,
+  "roll_z_range": [
+    -0.302,
+    0.288
+  ],
+  "protected_ground_drift_max": 0.0005,
+  "protected_samples": 761,
+  "ground_cover_parts_moved": {
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Ground_Planting.001": 38,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents.001": 199,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 2873,
+    "RR_B5_B4_BC_SS_JG_Overhanging_Edge_Grass.001": 228,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SS_SH_Flower_Stems.001": 166,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SS_SH_Flower_Centres.001": 165,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SS_SH_Faceted_Flower_Petals.001": 816,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SS_SH_Flower_Leaves.001": 334
+  },
+  "rim": {
+    "lip_segments": 76,
+    "root_strands": 42,
+    "objects": [
+      "SS_RR_Overhanging_Turf_Lip",
+      "SS_RR_Hanging_Roots"
+    ]
+  },
+  "pad": {
+    "post_ground_z": [
+      0.618,
+      0.685,
+      0.7,
+      0.698,
+      0.637,
+      0.416,
+      0.438,
+      0.401,
+      0.545,
+      0.642,
+      0.612,
+      0.555
+    ],
+    "strut_rock_hits": [
+      [
+        16.89,
+        -3.61,
+        0.26
+      ],
+      [
+        16.68,
+        -1.4,
+        0.68
+      ]
+    ],
+    "cleared_parts": {
+      "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents.001": 1,
+      "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 204
+    }
+  },
+  "source_preserved": true
+}

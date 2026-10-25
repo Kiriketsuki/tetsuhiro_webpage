@@ -1,0 +1,38 @@
+[
+  {
+    "scene": "UA_A_Townhouse",
+    "shot": "overview",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\A_Townhouse_overview_preview.png",
+    "seconds": 1.38
+  },
+  {
+    "scene": "UA_A_Townhouse",
+    "shot": "house",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\A_Townhouse_house_preview.png",
+    "seconds": 0.51
+  },
+  {
+    "scene": "UA_B_Atelier",
+    "shot": "overview",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\B_Atelier_overview_preview.png",
+    "seconds": 0.37
+  },
+  {
+    "scene": "UA_B_Atelier",
+    "shot": "house",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\B_Atelier_house_preview.png",
+    "seconds": 0.51
+  },
+  {
+    "scene": "UA_C_Cottage",
+    "shot": "overview",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\C_Cottage_overview_preview.png",
+    "seconds": 0.35
+  },
+  {
+    "scene": "UA_C_Cottage",
+    "shot": "house",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\C_Cottage_house_preview.png",
+    "seconds": 0.53
+  }
+]

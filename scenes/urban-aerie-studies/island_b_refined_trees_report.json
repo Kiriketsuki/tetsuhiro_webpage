@@ -1,0 +1,86 @@
+{
+  "scene": "Island_B_Refined_Trees",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_refined_trees.blend",
+  "trees": [
+    {
+      "anchor": [
+        -11,
+        5.5,
+        1.1499996185302734
+      ],
+      "crown_clusters": 45,
+      "objects": [
+        "Grove_01_Angular_Trunk",
+        "Grove_01_Faceted_Crown",
+        "Grove_01_Folded_Leaves"
+      ],
+      "triangles": 11982,
+      "height": 7.321441650390625
+    },
+    {
+      "anchor": [
+        -12,
+        1,
+        1.1500015258789062
+      ],
+      "crown_clusters": 45,
+      "objects": [
+        "Grove_02_Angular_Trunk",
+        "Grove_02_Faceted_Crown",
+        "Grove_02_Folded_Leaves"
+      ],
+      "triangles": 11642,
+      "height": 5.496787071228027
+    },
+    {
+      "anchor": [
+        -8.8,
+        8.5,
+        1.1499996185302734
+      ],
+      "crown_clusters": 45,
+      "objects": [
+        "Grove_03_Angular_Trunk",
+        "Grove_03_Faceted_Crown",
+        "Grove_03_Folded_Leaves"
+      ],
+      "triangles": 12102,
+      "height": 6.421462059020996
+    },
+    {
+      "anchor": [
+        9,
+        6,
+        1.0499992370605469
+      ],
+      "crown_clusters": 45,
+      "objects": [
+        "Grove_04_Angular_Trunk",
+        "Grove_04_Faceted_Crown",
+        "Grove_04_Folded_Leaves"
+      ],
+      "triangles": 12200,
+      "height": 6.3765082359313965
+    },
+    {
+      "anchor": [
+        11,
+        1.5,
+        1.0500011444091797
+      ],
+      "crown_clusters": 45,
+      "objects": [
+        "Grove_05_Angular_Trunk",
+        "Grove_05_Faceted_Crown",
+        "Grove_05_Folded_Leaves"
+      ],
+      "triangles": 11778,
+      "height": 5.487306594848633
+    }
+  ],
+  "all_faces_flat": true,
+  "source_scene_unchanged": true,
+  "island_and_other_props_unchanged": true,
+  "total_tree_triangles": 59704,
+  "foliage": "Three irregular smaller lobes per branch pad; inset cores with a dense folded-leaf shell."
+}

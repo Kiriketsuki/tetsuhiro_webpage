@@ -1,0 +1,63 @@
+{
+  "scene": "Island_B_Terrace_Life",
+  "file": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_terrace_life.blend",
+  "source_preserved": true,
+  "objects": [
+    "SS_TL_BBQ_Pit",
+    "SS_TL_Grill_and_Prep_Details",
+    "SS_TL_Telescope",
+    "SS_TL_Observing_Stool_and_Chart"
+  ],
+  "triangles": 2576,
+  "grill_floor": 10.66,
+  "telescope_floor": 7.45,
+  "tripod_feet": [
+    [
+      -8.010000228881836,
+      4.399999618530273,
+      7.449999809265137
+    ],
+    [
+      -7.309999942779541,
+      4.429999828338623,
+      7.449999809265137
+    ],
+    [
+      -7.630000114440918,
+      5.12999963760376,
+      7.449999809265137
+    ]
+  ],
+  "optical_origin": [
+    -8.134300231933594,
+    4.911880970001221,
+    9.16165542602539
+  ],
+  "optical_axis": [
+    -0.7228358387947083,
+    0.31624066829681396,
+    0.6144104599952698
+  ],
+  "checks": {
+    "route_rays": 105,
+    "route_width": 0.5,
+    "obstructions": [],
+    "floor_gaps": [],
+    "tripod_deck_contacts": [
+      true,
+      true,
+      true
+    ],
+    "optical_axis_obstructions": []
+  },
+  "reviewed_renders": [
+    "terrace_bbq.png",
+    "terrace_astronomy.png",
+    "terrace_terraces.png"
+  ],
+  "render_resolution": [
+    1500,
+    1300
+  ],
+  "all_new_faces_flat_shaded": true
+}

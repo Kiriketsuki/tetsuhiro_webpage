@@ -1,0 +1,36 @@
+{
+  "scene": "UA_B_Atelier_BrokenCliff",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_broken_cliff.blend",
+  "cliff": {
+    "before": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 1943,
+      "faces": 3882
+    },
+    "after": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 5399,
+      "faces": 10794
+    },
+    "profile_stations": 14,
+    "cliff_rows": 20,
+    "new_facet_vertices_displaced": 3889,
+    "bottom": "Wide chisel base, no cone point or hanging peak cluster.",
+    "shape": "Offset cliff walls, deep cut-ins, outward shelves and a broad asymmetric base. Ground, turf, soil and their contacts preserved."
+  },
+  "shoreline": {
+    "sheet_boundary_samples": 396,
+    "largest_exposed_gap_m": 0,
+    "boundary_widening_passes": 0,
+    "method": "Water recessed into the protected faceted basin; sheet edges extend underneath dry ground."
+  },
+  "references": [
+    "User drawn island side profile",
+    "https://dribbble.com/shots/1929856-1st-Low-Poly-Floating-Island"
+  ],
+  "scope": "Replace the entire underside profile and increase facet density. Earlier top, planted props and structure contacts retained."
+}

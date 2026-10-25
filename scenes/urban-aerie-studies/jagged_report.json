@@ -1,0 +1,71 @@
+{
+  "scene": "UA_B_Atelier_Jagged",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_jagged.blend",
+  "landform": {
+    "top_triangles": 2682,
+    "cliff_and_edge_triangles": 1200,
+    "ground_height_range_m": [
+      0.04,
+      1.799
+    ],
+    "turf_depth_m": [
+      0.5,
+      0.98
+    ],
+    "exposed_soil_depth_m": [
+      0.88,
+      2.09
+    ],
+    "shape": "Dense small facets; thick turf and soil tongues, uneven skyline, stepped fractures, offset taper and irregular underside; protected structural pads and basin."
+  },
+  "terrain": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 1943,
+    "faces": 3882
+  },
+  "shoreline": {
+    "sheet_boundary_samples": 396,
+    "largest_exposed_gap_m": 0,
+    "boundary_widening_passes": 0,
+    "method": "Water recessed into the protected faceted basin; sheet edges extend underneath dry ground."
+  },
+  "contacts": {
+    "tree_geometry": "Accepted sheltered tree geometry restored exactly; all left trees translated 0.43m, all right trees 0.41m to matching root pads.",
+    "lanterns_reseated": 5
+  },
+  "edge_grass": "SS_JG_Overhanging_Edge_Grass",
+  "references": [
+    {
+      "title": "User drawn island",
+      "path": "C:\\Users\\Kidriel\\AppData\\Local\\Temp\\codex-clipboard-ae885558-8942-42ee-9f4e-b8ba264064aa.png"
+    },
+    {
+      "title": "Gunes Ozcan \u2014 1st Low Poly Floating Island",
+      "url": "https://dribbble.com/shots/1929856-1st-Low-Poly-Floating-Island"
+    },
+    {
+      "title": "HakanBacon \u2014 Floating Islands",
+      "url": "https://hakanbacon.itch.io/floating-islands"
+    }
+  ],
+  "direction": "Thicker soil and grass; stronger fractures and irregular silhouette visible from far away, with smaller plentiful facets retained.",
+  "water_components": 1,
+  "smooth_visible_foreground_faces": 0,
+  "underside": "One broad off-centre taper. The multiple bottom peaks in the reference are deliberately excluded.",
+  "final_visual_review": {
+    "shots": [
+      "cliff",
+      "garden",
+      "surface",
+      "overview",
+      "pond",
+      "waterline",
+      "stream"
+    ],
+    "samples": 96,
+    "resolution": "1600\u20131800 px",
+    "finding": "Thick uneven turf/soil rim, angular rock fractures and one offset taper. Grounded trees, path, bridge and house contacts checked in surface/garden views; no exposed water-sheet edge observed in shoreline close-ups."
+  }
+}

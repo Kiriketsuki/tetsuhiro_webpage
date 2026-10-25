@@ -1,0 +1,45 @@
+{
+  "status": "revise",
+  "snapshot_id": "503de64f0e2a29c2847494b755abde3237b1cb23196406dd857d887ebdb07774",
+  "rubric_hash": "a8ea44052cf2d73c2807f4844d17dcaa16d53adb2803381200ba81f9126629d5",
+  "config_hash": "6959251e6dc108088447ddf7e1b22f68fc893e0a0fcbadf12b7ab9a8dbb25aa9",
+  "reviewers": [
+    "reviewer-r01"
+  ],
+  "criterion_scores": {
+    "composition": "10",
+    "light-colour": "4",
+    "atmosphere": "2",
+    "rock": "8",
+    "vegetation": "8",
+    "water": "6",
+    "props": "10",
+    "variety": "6",
+    "facade": "8",
+    "home": "10",
+    "toon-shading": "8",
+    "watercolour-texture": "6",
+    "structure": "10"
+  },
+  "dimension_scores": {
+    "reference-match": "5.9",
+    "surface-fidelity": "7.9",
+    "architecture": "8.2",
+    "art-style": "7",
+    "editability": "10"
+  },
+  "overall": "7.56",
+  "failed_score_conditions": [
+    "reference-match",
+    "surface-fidelity",
+    "art-style"
+  ],
+  "failed_criterion_floors": [],
+  "failed_gates": [
+    "elements",
+    "no-faceting"
+  ],
+  "unknown_gates": [],
+  "missing_scores": [],
+  "reviewer_spreads": {}
+}

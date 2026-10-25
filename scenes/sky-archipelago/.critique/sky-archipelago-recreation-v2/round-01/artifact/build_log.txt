@@ -1,0 +1,23 @@
+[    0.1s] reset scene: 0.0s
+[    0.1s] cameras and render settings: 0.0s
+[    0.1s] materials: 0.0s
+[    0.1s] sky wash: 0.0s
+[    0.1s] terrace cliff: 0.0s
+[    0.2s] central island: 0.1s
+[    0.2s] right cliff: 0.0s
+[    0.3s] hero tower island: 0.0s
+[    0.7s] distant islands: 0.4s
+[    0.7s] lake, waterfalls and mist: 0.0s
+[    0.7s] terrace props: 0.0s
+[   12.2s] central island props: 11.5s
+[   12.7s] bridges: 0.4s
+[   18.9s] trees: 6.3s
+[   19.9s] hero towers: 0.9s
+[   24.3s] distant towers: 4.5s
+[   24.8s] home tower and interior: 0.5s
+[   24.8s] ground city: 0.0s
+[   24.9s] clouds: 0.1s
+[   25.1s] flying craft: 0.2s
+[   25.1s] lights: 0.0s
+[   25.2s] compositor: 0.2s
+[   25.4s] BUILD COMPLETE in 25.4s

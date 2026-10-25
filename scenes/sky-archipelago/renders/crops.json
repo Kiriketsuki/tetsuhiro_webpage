@@ -1,0 +1,149 @@
+{
+ "layout": "Top row: reference left, render right, each at 1920x1080. Below: three rows of two pairs. Each pair shows the reference crop (upscaled) on the left and the render crop at 100% on the right.",
+ "crops": [
+  {
+   "index": 1,
+   "name": "foreground_terrace",
+   "render_rect_px": [
+    0,
+    1026,
+    960,
+    540
+   ],
+   "layout": {
+    "reference_crop_at": [
+     0,
+     1080
+    ],
+    "render_crop_at": [
+     960,
+     1080
+    ],
+    "size": [
+     960,
+     540
+    ]
+   }
+  },
+  {
+   "index": 2,
+   "name": "central_waterfall_lip",
+   "render_rect_px": [
+    1920,
+    874,
+    960,
+    540
+   ],
+   "layout": {
+    "reference_crop_at": [
+     1920,
+     1080
+    ],
+    "render_crop_at": [
+     2880,
+     1080
+    ],
+    "size": [
+     960,
+     540
+    ]
+   }
+  },
+  {
+   "index": 3,
+   "name": "hero_tower_tops",
+   "render_rect_px": [
+    1939,
+    75,
+    960,
+    540
+   ],
+   "layout": {
+    "reference_crop_at": [
+     0,
+     1620
+    ],
+    "render_crop_at": [
+     960,
+     1620
+    ],
+    "size": [
+     960,
+     540
+    ]
+   }
+  },
+  {
+   "index": 4,
+   "name": "lamp_bridge",
+   "render_rect_px": [
+    2649,
+    1566,
+    960,
+    540
+   ],
+   "layout": {
+    "reference_crop_at": [
+     1920,
+     1620
+    ],
+    "render_crop_at": [
+     2880,
+     1620
+    ],
+    "size": [
+     960,
+     540
+    ]
+   }
+  },
+  {
+   "index": 5,
+   "name": "ground_city_cloud_gap",
+   "render_rect_px": [
+    1132,
+    1328,
+    960,
+    540
+   ],
+   "layout": {
+    "reference_crop_at": [
+     0,
+     2160
+    ],
+    "render_crop_at": [
+     960,
+     2160
+    ],
+    "size": [
+     960,
+     540
+    ]
+   }
+  },
+  {
+   "index": 6,
+   "name": "distant_islands",
+   "render_rect_px": [
+    748,
+    270,
+    960,
+    540
+   ],
+   "layout": {
+    "reference_crop_at": [
+     1920,
+     2160
+    ],
+    "render_crop_at": [
+     2880,
+     2160
+    ],
+    "size": [
+     960,
+     540
+    ]
+   }
+  }
+ ]
+}

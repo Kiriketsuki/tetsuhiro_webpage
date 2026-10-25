@@ -1,0 +1,47 @@
+{
+  "envelope": {
+    "upper_glass_panels_removed": 4,
+    "upper_wall_strips_replaced": 12,
+    "old_mullions_removed": 8
+  },
+  "landscape": {
+    "terrain": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 3266,
+      "faces": 6528
+    },
+    "flower_count": 238,
+    "settled_plant_components": 4533,
+    "height_range_on_top": [
+      0.04,
+      0.935
+    ],
+    "tree_geometry": "Accepted faceted trees retained and translated to raised grove pads.",
+    "approaches": "House, bridge and lookout pads level; paths follow the same terrain height field."
+  },
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_sheltered.blend",
+  "scene": "UA_B_Atelier_Sheltered",
+  "flow_review": {
+    "water": "SS_SH_Pond_Stream_and_Waterfall",
+    "lookout": "Deck and step moved 0.5m inward; path end rebuilt to meet the step."
+  },
+  "final_review": {
+    "terrain": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 3266,
+      "faces": 6528
+    },
+    "water_connected_components": 1,
+    "smooth_visible_foreground_faces": 0,
+    "renders_reviewed": [
+      "house",
+      "garden",
+      "overview"
+    ],
+    "source_comparisons_preserved": true
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "scene": "UA_B_Atelier_FacetedRestored",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_faceted_restored.blend",
+  "restoration": {
+    "ground_height_source": "SH_SS_UA_Connected_Island",
+    "ground_height_changes": 0,
+    "rock_tones": 3,
+    "cliff_silhouette_corners": 16,
+    "cliff_rings": 6,
+    "cliff_triangles": 288,
+    "outline": "Outer ground rings meet the angular cliff through shared rim vertices."
+  },
+  "terrain": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 2402,
+    "faces": 4800
+  },
+  "water": {
+    "sheet_boundary_samples": 396,
+    "largest_exposed_gap_m": 0,
+    "boundary_widening_passes": 0,
+    "method": "Water lowered into the unchanged faceted basin; sheet edges extend underneath dry ground."
+  },
+  "terrain_contacts": {
+    "CO_PT_SH_UA_Keep_LP_SS_A_Ground_Planting": {
+      "grounded_parts": 58,
+      "cleared_from_water_or_paths": 0
+    },
+    "CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents": {
+      "grounded_parts": 275,
+      "cleared_from_water_or_paths": 0
+    },
+    "CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow": {
+      "grounded_parts": 4120,
+      "cleared_from_water_or_paths": 0
+    },
+    "CO_PT_SH_SS_UA_Grounded_Stream_Banks": {
+      "grounded_parts": 12,
+      "cleared_from_water_or_paths": 0
+    },
+    "CO_SS_PT_Pond_Shore_Stones": {
+      "grounded_parts": 40,
+      "cleared_from_water_or_paths": 0
+    }
+  },
+  "changes": "Angular sixteen-corner silhouette and six irregular cliff rings, three original rock tones; accepted ground height field retained. Water recessed into basin with hidden boundaries; no airbrushed depth gradient.",
+  "waterfall": "Rock beneath the outlet is cut back so the water can fall clear of the angular cliff."
+}

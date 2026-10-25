@@ -1,0 +1,30 @@
+{
+  "scene": "UA_B_Atelier_FracturedRock",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_fractured_rock.blend",
+  "rock": {
+    "before": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 1943,
+      "faces": 3882
+    },
+    "after": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 5546,
+      "faces": 11088
+    },
+    "new_rock_triangles": 8214,
+    "shape": "Independent east/north/west/south broken outlines; irregular triangulation, oblique fractures and broad base. No encircling shelves.",
+    "top": "Existing meadow, turf and soil preserved at their original positions."
+  },
+  "shoreline": {
+    "sheet_boundary_samples": 396,
+    "largest_exposed_gap_m": 0,
+    "boundary_widening_passes": 0,
+    "method": "Water recessed into the protected faceted basin; sheet edges extend underneath dry ground."
+  },
+  "reference": "User drawing and Gunes Ozcan floating-island cliff forms, excluding multiple bottom peaks."
+}

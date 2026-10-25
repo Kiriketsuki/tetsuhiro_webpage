@@ -1,0 +1,167 @@
+{
+  "shoreline": {
+    "before": {
+      "samples": 436,
+      "exposed_samples_over_2cm": 433,
+      "largest_exposed_gap_m": 0.584653,
+      "minimum_land_overlap_m": -0.584653,
+      "worst_points": [
+        [
+          2.9071428775787354,
+          1.4285714626312256,
+          0.5846527814865112
+        ],
+        [
+          2.7857143878936768,
+          0.7142857313156128,
+          0.5823183059692383
+        ],
+        [
+          2.738095283508301,
+          -0.23809528350830078,
+          0.5776200294494629
+        ],
+        [
+          2.7428572177886963,
+          -0.14285719394683838,
+          0.5762416124343872
+        ]
+      ]
+    },
+    "after": {
+      "samples": 436,
+      "exposed_samples_over_2cm": 0,
+      "largest_exposed_gap_m": 0,
+      "minimum_land_overlap_m": 0.017995,
+      "worst_points": [
+        [
+          2.719047784805298,
+          -1.1904761791229248,
+          -0.017995119094848633
+        ],
+        [
+          5.123809337615967,
+          -3.190476417541504,
+          -0.01799553632736206
+        ],
+        [
+          2.8809523582458496,
+          -2.8095240592956543,
+          -0.017995595932006836
+        ],
+        [
+          2.766666889190674,
+          -1.6666667461395264,
+          -0.017995715141296387
+        ]
+      ]
+    },
+    "new_top_triangles": 7723,
+    "cliff_rim_splits": 3,
+    "method": "Terrain cap constrained to both actual water edges and stitched into the existing cliff rim."
+  },
+  "scene_contacts": {
+    "PT_SH_SS_UA_B_Atelier_Grounded_Foundation": {
+      "supported_footings": 4
+    },
+    "PT_SH_UA_Keep_LP_SS_A_Ground_Planting": {
+      "grounded_parts": 58,
+      "cleared_from_water_or_paths": 0
+    },
+    "PT_SH_UA_Keep_LP_SS_A_Grass_Accents": {
+      "grounded_parts": 277,
+      "cleared_from_water_or_paths": 1
+    },
+    "PT_SH_UA_Keep_SS_LP_Angular_Meadow": {
+      "grounded_parts": 4138,
+      "cleared_from_water_or_paths": 36
+    },
+    "PT_SH_SS_UA_Bridge_Abutments": {
+      "supported_footings": 6
+    },
+    "PT_SH_SS_UA_Grounded_Stream_Banks": {
+      "grounded_parts": 14,
+      "cleared_from_water_or_paths": 0
+    },
+    "PT_SH_SS_UA_City_Lookout": {
+      "deck_posts_anchored": 4
+    },
+    "PT_SH_SS_UA_Lookout_Access_Step": {
+      "supported_footings": 1
+    },
+    "SS_PT_Pond_Shore_Stones": {
+      "grounded_parts": 40,
+      "cleared_from_water_or_paths": 0
+    },
+    "reed_beds_relocated_clear_of_rocks": 5,
+    "lanterns_grounded": 5,
+    "paths_draped_and_buried": 2
+  },
+  "terrain": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 4873,
+    "faces": 9742
+  },
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_cohesion.blend",
+  "scene": "UA_B_Atelier_Cohesion",
+  "low_angle_contact_review": {
+    "bridge_posts_seated_in_bearing_timbers": 10,
+    "planters_seated": 4,
+    "remaining_misplaced_shore_parts_removed": 22
+  },
+  "final_geometry_audit": {
+    "terrain": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 4873,
+      "faces": 9742
+    },
+    "shoreline": {
+      "samples": 436,
+      "exposed_samples_over_2cm": 0,
+      "largest_exposed_gap_m": 0,
+      "minimum_land_overlap_m": 0.017995,
+      "worst_points": [
+        [
+          2.719047784805298,
+          -1.1904761791229248,
+          -0.017995119094848633
+        ],
+        [
+          5.123809337615967,
+          -3.190476417541504,
+          -0.01799553632736206
+        ],
+        [
+          2.8809523582458496,
+          -2.8095240592956543,
+          -0.017995595932006836
+        ],
+        [
+          2.766666889190674,
+          -1.6666667461395264,
+          -0.017995715141296387
+        ]
+      ]
+    },
+    "water_components": 1,
+    "smooth_visible_foreground_faces": 0
+  },
+  "final_visual_review": {
+    "views": [
+      "pond",
+      "garden",
+      "house",
+      "overview",
+      "pond_waterline",
+      "stream_bank",
+      "bridge_contacts",
+      "house_contacts"
+    ],
+    "resolution": "1600-1800px, EEVEE 96 samples",
+    "finding": "No exposed shoreline void seen in the reviewed low-angle views; bridge posts, abutments and house/stair feet visibly meet their supports. Faceted forms retained."
+  }
+}

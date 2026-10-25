@@ -1,0 +1,67 @@
+{
+  "source": "UA_B_Atelier_FracturedRock",
+  "source_unchanged": true,
+  "source_sha256": "f31546a1750a49d0b8af4b1e61fe40f2f45cc1a7ec681f967f10c5a6b1f6f446",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_profile_options.blend",
+  "options": [
+    {
+      "key": "A",
+      "name": "Broken Wedge",
+      "scene": "Island_A_Broken_Wedge",
+      "body": "Island_A_Connected_Terrain",
+      "description": "Chunky, irregular wedge with several diagonal breaks and a broad offset base.",
+      "audit": {
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "non_manifold_edges": 0,
+        "vertices": 5560,
+        "faces": 11116,
+        "rock_triangles": 8242,
+        "flat_shaded": true,
+        "cap_unchanged": true,
+        "bottom_z": -18.965
+      }
+    },
+    {
+      "key": "B",
+      "name": "Undercut Shelf",
+      "scene": "Island_B_Undercut_Shelf",
+      "body": "Island_B_Connected_Terrain",
+      "description": "A shallow upper shelf with a pronounced right-hand undercut and an offset hanging core.",
+      "audit": {
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "non_manifold_edges": 0,
+        "vertices": 4760,
+        "faces": 9516,
+        "rock_triangles": 6642,
+        "flat_shaded": true,
+        "cap_unchanged": true,
+        "bottom_z": -13.32
+      }
+    },
+    {
+      "key": "C",
+      "name": "Leaning Shard",
+      "scene": "Island_C_Leaning_Shard",
+      "body": "Island_C_Connected_Terrain",
+      "description": "A taller diagonal rock mass with a single blunt off-centre tip and strong slanted fractures.",
+      "audit": {
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "non_manifold_edges": 0,
+        "vertices": 5560,
+        "faces": 11116,
+        "rock_triangles": 8242,
+        "flat_shaded": true,
+        "cap_unchanged": true,
+        "bottom_z": -22.08
+      }
+    }
+  ],
+  "cameras": {
+    "front": "Island_Options_Front",
+    "three_quarter": "Island_Options_ThreeQuarter",
+    "side": "Island_Options_Side"
+  }
+}

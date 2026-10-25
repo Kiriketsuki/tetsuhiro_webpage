@@ -1,0 +1,187 @@
+{
+  "base_triangles": 119170,
+  "render_triangles": 151826,
+  "objects": [
+    {
+      "object": "LP_SS_A_Floating_Rock",
+      "base_triangles": 4752,
+      "render_triangles": 4752
+    },
+    {
+      "object": "LP_SS_A_Grassy_Plateau",
+      "base_triangles": 240,
+      "render_triangles": 240
+    },
+    {
+      "object": "LP_SS_A_Rim_Boulders",
+      "base_triangles": 4160,
+      "render_triangles": 4160
+    },
+    {
+      "object": "LP_SS_A_Cliff_Outcrops",
+      "base_triangles": 10880,
+      "render_triangles": 27696
+    },
+    {
+      "object": "LP_SS_A_Swept_Pitched_Roof",
+      "base_triangles": 64,
+      "render_triangles": 64
+    },
+    {
+      "object": "LP_SS_A_Timber_Structure",
+      "base_triangles": 588,
+      "render_triangles": 2156
+    },
+    {
+      "object": "LP_SS_A_Deck_and_Floors",
+      "base_triangles": 444,
+      "render_triangles": 1628
+    },
+    {
+      "object": "LP_SS_A_Walls",
+      "base_triangles": 36,
+      "render_triangles": 132
+    },
+    {
+      "object": "LP_SS_A_Glazing",
+      "base_triangles": 168,
+      "render_triangles": 168
+    },
+    {
+      "object": "LP_SS_A_Roof_Tile_Seams",
+      "base_triangles": 3216,
+      "render_triangles": 11792
+    },
+    {
+      "object": "LP_SS_A_Workshop_Furniture",
+      "base_triangles": 552,
+      "render_triangles": 2024
+    },
+    {
+      "object": "LP_SS_A_Spring_Pond",
+      "base_triangles": 46,
+      "render_triangles": 46
+    },
+    {
+      "object": "LP_SS_A_Stream",
+      "base_triangles": 112,
+      "render_triangles": 112
+    },
+    {
+      "object": "LP_SS_A_Stream_Banks_and_Path",
+      "base_triangles": 3040,
+      "render_triangles": 3040
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_00",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_01",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_02",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_03",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_04",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_05",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_06",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_07",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Waterfall_Ribbon_08",
+      "base_triangles": 88,
+      "render_triangles": 88
+    },
+    {
+      "object": "LP_SS_A_Garden_Footbridge",
+      "base_triangles": 384,
+      "render_triangles": 1408
+    },
+    {
+      "object": "LP_SS_A_Tree_Branches",
+      "base_triangles": 480,
+      "render_triangles": 1760
+    },
+    {
+      "object": "LP_SS_A_Tree_Canopies",
+      "base_triangles": 2100,
+      "render_triangles": 2100
+    },
+    {
+      "object": "LP_SS_A_Ground_Planting",
+      "base_triangles": 4880,
+      "render_triangles": 4880
+    },
+    {
+      "object": "LP_SS_A_Grass_Accents",
+      "base_triangles": 300,
+      "render_triangles": 300
+    },
+    {
+      "object": "LP_SS_A_Terrace_Details",
+      "base_triangles": 240,
+      "render_triangles": 880
+    },
+    {
+      "object": "SS_LP_Faceted_Crown_Sprays",
+      "base_triangles": 50400,
+      "render_triangles": 50400
+    },
+    {
+      "object": "SS_LP_Angular_Meadow",
+      "base_triangles": 17844,
+      "render_triangles": 17844
+    },
+    {
+      "object": "SS_LP_Individual_Planar_Slates",
+      "base_triangles": 5280,
+      "render_triangles": 5280
+    },
+    {
+      "object": "SS_LP_Joinery_and_Desk_Life",
+      "base_triangles": 1032,
+      "render_triangles": 1032
+    },
+    {
+      "object": "SS_LP_Layered_Cliff_Ledges",
+      "base_triangles": 3420,
+      "render_triangles": 3420
+    },
+    {
+      "object": "SS_LP_Faceted_Trailing_Ivy",
+      "base_triangles": 3720,
+      "render_triangles": 3720
+    }
+  ],
+  "base_ratio_to_A": 1.987,
+  "render_ratio_to_A": 1.359,
+  "smooth_hero_faces": 0,
+  "note": "Foreground only; shared city/cloud geometry excluded. Compare base to base and rendered to rendered.",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\cozy-lowpoly\\sanctuary_faceted.blend",
+  "scene": "LP_Faceted_Sanctuary"
+}

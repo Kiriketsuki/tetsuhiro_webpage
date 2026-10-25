@@ -1,0 +1,32 @@
+[
+  {
+    "shot": "front_profile",
+    "seconds": 1.45,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\FracturedRock_front_profile_preview.png"
+  },
+  {
+    "shot": "side_profile",
+    "seconds": 0.43,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\FracturedRock_side_profile_preview.png"
+  },
+  {
+    "shot": "cliff",
+    "seconds": 0.51,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\FracturedRock_cliff_preview.png"
+  },
+  {
+    "shot": "overview",
+    "seconds": 0.49,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\FracturedRock_overview_preview.png"
+  },
+  {
+    "shot": "garden",
+    "seconds": 0.72,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\FracturedRock_garden_preview.png"
+  },
+  {
+    "shot": "waterline",
+    "seconds": 0.71,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\FracturedRock_waterline_preview.png"
+  }
+]

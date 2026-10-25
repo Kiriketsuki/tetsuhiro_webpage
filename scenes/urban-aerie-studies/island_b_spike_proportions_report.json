@@ -1,0 +1,23 @@
+{
+  "connected_components": 1,
+  "boundary_edges": 0,
+  "non_manifold_edges": 0,
+  "vertices": 5327,
+  "faces": 10650,
+  "scene": "Island_B_Spike_Proportions",
+  "body": "Island_B3_Connected_Terrain",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_spike_proportions.blend",
+  "before": {
+    "main": -13.11117172241211,
+    "overhang": -10.444239616394043
+  },
+  "after": {
+    "main": -16.650081634521484,
+    "overhang": -7.3496551513671875
+  },
+  "changed_vertices": 2782,
+  "cap_unchanged": true,
+  "source_unchanged": true,
+  "all_faces_flat": true,
+  "description": "Longer main mass; shorter overhang with broad angular clipped tip."
+}

@@ -1,0 +1,13 @@
+# Painted material provenance
+
+The four material maps are original generated bitmap artwork, reused from the preceding material experiment. No game assets were copied.
+
+- Generator: built-in `image_gen.imagegen` tool.
+- Original atlas: `C:/Users/Kidriel/.codex/generated_images/01a16894-ec61-7052-bce2-4bf523ee0f85/exec-1e4f31d9-1e74-4afa-afb3-c14028d4cfc3.png`.
+- Project atlas: `../cinematic-handdrawn/textures/painted_atlas.png`.
+- Quadrants were split in Blender into `textures/painted_wood.png`, `textures/painted_rock.png`, `textures/painted_roof.png`, and `textures/painted_leaf.png`.
+- This revision uses the maps in restrained albedo mixes. Normal-map effects are disconnected so the planar mesh normals remain visible.
+
+## Original generation prompt
+
+Use case: stylized-concept. Asset type: original hand-painted albedo texture atlas for a real Blender 3D environment, four equal square quadrants in a single square image, flush edge-to-edge, NO gutters, NO text or labels, NO frame. Each quadrant is a flat seamless material texture with no perspective and no baked directional lighting. Art direction: intimate cozy hand-painted game environment; confident slightly wavering drawn marks, layered gouache brush shapes, fine dry brush grain, tactile restrained surface variation, high-fidelity original illustration, not photographic, not cartoon plastic. Top-left quadrant: warm walnut-and-cedar timber grain, flowing lengthwise wood fibres, subtle knots and thin darker hand-drawn grain lines, varied honey/brown brushwork; no actual board divisions. Top-right quadrant: cool slate-grey weathered rock with hints of muted lavender and pale mineral streaks, organic eroded surface, flowing drawn fissures and layered pigment, NOT angular polygons and NOT brickwork. Bottom-left quadrant: blue-grey glazed ceramic/slate roof surface, fine long directional painted striations, gently mottled ink-blue pigment, NO arranged tiles or brick grid because tile divisions will be modelled in 3D. Bottom-right quadrant: muted natural fern/sage/forest-green foliage pigment, soft brushy overlapping tonal patches and small speckled drawn marks, NO recognisable whole leaves because leaf shapes will be modelled in 3D. All four areas should be rich in deliberate hand-painted marks at high resolution, subtle enough for repeated application. Every texture has even diffuse lighting with no shadows or highlights; readable moderately light base colours so blue-hour scene lighting does not crush them. Strong texture quality suited to close-up architectural views. Original work; no logos, no characters, no copied game assets.

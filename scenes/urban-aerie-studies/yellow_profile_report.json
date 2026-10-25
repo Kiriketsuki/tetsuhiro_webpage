@@ -1,0 +1,51 @@
+{
+  "before": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 5546,
+    "faces": 11088
+  },
+  "after": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 7453,
+    "faces": 14902
+  },
+  "density_target_per_m2": 8.0,
+  "layer_densities": {
+    "rock": {
+      "triangles": 8582,
+      "area_m2": 1075.38,
+      "triangles_per_m2": 7.98
+    },
+    "grass_top": {
+      "triangles": 4822,
+      "area_m2": 602.47,
+      "triangles_per_m2": 8.0
+    },
+    "turf": {
+      "triangles": 460,
+      "area_m2": 57.99,
+      "triangles_per_m2": 7.93
+    },
+    "soil": {
+      "triangles": 1038,
+      "area_m2": 130.08,
+      "triangles_per_m2": 7.98
+    }
+  },
+  "rock_bottom_z_m": -14.152,
+  "shape": "Yellow outline: wide thin slab, deep bay to the right, one long off-centre left rock root and a short right tooth.",
+  "variance": "Fine geometric facet height 0.085m; per-face painted value variation \u00b15.2%. Existing meadow contact positions retained.",
+  "shoreline": {
+    "sheet_boundary_samples": 396,
+    "largest_exposed_gap_m": 0,
+    "boundary_widening_passes": 0,
+    "method": "Water recessed into the protected faceted basin; sheet edges extend underneath dry ground."
+  },
+  "scene": "UA_B_Atelier_YellowProfile",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_yellow_profile.blend",
+  "drawing": "C:\\Users\\Kidriel\\AppData\\Local\\Temp\\codex-clipboard-414a5074-2508-47f5-85d0-d400b0cebfab.png"
+}

@@ -1,0 +1,40 @@
+{
+  "scene": "UA_B_Atelier_PondPatina",
+  "terrain": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 4257,
+    "faces": 8510
+  },
+  "old_pond_rocks_removed": 11,
+  "bank_plant_components_reseated": 196,
+  "pond_details": {
+    "lily_pads": 5,
+    "reed_tussocks": 5,
+    "shore_rocks": 13
+  },
+  "water_treatment": "Painted deeper blue-green centre, olive-teal shallows, broken geometric ripples.",
+  "wear": "Painted timber/plaster/stone washes, per-piece timber fading, slightly uneven bridge boards and path edges.",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\atelier_pond_patina.blend",
+  "final_review": {
+    "terrain": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 4257,
+      "faces": 8510
+    },
+    "water_connected_components": 1,
+    "smooth_visible_foreground_faces": 0,
+    "renders_reviewed": [
+      "pond",
+      "garden",
+      "house",
+      "overview"
+    ],
+    "previous_sheltered_scene_retained": true,
+    "new_generated_image_assets": 0
+  },
+  "fine_details": "Quiet broken ripples, fine wear marks, irregular path edges, bridge grain scratches and nail heads."
+}

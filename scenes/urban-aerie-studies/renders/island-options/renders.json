@@ -1,0 +1,56 @@
+[
+  {
+    "key": "A",
+    "shot": "front",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\A_front.png",
+    "seconds": 1.79
+  },
+  {
+    "key": "A",
+    "shot": "three_quarter",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\A_three_quarter.png",
+    "seconds": 1.08
+  },
+  {
+    "key": "A",
+    "shot": "side",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\A_side.png",
+    "seconds": 0.82
+  },
+  {
+    "key": "B",
+    "shot": "front",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\B_front.png",
+    "seconds": 0.83
+  },
+  {
+    "key": "B",
+    "shot": "three_quarter",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\B_three_quarter.png",
+    "seconds": 1.08
+  },
+  {
+    "key": "B",
+    "shot": "side",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\B_side.png",
+    "seconds": 0.79
+  },
+  {
+    "key": "C",
+    "shot": "front",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\C_front.png",
+    "seconds": 0.86
+  },
+  {
+    "key": "C",
+    "shot": "three_quarter",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\C_three_quarter.png",
+    "seconds": 1.07
+  },
+  {
+    "key": "C",
+    "shot": "side",
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\island-options\\C_side.png",
+    "seconds": 0.81
+  }
+]

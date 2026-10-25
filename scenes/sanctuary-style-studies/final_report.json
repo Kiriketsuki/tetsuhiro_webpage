@@ -1,0 +1,31 @@
+{
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\sanctuary-style-studies\\sanctuary_style_studies.blend",
+  "active_scene": "SS_Study_A_Cinematic",
+  "default_scene_retained": true,
+  "studies": {
+    "A": {
+      "scene": "SS_Study_A_Cinematic",
+      "hero_objects": 30,
+      "hero_base_faces": 56283,
+      "hero_base_triangles": 59962,
+      "camera": "SS_Camera_Overview",
+      "resolution": [
+        1800,
+        1400
+      ],
+      "notes": "Shared distant city and cloud study geometry excluded from hero counts; modifiers excluded."
+    },
+    "B": {
+      "scene": "SS_Study_B_LowPoly",
+      "hero_objects": 28,
+      "hero_base_faces": 8963,
+      "hero_base_triangles": 12270,
+      "camera": "SS_Camera_Overview",
+      "resolution": [
+        1800,
+        1400
+      ],
+      "notes": "Shared distant city and cloud study geometry excluded from hero counts; modifiers excluded."
+    }
+  }
+}

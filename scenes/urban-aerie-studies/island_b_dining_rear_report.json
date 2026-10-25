@@ -1,0 +1,169 @@
+{
+  "scene": "Island_B_Dining_Rear_Facade",
+  "file": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_dining_rear.blend",
+  "source_preserved": true,
+  "rear_windows": [
+    [
+      -7.25,
+      -2.75,
+      5.0,
+      1.0,
+      4.15,
+      -6.65,
+      -4.45,
+      1.85,
+      3.45
+    ],
+    [
+      -8.05,
+      -3.55,
+      5.25,
+      4.15,
+      7.3,
+      -6.65,
+      -4.45,
+      5.05,
+      6.65
+    ],
+    [
+      -7.0,
+      -3.3,
+      5.3,
+      7.3,
+      10.45,
+      -6.25,
+      -4.65,
+      8.25,
+      9.75
+    ]
+  ],
+  "rear_wall_panels_replaced": 3,
+  "bookcase_parts_relocated": [
+    24,
+    24,
+    24
+  ],
+  "connections": [
+    {
+      "house_edge": [
+        -2.7679998874664307,
+        5.052000045776367,
+        0.0
+      ],
+      "stair_edge": [
+        -2.7100000381469727,
+        5.684000015258789,
+        0.0
+      ],
+      "bottom": 1.05,
+      "top": 4.15
+    },
+    {
+      "house_edge": [
+        -3.568000078201294,
+        5.302000045776367,
+        0.0
+      ],
+      "stair_edge": [
+        -2.7100000381469727,
+        5.684000015258789,
+        0.0
+      ],
+      "bottom": 4.3,
+      "top": 7.3
+    },
+    {
+      "house_edge": [
+        -3.318000078201294,
+        5.3520002365112305,
+        0.0
+      ],
+      "stair_edge": [
+        -2.7100000381469727,
+        5.684000015258789,
+        0.0
+      ],
+      "bottom": 7.45,
+      "top": 10.51
+    }
+  ],
+  "dining_table_diameter": 0.86,
+  "chair_count": 2,
+  "chair_feet": [
+    [
+      -4.536999702453613,
+      1.996000051498413,
+      10.65999984741211
+    ],
+    [
+      -4.536999702453613,
+      2.364000082015991,
+      10.65999984741211
+    ],
+    [
+      -4.163000106811523,
+      1.996000051498413,
+      10.65999984741211
+    ],
+    [
+      -4.163000106811523,
+      2.364000082015991,
+      10.65999984741211
+    ],
+    [
+      -4.536999702453613,
+      3.436000108718872,
+      10.65999984741211
+    ],
+    [
+      -4.536999702453613,
+      3.80400013923645,
+      10.65999984741211
+    ],
+    [
+      -4.163000106811523,
+      3.436000108718872,
+      10.65999984741211
+    ],
+    [
+      -4.163000106811523,
+      3.80400013923645,
+      10.65999984741211
+    ]
+  ],
+  "checks": {
+    "body_rays": 225,
+    "sample_width": 0.5,
+    "obstructions": [],
+    "floor_gaps": [],
+    "chair_deck_contacts": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "window_first_surfaces": [
+      "SS_DR_Rear_Window_Glass",
+      "SS_DR_Rear_Window_Glass",
+      "SS_DR_Rear_Window_Glass",
+      "SS_DR_Rear_Window_Glass",
+      "SS_DR_Rear_Window_Glass",
+      "SS_DR_Rear_Window_Glass"
+    ]
+  },
+  "living_connection": "The existing rear landing meets a new stone threshold; the glazed door opens inward.",
+  "reviewed_renders": [
+    "dining",
+    "rear",
+    "rear_straight",
+    "overall"
+  ],
+  "render_resolution": [
+    1500,
+    1400
+  ]
+}

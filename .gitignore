@@ -26,3 +26,8 @@ src/assets/models/MOONSETHDRI.hdr
 
 # firebase cache
 .firebase
+
+# Blender scene files and their save backups stay local
+*.blend
+*.blend[0-9]*
+__pycache__/

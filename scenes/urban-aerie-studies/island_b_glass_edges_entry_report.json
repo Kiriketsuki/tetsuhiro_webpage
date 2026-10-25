@@ -1,0 +1,173 @@
+{
+  "scene": "Island_B_Glass_Edges_Entry",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_glass_edges_entry.blend",
+  "source_scene_unchanged": true,
+  "supports": [
+    {
+      "xy": [
+        -7.86,
+        0.6
+      ],
+      "width": 0.075,
+      "base": 0.4195298309326172,
+      "top": 7.35
+    },
+    {
+      "xy": [
+        -7.86,
+        5.06
+      ],
+      "width": 0.075,
+      "base": 0.7946385498046875,
+      "top": 4.17
+    },
+    {
+      "xy": [
+        -3.62,
+        0.32
+      ],
+      "width": 0.075,
+      "base": 0.41199961853027345,
+      "top": 7.35
+    },
+    {
+      "xy": [
+        -2.71,
+        0.65
+      ],
+      "width": 0.065,
+      "base": 0.41200152587890626,
+      "top": 12.98
+    },
+    {
+      "xy": [
+        -0.49,
+        -0.52
+      ],
+      "width": 0.065,
+      "base": 0.38416567993164064,
+      "top": 12.98
+    },
+    {
+      "xy": [
+        -2.71,
+        5.68
+      ],
+      "width": 0.065,
+      "base": 0.41200152587890626,
+      "top": 12.98
+    },
+    {
+      "xy": [
+        -0.49,
+        5.68
+      ],
+      "width": 0.065,
+      "base": 0.41200152587890626,
+      "top": 12.98
+    }
+  ],
+  "column_widths": [
+    0.075,
+    0.065
+  ],
+  "barrier_height": 0.4,
+  "barriers": "Clear glass; polished edges; tiny base shoes; no posts or top rail.",
+  "ground_entry": "One 1.05-high continuous landing, three broad approach treads, real open sliding doorway.",
+  "door_clear_opening": [
+    -5.55,
+    -4.35
+  ],
+  "old_deck_parts_removed": 29,
+  "old_first_flight_parts_replaced": 38,
+  "island_pond_trees_unchanged": true,
+  "route_review": {
+    "rays": 135,
+    "sample_width": 0.5,
+    "obstructions": 0,
+    "floor_gaps": 0,
+    "routes": {
+      "open_workshop_door": [
+        [
+          -4.95,
+          -0.25,
+          1.05
+        ],
+        [
+          -4.95,
+          1.2,
+          1.05
+        ]
+      ],
+      "door_to_stair": [
+        [
+          -4.95,
+          -0.25,
+          1.05
+        ],
+        [
+          -2.15,
+          -0.25,
+          1.05
+        ],
+        [
+          -2.15,
+          0.37,
+          1.05
+        ]
+      ],
+      "middle_terrace": [
+        [
+          -1.0499999523162842,
+          -0.06999999284744263,
+          7.449999809265137
+        ],
+        [
+          -3.0999999046325684,
+          -0.06999999284744263,
+          7.449999809265137
+        ],
+        [
+          -3.0999999046325684,
+          0.75,
+          7.449999809265137
+        ],
+        [
+          -7.599999904632568,
+          0.75,
+          7.449999809265137
+        ],
+        [
+          -7.599999904632568,
+          4.800000190734863,
+          7.449999809265137
+        ]
+      ],
+      "rooftop": [
+        [
+          -2.1500000953674316,
+          5.179999828338623,
+          10.65999984741211
+        ],
+        [
+          -4.099999904632568,
+          5.179999828338623,
+          10.65999984741211
+        ],
+        [
+          -5.5,
+          4.0,
+          10.65999984741211
+        ]
+      ]
+    },
+    "minimum_stair_headroom": 2.3050003051757812
+  },
+  "renders_reviewed": [
+    "entry",
+    "entry_front",
+    "house",
+    "glass",
+    "island"
+  ]
+}

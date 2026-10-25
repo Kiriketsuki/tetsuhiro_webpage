@@ -1,0 +1,32 @@
+[
+  {
+    "shot": "front_profile",
+    "seconds": 1.48,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\BrokenCliff_front_profile_preview.png"
+  },
+  {
+    "shot": "side_profile",
+    "seconds": 0.45,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\BrokenCliff_side_profile_preview.png"
+  },
+  {
+    "shot": "cliff",
+    "seconds": 0.53,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\BrokenCliff_cliff_preview.png"
+  },
+  {
+    "shot": "overview",
+    "seconds": 0.52,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\BrokenCliff_overview_preview.png"
+  },
+  {
+    "shot": "garden",
+    "seconds": 0.75,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\BrokenCliff_garden_preview.png"
+  },
+  {
+    "shot": "waterline",
+    "seconds": 0.71,
+    "image": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\renders\\BrokenCliff_waterline_preview.png"
+  }
+]

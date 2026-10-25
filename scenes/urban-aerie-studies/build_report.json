@@ -1,0 +1,63 @@
+{
+  "island_topology": {
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "non_manifold_edges": 0,
+    "vertices": 2018,
+    "faces": 4032
+  },
+  "studies": [
+    {
+      "scene": "UA_A_Townhouse",
+      "smooth_house_faces": 0
+    },
+    {
+      "scene": "UA_B_Atelier",
+      "smooth_house_faces": 0
+    },
+    {
+      "scene": "UA_C_Cottage",
+      "smooth_house_faces": 0
+    }
+  ],
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\urban_aerie_studies.blend",
+  "bridge": "Two stone abutments embed in terrain and meet deck undersides; two wooden stringers support deck.",
+  "path": "Home entry stairs -> west abutment -> bridge -> east abutment -> city lookout bench.",
+  "approach_review": {
+    "entry_step_corners_adjusted": 72,
+    "path_joins": "Entry/bridge/lookout approaches overlap their lowest steps.",
+    "lookout": "One additional grounded step meets the raised deck."
+  },
+  "final_review": {
+    "renders": "All three house close-ups and shared-island overview visually inspected after corrections.",
+    "terrain": {
+      "connected_components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "vertices": 2018,
+      "faces": 4032
+    },
+    "grounded_house_plinths": true,
+    "visible_house_smooth_faces": {
+      "A_Townhouse": 0,
+      "B_Atelier": 0,
+      "C_Cottage": 0
+    },
+    "path_manifold_checks": {
+      "SS_UA_Connected_Path_0": {
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "non_manifold_edges": 0,
+        "vertices": 20,
+        "faces": 18
+      },
+      "SS_UA_Connected_Path_1": {
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "non_manifold_edges": 0,
+        "vertices": 12,
+        "faces": 10
+      }
+    }
+  }
+}

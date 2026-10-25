@@ -1,0 +1,106 @@
+{
+  "scene": "Island_B_Minimal_House",
+  "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_minimal_house.blend",
+  "building_translation": [
+    -2.0,
+    -1.0,
+    0.0
+  ],
+  "railings": {
+    "height": 0.76,
+    "previous_height": 1.04,
+    "reduction_percent": 26.923,
+    "uprights": 141,
+    "horizontal_guard_segments": 22,
+    "finish": "slim dark metal; no lower rail; wider-spaced uprights",
+    "previous_vertices": 2560,
+    "new_vertices": 1344
+  },
+  "reseated_supports": [
+    {
+      "xy": [
+        -7.940000057220459,
+        1.0999999046325684
+      ],
+      "foot_bottom": 0.31815521240234373,
+      "foot_top": 0.6625237274169922
+    },
+    {
+      "xy": [
+        -7.940000057220459,
+        5.059999942779541
+      ],
+      "foot_bottom": 0.6428202819824219,
+      "foot_top": 1.068186264038086
+    },
+    {
+      "xy": [
+        -7.940000057220459,
+        -0.12999999523162842
+      ],
+      "foot_bottom": 0.2171229553222656,
+      "foot_top": 0.6574349212646484
+    },
+    {
+      "xy": [
+        -3.5799999237060547,
+        -0.12999999523162842
+      ],
+      "foot_bottom": 0.31226913452148436,
+      "foot_top": 0.630003433227539
+    },
+    {
+      "xy": [
+        -2.7100000381469727,
+        -0.5199999809265137
+      ],
+      "foot_bottom": 0.3199977111816406,
+      "foot_top": 0.6299996185302734
+    },
+    {
+      "xy": [
+        -0.49000000953674316,
+        -0.5199999809265137
+      ],
+      "foot_bottom": 0.2510451507568359,
+      "foot_top": 0.6253132629394531
+    },
+    {
+      "xy": [
+        -2.7100000381469727,
+        5.679999828338623
+      ],
+      "foot_bottom": 0.3199958038330078,
+      "foot_top": 0.6300015258789062
+    },
+    {
+      "xy": [
+        -0.49000000953674316,
+        5.679999828338623
+      ],
+      "foot_bottom": 0.3199977111816406,
+      "foot_top": 0.630003433227539
+    }
+  ],
+  "cleared_plant_parts": {
+    "B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Ground_Planting.001": 6,
+    "B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents.001": 5,
+    "B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 79,
+    "B5_B4_BC_JG_RF_CO_PT_SS_SH_Flower_Stems.001": 22,
+    "B5_B4_BC_JG_RF_CO_PT_SS_SH_Flower_Centres.001": 22,
+    "B5_B4_BC_JG_RF_CO_PT_SS_SH_Faceted_Flower_Petals.001": 110,
+    "B5_B4_BC_JG_RF_CO_PT_SS_SH_Flower_Leaves.001": 44
+  },
+  "source_scene_unchanged": true,
+  "terrain_pond_trees_unchanged": true,
+  "tree_house_intersections": [],
+  "new_path_boundary_edges": 0,
+  "path": "Single closed connected Y-shaped approach to workshop porch and stair entrance.",
+  "previous_roof_routes": "All decks, doors and stairs translated together; reviewed entry openings retained.",
+  "reviewed_renders": [
+    "detail",
+    "pond",
+    "roof",
+    "island"
+  ]
+}

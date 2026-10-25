@@ -1,0 +1,13 @@
+{
+  "file": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\cinematic-handdrawn\\sanctuary_handdrawn.blend",
+  "scene": "Sanctuary_Handdrawn_Cinematic",
+  "build_seconds": 5.55,
+  "objects": 365,
+  "cameras": [
+    "SS_HD_Overview",
+    "SS_HD_Workshop_Detail",
+    "SS_HD_Cliff_Detail"
+  ],
+  "textures": "Original imagegen-painted atlas split into four material maps; packed in blend.",
+  "note": "Earlier A/B studies retained."
+}

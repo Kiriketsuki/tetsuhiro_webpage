@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "id": "sky-archipelago-recreation",
+  "version": "1",
+  "title": "Sky archipelago 3D recreation",
+  "scope": "A Blender 5.2 scene that recreates scenes/sky-archipelago/reference.webp in 3D at painterly-realistic fidelity, judged from the frozen renders, crops, checklist, build script and scene report of one round. It covers the still frame from Cam_Reference and the home interior frame from Cam_Home. It does not cover web export, real-time performance or animation.",
+  "dimensions": [
+    {
+      "id": "reference-match",
+      "label": "Match to the reference image",
+      "weight": 30,
+      "criteria": [
+        {
+          "id": "composition",
+          "label": "Composition and landmark placement",
+          "weight": 40,
+          "question": "How many of the ten reference landmarks sit in the same place in the render?",
+          "procedure": [
+            "Open renders/final.png and the reference. Express positions as fractions of frame width (x) and height (y), measured from the top left.",
+            "Landmark 1: the foreground torii on the left terrace. Reference box: x 0.04 to 0.16, y 0.34 to 0.57.",
+            "Landmark 2: the foreground terrace floor and railing. Reference box: x 0.00 to 0.30, y 0.50 to 0.78.",
+            "Landmark 3: the central island cliff face and waterfall. Reference box: x 0.44 to 0.77, y 0.40 to 0.82.",
+            "Landmark 4: the central lake surface. Reference box: x 0.54 to 0.74, y 0.41 to 0.51.",
+            "Landmark 5: the hero spire tower cluster. Reference box: x 0.53 to 0.73, y 0.00 to 0.40.",
+            "Landmark 6: the ground city and river in the cloud gap. Reference box: x 0.28 to 0.56, y 0.55 to 0.92.",
+            "Landmark 7: the lower right lamp bridge. Reference box: x 0.71 to 0.92, y 0.80 to 0.90.",
+            "Landmark 8: the right cliff with torii and waterfall. Reference box: x 0.87 to 1.00, y 0.33 to 0.67.",
+            "Landmark 9: the Milky Way band. Reference box: x 0.28 to 0.58, y 0.00 to 0.16.",
+            "Landmark 10: the distant islands with waterfalls, upper left of centre. Reference box: x 0.18 to 0.46, y 0.14 to 0.36.",
+            "Find the visual centre of each landmark in the render. It passes when that centre lies inside its reference box expanded by 0.05 on every side.",
+            "Record one row per landmark with the measured centre in pixels, the fractional position and the pass or fail result.",
+            "Count the passing items. Award 1 point per passing item. This count defines every intermediate score.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/final.png at 3840x2160 from Cam_Reference.",
+            "The reference image.",
+            "A ten-row landmark table with measured pixel centres."
+          ],
+          "anchors": {
+            "0": "No landmark passes.",
+            "4": "At least four of the ten landmarks pass.",
+            "6": "At least six of the ten landmarks pass.",
+            "8": "At least eight of the ten landmarks pass.",
+            "10": "All ten landmarks pass."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "light-colour",
+          "label": "Lighting and colour",
+          "weight": 35,
+          "question": "Does the render reproduce the reference's warm-against-cool night lighting?",
+          "procedure": [
+            "Inspect renders/final.png and the six crops in renders/compare.png. Sample pixels with an image tool where a condition names a hue.",
+            "Condition 1: The brightest large areas are lamplit surfaces and the city glow in the cloud gap, not the sky.",
+            "Condition 2: Five sampled pixels on lamps, windows or city lights fall in hue 15 to 55 degrees, and five sampled pixels in cloud shadow or open sky fall in hue 210 to 290 degrees.",
+            "Condition 3: Lanterns, bridge lamps and windows cast visible light pools on nearby surfaces in all three of these crops: terrace, lamp bridge, central island.",
+            "Condition 4: The wet terrace floor reflects the lanterns, and the lake reflects the tower lights.",
+            "Condition 5: Red aircraft lights show on the tops of at least five towers, and the flying craft carry lights.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/final.png at 3840x2160 from Cam_Reference.",
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "atmosphere",
+          "label": "Atmosphere and depth",
+          "weight": 25,
+          "question": "Does the air between objects read as deep, wet and cloudy, as in the reference?",
+          "procedure": [
+            "Inspect renders/final.png and the crops of the distant islands and the cloud gap.",
+            "Condition 1: Four depth planes (foreground terrace, central island, tower cluster, far islands) step down in contrast and shift toward blue with distance.",
+            "Condition 2: Clouds have lit tops and shaded undersides with volume, not a flat uniform haze.",
+            "Condition 3: Mist at the base of each foreground and midground waterfall blends the falling water into the clouds.",
+            "Condition 4: Rain streaks show over dark areas and do not hide any landmark.",
+            "Condition 5: Stars fill the clear sky and a coloured Milky Way band crosses the top of the frame.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/final.png at 3840x2160 from Cam_Reference.",
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        }
+      ]
+    },
+    {
+      "id": "surface-fidelity",
+      "label": "Natural and prop detail",
+      "weight": 30,
+      "criteria": [
+        {
+          "id": "rock",
+          "label": "Rock and cliffs",
+          "weight": 30,
+          "question": "Do the cliffs read as detailed rock at 100% crop?",
+          "procedure": [
+            "Inspect the foreground terrace crop and the central waterfall lip crop at 100% scale.",
+            "Condition 1: Silhouettes and shading show no straight polygon segments or flat-shaded facets where the reference shows curves.",
+            "Condition 2: Vertical columns or fractures divide the cliff faces.",
+            "Condition 3: Horizontal ledges or strata break up the columns.",
+            "Condition 4: Moss, grass or plants grow on the ledges and along the island lips.",
+            "Condition 5: Island undersides overhang and taper, with hanging spikes, roots or debris.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "vegetation",
+          "label": "Trees and plants",
+          "weight": 25,
+          "question": "Do trees read as real trees, not blobs?",
+          "procedure": [
+            "Inspect the terrace and central island crops at 100% scale.",
+            "Condition 1: At least three tree species with different silhouettes appear, one of them sakura.",
+            "Condition 2: The foreground trees show visible branches and trunks.",
+            "Condition 3: Leaf masses break into separate clumps with gaps, not single smooth shapes.",
+            "Condition 4: Sakura blossom shows pink clusters with internal breakup.",
+            "Condition 5: Trees vary in size and grow along cliff edges, the terrace and the lake shore.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "water",
+          "label": "Lake and waterfalls",
+          "weight": 25,
+          "question": "Does the water match the reference's lake and waterfall?",
+          "procedure": [
+            "Inspect the central waterfall lip crop and renders/final.png.",
+            "Condition 1: The central waterfall falls as several separate strands with gaps between them.",
+            "Condition 2: Each strand shows vertical streak detail and widens or fades as it falls.",
+            "Condition 3: White water or foam shows at the lip where the lake spills over.",
+            "Condition 4: The falls connect without a seam to the lake surface at the lip.",
+            "Condition 5: The lake surface shows ripples and reflected lights.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/final.png at 3840x2160 from Cam_Reference.",
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "props",
+          "label": "Shrines, lanterns, railings and bridges",
+          "weight": 20,
+          "question": "Are the man-made props built at the reference's level of detail?",
+          "procedure": [
+            "Inspect the terrace and lamp bridge crops at 100% scale, and use scene_report.json to confirm object parts.",
+            "Condition 1: Each torii has two pillars, an upper beam with upturned ends and a lower tie beam.",
+            "Condition 2: Each stone lantern has a base, a post, a glowing firebox and a roof.",
+            "Condition 3: The railing has separate posts and a top rail.",
+            "Condition 4: The stairs have individual treads.",
+            "Condition 5: The bridges have arches or piers and lamp posts along the deck.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "scene_report.json exported from the built scene: collections, object names, dimensions, materials and modifiers.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "label": "Architecture",
+      "weight": 30,
+      "criteria": [
+        {
+          "id": "variety",
+          "label": "Varied tower architecture",
+          "weight": 30,
+          "question": "How many of the ten tallest hero towers have their own architecture?",
+          "procedure": [
+            "In renders/final.png, select the ten tallest towers in the hero cluster. Number them left to right.",
+            "For each tower, record its massing (for example slab, setback tiers, cylinder, twin shafts), its facade (for example ribbed stone, curtain glass, window grid, banded) and its crown (for example spire, lantern top, flat with plant, stepped).",
+            "A tower passes when no other tower in the ten shares two or more of its three attributes.",
+            "Record one row per tower with its crop location, the three attributes and the pass or fail result.",
+            "Count the passing items. Award 1 point per passing item. This count defines every intermediate score.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/final.png at 3840x2160 from Cam_Reference.",
+            "A ten-row tower table with attributes and crop locations."
+          ],
+          "anchors": {
+            "0": "No tower passes.",
+            "4": "At least four of the ten towers pass.",
+            "6": "At least six of the ten towers pass.",
+            "8": "At least eight of the ten towers pass.",
+            "10": "All ten towers pass."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "facade",
+          "label": "Facade detail",
+          "weight": 30,
+          "question": "Do tower facades carry real architectural detail at 100% crop?",
+          "procedure": [
+            "Inspect the hero tower crop at 100% scale and the matching objects in scene_report.json.",
+            "Condition 1: Windows have frames or mullions that cast shadow lines, so they read as recessed.",
+            "Condition 2: Floor bands or spandrels separate the storeys.",
+            "Condition 3: Towers step back in tiers or change section as they rise.",
+            "Condition 4: Crowns carry detail: a spire, a lantern top, finials or a ribbed cap.",
+            "Condition 5: Facades carry fixtures: antennas, aircraft lights, signs or balconies.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+            "scene_report.json exported from the built scene: collections, object names, dimensions, materials and modifiers.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        },
+        {
+          "id": "home",
+          "label": "The user's home building, outside and inside",
+          "weight": 40,
+          "question": "Is the home building ready for the user to style its interior?",
+          "procedure": [
+            "Inspect renders/final.png, renders/home_interior.png and scene_report.json.",
+            "Item 1: the home tower stands on the left foreground cliff.",
+            "Item 2: the home tower is shorter than every tower in the hero cluster.",
+            "Item 3: its exterior has an architecture of its own, with balconies, frames or a distinct crown, and lit windows.",
+            "Item 4: a Home_Interior collection exists, and its objects belong to the home tower.",
+            "Item 5: the interior has floor slabs, a ceiling and walls with real thickness.",
+            "Item 6: the window glass is a separate object with thickness, set in frames.",
+            "Item 7: one corner room has window walls on two sides.",
+            "Item 8: the corner room's floor-to-ceiling height lies between 2.4 m and 3.2 m, measured in scene_report.json.",
+            "Item 9: renders/home_interior.png comes from Cam_Home inside the corner room and shows the city through the glass.",
+            "Item 10: the room has at least one interior light, and holds no furniture or placeholder objects, so it is ready to furnish.",
+            "Record one row per item with the evidence location and the pass or fail result.",
+            "Count the passing items. Award 1 point per passing item. This count defines every intermediate score.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "renders/final.png at 3840x2160 from Cam_Reference.",
+            "renders/home_interior.png from Cam_Home.",
+            "scene_report.json exported from the built scene: collections, object names, dimensions, materials and modifiers.",
+            "A ten-row item table with evidence locations."
+          ],
+          "anchors": {
+            "0": "No item passes.",
+            "4": "At least four of the ten items pass.",
+            "6": "At least six of the ten items pass.",
+            "8": "At least eight of the ten items pass.",
+            "10": "All ten items pass."
+          },
+          "minimum_score": 8
+        }
+      ]
+    },
+    {
+      "id": "editability",
+      "label": "Scene structure for later tweaks",
+      "weight": 10,
+      "criteria": [
+        {
+          "id": "structure",
+          "label": "Organised, adjustable scene",
+          "weight": 100,
+          "question": "Can the user find and tweak each part of the scene without reading all of build.py?",
+          "procedure": [
+            "Inspect build.py and scene_report.json.",
+            "Condition 1: Each major part (terrace, central island, hero towers, distant islands, bridges, ground city, sky and clouds, home building) has its own collection.",
+            "Condition 2: Object names say what the object is. No object keeps a default name such as Cube.001.",
+            "Condition 3: Materials are shared by role and named by role, for example Rock, Tower_Glass, Lantern.",
+            "Condition 4: build.py exposes the seed, the world scale and the main counts as named constants near the top of the file.",
+            "Condition 5: checklist.md records the build time and the render time of the reviewed version.",
+            "Record one row per condition with the file, crop or pixel location, and a met or unmet result.",
+            "Count the met conditions. Award 2 points per met condition, so the only allowed scores are 0, 2, 4, 6, 8 and 10. Do not award odd scores.",
+            "If a required file is missing or unreadable, report null and name the missing evidence. Do not score it as a failure."
+          ],
+          "evidence_required": [
+            "build.py.",
+            "scene_report.json exported from the built scene: collections, object names, dimensions, materials and modifiers.",
+            "checklist.md.",
+            "A five-row condition table with locations and results."
+          ],
+          "anchors": {
+            "0": "No condition is met.",
+            "4": "At least two of the five conditions are met.",
+            "6": "At least three of the five conditions are met.",
+            "8": "At least four of the five conditions are met.",
+            "10": "All five conditions are met."
+          },
+          "minimum_score": null
+        }
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "artifacts",
+      "label": "Required artifacts exist and open",
+      "procedure": [
+        "Open each required file: renders/final.png, renders/compare.png, renders/home_interior.png, checklist.md, credits.md, build.py and scene_report.json.",
+        "Pass only when every file opens and renders/final.png measures exactly 3840x2160."
+      ],
+      "evidence_required": [
+        "A file list with each path, its open result and the pixel size of renders/final.png."
+      ]
+    },
+    {
+      "id": "elements",
+      "label": "Every reference element is present",
+      "procedure": [
+        "Check each element in renders/final.png. Use the crops and scene_report.json where an element is small.",
+        "Element 1: Foreground cliff terrace on the left.",
+        "Element 2: Shrine building on the terrace.",
+        "Element 3: Red torii on the terrace.",
+        "Element 4: Lit stone lanterns.",
+        "Element 5: Stairs.",
+        "Element 6: Wooden railing.",
+        "Element 7: Wet reflective terrace floor.",
+        "Element 8: Central floating island with a lake.",
+        "Element 9: Multi-strand waterfall from the island lip.",
+        "Element 10: Trees and sakura on the central island.",
+        "Element 11: Small shrine buildings and torii on the central island.",
+        "Element 12: Dark spire tower cluster behind the central island.",
+        "Element 13: At least 24 distant floating islands with towers, some with waterfalls.",
+        "Element 14: Arched bridges with lamps.",
+        "Element 15: Ground city with a river and lights, seen through a cloud gap.",
+        "Element 16: Volumetric clouds.",
+        "Element 17: Mist below the waterfalls.",
+        "Element 18: Stars and a Milky Way band.",
+        "Element 19: Rain streaks.",
+        "Element 20: Red aircraft lights on tower tops.",
+        "Element 21: Small flying craft.",
+        "Element 22: The user's home tower on the left foreground cliff.",
+        "Pass only when all 22 elements are visible in the render."
+      ],
+      "evidence_required": [
+        "renders/final.png at 3840x2160 from Cam_Reference.",
+        "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+        "scene_report.json exported from the built scene: collections, object names, dimensions, materials and modifiers.",
+        "A 22-row table with the location of each element in the render."
+      ]
+    },
+    {
+      "id": "no-faceting",
+      "label": "No low-poly faceting in the foreground and midground",
+      "procedure": [
+        "Inspect the six crops in renders/compare.png at 100% scale.",
+        "Fail when any foreground or midground silhouette or shading shows straight polygon segments or flat-shaded facets where the subject is curved."
+      ],
+      "evidence_required": [
+        "renders/compare.png with the reference beside the render and the six matched 100% crops.",
+        "A result per crop, with the location of any facet found."
+      ]
+    },
+    {
+      "id": "rebuild",
+      "label": "The scene rebuilds from an empty file",
+      "procedure": [
+        "Run build.py in a new empty Blender 5.2 file.",
+        "Pass only when it completes without error and produces a scene whose Cam_Reference render matches renders/final.png in composition and elements."
+      ],
+      "evidence_required": [
+        "The run log of build.py from an empty file.",
+        "The rebuilt render, or a recorded comparison against renders/final.png."
+      ]
+    },
+    {
+      "id": "licensing",
+      "label": "Assets are CC0 and credited",
+      "procedure": [
+        "Compare every external file that build.py loads with credits.md.",
+        "Pass only when each external asset comes from Poly Haven or ambientCG under CC0, and credits.md lists it with its source URL."
+      ],
+      "evidence_required": [
+        "The list of external files that build.py loads.",
+        "credits.md."
+      ]
+    },
+    {
+      "id": "scope",
+      "label": "Work stayed in scope",
+      "procedure": [
+        "Run git status and git log in the repository.",
+        "Pass only when changes are limited to scenes/sky-archipelago/, nothing under src/ changed, and no new commit exists."
+      ],
+      "evidence_required": [
+        "git status output.",
+        "git log output for the most recent commits."
+      ]
+    }
+  ]
+}

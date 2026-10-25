@@ -1,0 +1,19 @@
+{
+  "A": {
+    "scene": "SS_Study_A_Cinematic",
+    "objects": 45,
+    "base_mesh_faces": 56249
+  },
+  "B": {
+    "scene": "SS_Study_B_LowPoly",
+    "objects": 45,
+    "base_mesh_faces": 40221
+  },
+  "path": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\sanctuary-style-studies\\sanctuary_style_studies.blend",
+  "build_seconds": 9.73,
+  "cameras": [
+    "SS_Camera_Overview",
+    "SS_Camera_Workshop"
+  ],
+  "external_assets": []
+}

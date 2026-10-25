@@ -1,0 +1,12 @@
+{
+  "run_id": "sky-archipelago-recreation",
+  "status": "superseded",
+  "started_at_utc": "2026-10-22T13:10:30Z",
+  "config_hash": "6959251e6dc108088447ddf7e1b22f68fc893e0a0fcbadf12b7ab9a8dbb25aa9",
+  "rubric_hash": "a38e066a8879a29f4f8cb86037a5445e139599a04dc41b4a1f6fd661906c0226",
+  "rounds_consumed": 0,
+  "best_round": null,
+  "rounds": [],
+  "superseded_by": "sky-archipelago-recreation-v2",
+  "note": "No round was reviewed under v1. The user replaced the rubric with v2 (watercolour toon, no stars or rain)."
+}

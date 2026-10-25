@@ -51,6 +51,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const clock = new THREE.Clock(false)
     let seconds = 0
     let ambient = 0
+    let ambientFps = AMBIENT_FPS
     let tierIndex = tier ?? startTier(small)
     let pipeline = null
     let submits = []
@@ -107,7 +108,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         seconds += delta
         ambient += delta
         rig.update(delta)
-        const tickAmbient = ambient >= 1 / AMBIENT_FPS
+        const tickAmbient = ambientFps > 0 && ambient >= 1 / ambientFps
         if (!rig.moving && !state.dirty && !tickAmbient) return
         if (tickAmbient) {
             parts.city?.update(seconds)
@@ -239,6 +240,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         goTo: (id, { duration = 1.6 } = {}) => {
             rig.goTo(id, state.reduced ? 0 : duration)
             requestRender()
+        },
+        // 0 stops the ambient clock: frames then draw only for camera moves and requests.
+        setAmbientFps: (fps) => {
+            ambientFps = fps
+            ambient = 0
         },
         setQuality: (index) => buildPipeline(THREE.MathUtils.clamp(index, 0, TIERS.length - 1)),
         setReducedMotion: (value) => {

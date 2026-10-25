@@ -1,4 +1,5 @@
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useWaypoints } from './useWaypoints.js'
 
 // One import for the whole visit. The module builds the scene when it first
@@ -14,14 +15,20 @@ const whenIdle = (callback) =>
     'requestIdleCallback' in window ? requestIdleCallback(callback, { timeout: 1500 }) : setTimeout(callback, 200)
 
 // App.vue calls this once. The scene loads after the first paint on every
-// route, so a direct visit to any page gets the island. A route change does
-// not pause it. src/three.js pauses on its own for a hidden tab, a lost
+// route, so a direct visit to any page gets the island at that page's room.
+// A route change does not pause it. src/three.js pauses on its own for a hidden tab, a lost
 // context and reduced motion.
 export function useScene() {
+    const route = useRoute()
     onMounted(() => {
         whenIdle(() => {
             loadScene()
-                .then((module) => module.resume())
+                .then((module) => {
+                    module.setRoute(route.name, { cut: true })
+                    module.resume()
+                    // A route change is a camera move to that route's room.
+                    watch(() => route.name, (name) => module.setRoute(name))
+                })
                 .catch((error) => {
                     // A failed chunk must not lock the gate. The visitor gets
                     // the pages without the island.

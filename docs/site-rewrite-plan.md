@@ -66,10 +66,14 @@ Every push to master deploys. Each phase must ship on its own.
 - Render on demand with a dirty flag.
 - A quality tier object.
 
+Status, 25 October 2026: done. `src/scene/scene-manager.js` holds the API, `src/three.js` is the Vue bridge, `src/data/stops.js` keys the stops by Blender camera name, and `src/data/waypoints.js` maps each Home section to a stop. The loop renders on demand with a 30 fps ambient clock on Home and none on text pages.
+
 **Phase 4: new island swap.**
 - Load `island_b.glb` or the lite file by tier, with one shared flat toon material and a fixed light set.
 - Remove the dodecahedron, campfire, triplanar terrain, tree growth and skill badges from the import graph. The files stay in the tree as era record.
 - Point the stops at the pad, workshop, telescope and bedroom anchors.
+
+Status, 25 October 2026: done. The site loads `island_b.glb` (or the lite file on a phone) with the watercolour look from `src/scene/aerie/`. The era scene code, `island.glb`, the dodecahedron faces, the terrain textures and other unused images are deleted. The campfire is a new prop on the lawn.
 
 **Phase 5: rooms carry the story.**
 - Sky-taxi arrival.

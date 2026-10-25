@@ -3,7 +3,7 @@
         <Name v-if="showGate" @lifted="showGate = false" />
         <div ref="blob" class="blob" :class="{ shown: blobShown }" aria-hidden="true"></div>
         <div id="home" class="w-screen flex flex-col items-center justify-between" :style="{ visibility: entered ? 'visible' : 'hidden' }">
-            <section class="snap-section dodecahedron hero relative h-svh w-full">
+            <section class="snap-section welcome hero relative h-svh w-full">
                 <h1 class="sr-only">Jovian Lim, software engineer in Singapore</h1>
 
                 <div class="hero-inner">
@@ -175,7 +175,7 @@ body {
 
 /*
  * The plants_in_space title: one word top left, one bottom right. The two
- * words frame the portal and the dodecahedron instead of sitting on them.
+ * words frame the island instead of sitting on it.
  */
 .hero-inner {
     position: relative;

@@ -14,7 +14,7 @@ const onHome = computed(() => route.name === 'Home')
 const shown = computed(() => entered.value || (route.name && !onHome.value))
 
 // plants_in_space had two links on each side. Skills is the middle stop of
-// the five, so it takes the middle, under the dodecahedron mark.
+// the five, so it takes the middle, under the mark.
 const items = ['Welcome', 'About', 'Skills', 'Projects', 'Contact']
 const left = [0, 1]
 const right = [3, 4]

@@ -17,13 +17,13 @@ const SCENE_SOURCE = 'src/three.js'
 // Baseline on 25 Oct 2026, before Phase 2: one 290 kB entry with three inside.
 // After Phase 2 the shell is 108 kB. gsap is 49 kB of it, because Home needs
 // ScrollTrigger and ScrambleText at once. The plan target is 100 kB.
-// The model limit fits the old island. Phase 4 drops it to 1.5 MB.
+// Phase 4 swapped in island_b.glb (0.90 MB), so the model limit is the plan's 1.5 MB.
 const LIMITS = {
     shellJs: 110_000,
     sceneJs: 200_000,
     lazyChunk: 8_000,
     shellCss: 8_000,
-    model: 2_400_000,
+    model: 1_500_000,
 }
 
 const gzipSize = (file) => gzipSync(readFileSync(join(DIST, file)), { level: 9 }).length

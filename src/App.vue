@@ -16,24 +16,26 @@ const route = useRoute()
 const { ready } = useWaypoints()
 useScene()
 
-// The scene only shows on the home page, once it has loaded.
-const showScene = computed(() => ready.value && route.name === 'Home')
+// The scene shows on every route once it has loaded. A route change moves the camera to
+// that route's room. Pages full of text dim it, so the words stay readable.
+const PAGE_DIM = 0.32
+const opacity = computed(() => {
+    if (!ready.value) return 0
+    return route.name === 'Home' ? 1 : PAGE_DIM
+})
 
-watch(
-    showScene,
-    (visible) => {
-        const canvas = document.getElementById('webgl')
-        if (!canvas) return
-        if (visible) canvas.style.visibility = 'visible'
-        gsap.to(canvas, {
-            opacity: visible ? 1 : 0,
-            duration: 0.6,
-            onComplete: () => {
-                if (!visible) canvas.style.visibility = 'hidden'
-            },
-        })
-    }
-)
+watch(opacity, (value) => {
+    const canvas = document.getElementById('webgl')
+    if (!canvas) return
+    if (value > 0) canvas.style.visibility = 'visible'
+    gsap.to(canvas, {
+        opacity: value,
+        duration: 0.6,
+        onComplete: () => {
+            if (value === 0) canvas.style.visibility = 'hidden'
+        },
+    })
+})
 </script>
 
 <style>

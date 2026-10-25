@@ -82,6 +82,8 @@ Status, 25 October 2026: done. The site loads `island_b.glb` (or the lite file o
 - Bedroom stop with the rainy-window reveal.
 - A DOM equivalent for every room.
 
+Status, 25 October 2026: first pass done. The gate lift flies a sky-taxi onto the pad. Cards from `projects.js` pin onto the corkboard (found by `Anchor_Corkboard`, or by a ray from `Cam_02_Workshop`). The Skills card opens the telescope: the canvas closes to a circle, swaps to the skill sky from `skills.js`, and opens again, and `/skills` sits over the same sky. Rain runs down the glass on the move into the bedroom. Every room keeps its DOM section or page. All parts build at startup and compile with `compileAsync`, and the scene has no lights that appear later.
+
 **Phase 6: watercolour look and quality ladder.**
 - One composite pass replaces `OutputPass`: tone mapping, Sobel edge darkening, paper grain, pigment pooling and a screen-UV wobble.
 - Bloom on the desktop tier only.

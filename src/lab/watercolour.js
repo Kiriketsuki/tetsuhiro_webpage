@@ -231,7 +231,12 @@ async function start() {
         })
     }
     // The lab exposes its parts for console checks.
-    window.lab = { renderer, scene, camera, look, city, glow, stats, setTier, applyPreset, presets }
+    window.lab = {
+        renderer, scene, camera, look, city, glow, stats, setTier, applyPreset, presets, requestRender,
+        get pipeline() {
+            return pipeline
+        },
+    }
 }
 
 start().catch((error) => {

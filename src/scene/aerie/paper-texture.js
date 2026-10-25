@@ -4,7 +4,7 @@ import * as THREE from 'three'
 // downloads no image for it. The pass reads each channel at its own scale:
 //   R: paper grain, a few octaves of fine noise.
 //   G, B: a slow 2D field for the screen-UV wobble.
-//   A: a mid-size field for the pigment pools in dark areas.
+//   A: a mid-size field, unused for now.
 const SIZE = 256
 
 // Integer hash to 0..1. Wrapping the lattice coordinates by the period makes the noise tile.

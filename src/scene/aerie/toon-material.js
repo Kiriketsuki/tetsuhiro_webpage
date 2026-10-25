@@ -49,6 +49,8 @@ export function createToonUniforms({ moonDirection, bounces = [], warmStrength =
         uToonWarm: { value: NIGHT.warm.clone().multiplyScalar(warmStrength) },
         uToonBounce: { value: spots },
         uToonSaturation: { value: 0.78 },
+        uToonPool: { value: 0.3 },
+        uToonPoolScale: { value: 0.32 },
     }
 }
 
@@ -70,6 +72,27 @@ uniform vec3 uToonGround;
 uniform vec3 uToonWarm;
 uniform vec4 uToonBounce[ ${TOON_BOUNCES} ];
 uniform float uToonSaturation;
+uniform float uToonPool;
+uniform float uToonPoolScale;
+
+// Value noise in world space for the pigment pools. It moves with the island, so it reads as
+// paint on the surface. One blotch spans a few metres, far wider than a facet, so each facet
+// still reads as one tone.
+float toonHash( vec3 p ) {
+    p = fract( p * 0.3183099 + 0.1 );
+    p *= 17.0;
+    return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) );
+}
+float toonNoise( vec3 x ) {
+    vec3 i = floor( x );
+    vec3 f = x - i;
+    f = f * f * ( 3.0 - 2.0 * f );
+    return mix(
+        mix( mix( toonHash( i ), toonHash( i + vec3( 1, 0, 0 ) ), f.x ),
+             mix( toonHash( i + vec3( 0, 1, 0 ) ), toonHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
+        mix( mix( toonHash( i + vec3( 0, 0, 1 ) ), toonHash( i + vec3( 1, 0, 1 ) ), f.x ),
+             mix( toonHash( i + vec3( 0, 1, 1 ) ), toonHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ), f.z );
+}
 `
 
 // The normal is in view space. Multiplying by viewMatrix from the left side applies the
@@ -88,6 +111,9 @@ for ( int i = 0; i < ${TOON_BOUNCES}; i ++ ) {
 toonLight += uToonWarm * toonWarm;
 // Night mutes the baked colours a little. This acts on the smooth colour field, never per face.
 vec3 toonAlbedo = mix( vec3( dot( diffuseColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) ) ), diffuseColor.rgb, uToonSaturation );
+// Pigment pools gather in the shadow steps: some patches deepen and others lift.
+float toonPool = toonNoise( vToonWorld * uToonPoolScale ) - 0.5;
+toonAlbedo *= 1.0 - uToonPool * ( 1.0 - toonStep ) * toonPool * 2.0;
 reflectedLight.indirectDiffuse += toonAlbedo * toonLight;
 `
 

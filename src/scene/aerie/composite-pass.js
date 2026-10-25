@@ -6,8 +6,11 @@ import { createPaperTexture } from './paper-texture.js'
 // the sRGB step. There is no bloom on any tier. Lights glow through emissive colour and
 // glow sprites before this pass.
 //
-// Texture fetches per pixel: 1 wobble field, 1 centre colour, 8 Sobel neighbours,
-// 1 pigment field and 1 paper grain. That is 12.
+// Texture fetches per pixel: 1 wobble field, 1 centre colour, 8 Sobel neighbours and
+// 1 paper grain. That is 11.
+//
+// The pigment pools live in the toon material, in world space. In screen space they read
+// as a texture laid over the whole frame, because they stayed put while the scene moved.
 
 export const LOOK = {
     exposure: 1.15,
@@ -18,11 +21,10 @@ export const LOOK = {
     edgeLow: 0.025,
     edgeHigh: 0.2,
     edgeTint: new THREE.Color(0.38, 0.4, 0.55),
-    // Paper grain multiply, and the size of one grain texel in CSS pixels.
-    grain: 0.22,
+    // Paper grain multiply, and the size of one grain texel in CSS pixels. The grain shows
+    // only where there is paint, so the dark sky and haze stay clean.
+    grain: 0.1,
     grainScale: 1.2,
-    // Low-frequency pigment pools in the darker areas.
-    pool: 0.45,
     vignette: 0.38,
 }
 
@@ -52,7 +54,6 @@ uniform vec2 uEdgeRange;
 uniform vec3 uEdgeTint;
 uniform float uGrain;
 uniform float uGrainScale;
-uniform float uPool;
 uniform float uVignette;
 varying vec2 vUv;
 
@@ -94,16 +95,11 @@ void main() {
     vec3 color = NeutralToneMapping( hdr );
     float value = dot( color, vec3( 0.2126, 0.7152, 0.0722 ) );
 
-    // Pigment pools: in dark areas a slow field deepens some patches and lifts others.
-    float pool = texture2D( tPaper, paper * 2.3 ).a;
-    float dark = 1.0 - smoothstep( 0.06, 0.5, value );
-    color *= 1.0 - uPool * dark * ( pool - 0.42 ) * 2.0;
-
     color *= mix( vec3( 1.0 ), uEdgeTint, edge * uEdge );
 
     // Paper grain stays fixed to the screen, like the sheet under the paint.
     float grain = texture2D( tPaper, gl_FragCoord.xy / ( 256.0 * uGrainScale * uPixelRatio ) ).r;
-    color *= 1.0 + uGrain * ( grain - 0.55 );
+    color *= 1.0 + uGrain * smoothstep( 0.04, 0.3, value ) * ( grain - 0.55 );
 
     vec2 centred = ( vUv - 0.5 ) * uAspect / uAspect.x;
     color *= 1.0 - uVignette * smoothstep( 0.08, 0.42, dot( centred, centred ) );
@@ -129,7 +125,6 @@ export class WatercolourPass extends Pass {
             uEdgeTint: { value: look.edgeTint.clone() },
             uGrain: { value: look.grain },
             uGrainScale: { value: look.grainScale },
-            uPool: { value: look.pool },
             uVignette: { value: look.vignette },
         }
         this.material = new THREE.RawShaderMaterial({

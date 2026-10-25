@@ -1,0 +1,574 @@
+{
+  "scene": "Island_B_Rolling_Rim",
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_rolling_rim.blend",
+  "work_copy": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_web_export.blend",
+  "web_scene": "Island_B_Web",
+  "dropped_objects": [
+    {
+      "object": "LP_SS_City_Ground_and_Roads",
+      "tris": 984
+    },
+    {
+      "object": "LP_SS_City_River",
+      "tris": 356
+    },
+    {
+      "object": "LP_SS_Distant_City_Fine_Blocks",
+      "tris": 163752
+    },
+    {
+      "object": "NA_LP_SS_Atmospheric_Depth",
+      "tris": 12
+    },
+    {
+      "object": "NA_LP_SS_Cloud_Banks",
+      "tris": 3120
+    },
+    {
+      "object": "NA_LP_SS_Far_Ground_Extension",
+      "tris": 12
+    },
+    {
+      "object": "NA_LP_SS_Sanctuary_Cloud_Sea",
+      "tris": 2480
+    }
+  ],
+  "dropped_tris": 170716,
+  "waterfall_faces_removed": 464,
+  "buried_leaf_faces_removed": 3944,
+  "desktop_thinned_faces": 20344,
+  "baked_materials": 72,
+  "material_map": {
+    "PT_LP_SS_A_glass": "glass_clear",
+    "PT_LP_SS_A_stone": "rock",
+    "PT_LP_SS_A_roof_edge": "roof",
+    "PT_LP_SS_A_wood_light": "wood",
+    "PT_LP_SS_A_paper": "soft_goods",
+    "PT_LP_SS_A_metal": "metal_dark",
+    "PT_LP_SS_A_screen": "emit_screen",
+    "PT_LP_SS_A_leaf": "plants",
+    "PT_LP_SS_A_warm": "emit_warm",
+    "PT_SS_UA_Muted_Teal_Linen": "soft_goods",
+    "PT_LP_SS_A_wood": "wood",
+    "PT_LP_SS_A_plaster": "plaster",
+    "LP_SS_A_roof_edge": "roof",
+    "LP_SS_A_wood_light": "wood",
+    "LP_SS_A_wood": "wood",
+    "LP_SS_A_metal": "metal_dark",
+    "LP_SS_A_warm": "emit_warm",
+    "RA_Clear_Weather_Glazing": "glass_clear",
+    "LP_SS_A_stone": "rock",
+    "GE_Low_Glass_Clear": "glass_clear",
+    "GE_Glass_Polished_Edge": "glass_edge",
+    "LP_SS_A_plaster": "plaster",
+    "LP_SS_A_glass": "glass_clear",
+    "PT_LP_SS_A_rock_light": "rock",
+    "PT_LP_SS_A_moss": "grass",
+    "SS_RF_Faceted_Water_0.011": "water",
+    "SS_RF_Faceted_Water_1.011": "water",
+    "SS_RF_Faceted_Water_2.011": "water",
+    "SS_RF_Faceted_Water_3.011": "water",
+    "SS_PT_Warm_Wear_Marks": "dark_matte",
+    "SS_PT_Lily_Pad": "plants",
+    "SS_PT_Lily_Pad_Edge": "plants",
+    "SS_PT_Waterline_Stone": "rock",
+    "SS_PT_Bank_Moss": "grass",
+    "SS_PT_Reed_Leaf": "plants",
+    "SS_PT_Reed_Seed": "plants",
+    "Trees_Bark_0": "bark",
+    "Trees_Bark_1": "bark",
+    "Trees_Bark_2": "bark",
+    "NA_Crown_Gradient": "crown",
+    "LP_SS_A_leaf": "plants",
+    "LP_SS_A_leaf_dark": "plants",
+    "PT_LP_SS_A_fern": "plants",
+    "PT_LP_SS_A_grass": "grass",
+    "PT_LP_SS_A_leaf_light": "plants",
+    "PT_LP_SS_A_leaf_dark": "plants",
+    "PT_SS_SH_Flower_Rose": "flowers",
+    "PT_SS_SH_Flower_Lavender": "flowers",
+    "PT_SS_SH_Flower_Butter": "flowers",
+    "PT_SS_SH_Flower_Cream": "flowers",
+    "B4_Faceted_LP_SS_A_grass.001": "grass",
+    "NA_B2_Unbanded_Stone_1.003": "rock",
+    "NA_B2_Unbanded_Stone_2.003": "rock",
+    "NA_B2_Unbanded_Stone_3.003": "rock",
+    "B4_Faceted_JG_Faceted_Grass_Dusk.001": "grass",
+    "B4_Faceted_JG_Faceted_Grass_Light.001": "grass",
+    "NA_B4_Faceted_SS_JG_Exposed_Soil_0.001": "soil",
+    "NA_B4_Faceted_SS_JG_Exposed_Soil_1.001": "soil",
+    "NA_B4_Faceted_SS_JG_Exposed_Soil_2.001": "soil",
+    "SS_DR_Sage_Linen": "soft_goods",
+    "SS_DR_Warm_Ceramic": "soft_goods",
+    "SS_NA_Rug_Terracotta": "soft_goods",
+    "NA_Path_Flagstone": "flagstone",
+    "SS_NA_Path_Joint_Bed": "dark_matte",
+    "SS_NA_Pad_Deck.001": "dark_matte",
+    "SS_NA_Pad_Paint.001": "soft_goods",
+    "SS_NA_Pad_Light_White.001": "emit_pad_white",
+    "SS_NA_Pad_Light_Red.001": "emit_pad_red",
+    "SS_NA_Windsock_Orange.001": "soft_goods",
+    "SS_NA_Cork": "soft_goods",
+    "SS_NA_Pin_Red": "soft_goods",
+    "SS_NA_Card_Sage": "soft_goods",
+    "SS_NA_Card_Sky": "soft_goods",
+    "SS_NA_Card_Butter": "soft_goods",
+    "SS_RR_Hanging_Roots": "bark",
+    "SS_TL_Brushed_Steel": "metal_bright",
+    "SS_TL_Charcoal": "dark_matte",
+    "SS_TL_Ember": "emit_ember",
+    "SS_TL_Chart_Navy": "dark_matte",
+    "SS_TL_Chart_Ink": "soft_goods",
+    "SS_TL_Red_Reading_Light": "emit_ember",
+    "SS_TL_Chalk_Enamel": "metal_bright",
+    "SS_TL_Lens": "metal_bright",
+    "SS_TL_Aged_Brass": "metal_bright"
+  },
+  "source_materials": 84,
+  "web_materials": [
+    "web_bark",
+    "web_crown",
+    "web_dark_matte",
+    "web_emit_ember",
+    "web_emit_pad_red",
+    "web_emit_pad_white",
+    "web_emit_screen",
+    "web_emit_warm",
+    "web_flagstone",
+    "web_flowers",
+    "web_glass_clear",
+    "web_glass_edge",
+    "web_grass",
+    "web_metal_bright",
+    "web_metal_dark",
+    "web_plants",
+    "web_plaster",
+    "web_rock",
+    "web_roof",
+    "web_soft_goods",
+    "web_soil",
+    "web_water",
+    "web_wood"
+  ],
+  "cameras": {
+    "Cam_01_Hero": {
+      "from": "NA_Hero_Wide",
+      "location": [
+        62.0,
+        -70.0,
+        22.0
+      ],
+      "lens": 40.0
+    },
+    "Cam_02_Workshop": {
+      "from": "NA_Corkboard_Close",
+      "location": [
+        -3.9,
+        -3.2,
+        2.4
+      ],
+      "lens": 40.0
+    },
+    "Cam_03_Telescope": {
+      "from": "TL_Astronomy_Close",
+      "location": [
+        -10.8,
+        0.57,
+        10.29
+      ],
+      "lens": 50.0
+    },
+    "Cam_04_Bedroom": {
+      "from": "NA_Bedroom_Close",
+      "location": [
+        -1.2,
+        -4.6,
+        9.3
+      ],
+      "lens": 38.0
+    },
+    "Cam_05_Pad": {
+      "from": "NA_Pad_Close",
+      "location": [
+        25.0,
+        -14.0,
+        7.0
+      ],
+      "lens": 32.0
+    }
+  },
+  "anchors": {
+    "Anchor_Workshop": [
+      -3.62,
+      4.89,
+      2.55
+    ],
+    "Anchor_Telescope": [
+      -7.708,
+      4.765,
+      8.364
+    ],
+    "Anchor_Bedroom": [
+      -4.985,
+      3.283,
+      7.81
+    ],
+    "Anchor_Pad": [
+      14.219,
+      -3.369,
+      1.786
+    ],
+    "Anchor_BBQ": [
+      -6.434,
+      3.05,
+      11.441
+    ],
+    "Anchor_Lookout": [
+      9.605,
+      -5.9,
+      0.97
+    ],
+    "Anchor_Entry_Light": [
+      -4.75,
+      -0.25,
+      3.1
+    ],
+    "Anchor_Warm_Rim": [
+      30.0,
+      22.0,
+      9.0
+    ],
+    "Anchor_Cool_Rim": [
+      -6.0,
+      38.0,
+      -10.0
+    ],
+    "Anchor_Moon": [
+      -28.383,
+      -23.652,
+      70.957
+    ],
+    "Anchor_Waterfall_Top": [
+      4.95,
+      -10.559,
+      0.2
+    ],
+    "Anchor_Waterfall_Base": [
+      4.923,
+      -12.7,
+      -30.8
+    ],
+    "Anchor_City": [
+      0.14,
+      554.925,
+      -738.527
+    ]
+  },
+  "city_json": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\src\\assets\\models\\island_b_city.json",
+  "city_boxes": {
+    "buildings": 3200,
+    "windows_cool": 978,
+    "windows_warm": 9468
+  },
+  "lights": "none exported. Emissive materials carry windows, lanterns, screens and pad lights.",
+  "desktop": {
+    "meshes": {
+      "Flowers": {
+        "tris": 12480,
+        "draws": 3,
+        "materials": [
+          "web_flowers",
+          "web_wood",
+          "web_plants"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Glass": {
+        "tris": 1308,
+        "draws": 2,
+        "materials": [
+          "web_glass_clear",
+          "web_glass_edge"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "House": {
+        "tris": 12740,
+        "draws": 9,
+        "materials": [
+          "web_rock",
+          "web_roof",
+          "web_wood",
+          "web_soft_goods",
+          "web_metal_dark",
+          "web_emit_screen",
+          "web_plants",
+          "web_emit_warm",
+          "web_plaster"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Island": {
+        "tris": 8756,
+        "draws": 2,
+        "materials": [
+          "web_grass",
+          "web_soil"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Pad": {
+        "tris": 792,
+        "draws": 6,
+        "materials": [
+          "web_dark_matte",
+          "web_soft_goods",
+          "web_metal_dark",
+          "web_emit_pad_white",
+          "web_emit_pad_red",
+          "web_wood"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Paths": {
+        "tris": 2148,
+        "draws": 5,
+        "materials": [
+          "web_wood",
+          "web_metal_dark",
+          "web_rock",
+          "web_flagstone",
+          "web_dark_matte"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Props": {
+        "tris": 2826,
+        "draws": 8,
+        "materials": [
+          "web_dark_matte",
+          "web_rock",
+          "web_metal_dark",
+          "web_emit_warm",
+          "web_metal_bright",
+          "web_wood",
+          "web_emit_ember",
+          "web_soft_goods"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Rock": {
+        "tris": 12906,
+        "draws": 2,
+        "materials": [
+          "web_rock",
+          "web_grass"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Trees": {
+        "tris": 35416,
+        "draws": 2,
+        "materials": [
+          "web_bark",
+          "web_crown"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Turf": {
+        "tris": 22268,
+        "draws": 3,
+        "materials": [
+          "web_plants",
+          "web_grass",
+          "web_bark"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Water": {
+        "tris": 296,
+        "draws": 1,
+        "materials": [
+          "web_water"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      }
+    },
+    "tris": 111936,
+    "draws": 43,
+    "materials": 23,
+    "raw_bytes": 10770784,
+    "glb": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\src\\assets\\models\\island_b.glb",
+    "compress": {
+      "bytes": 899628,
+      "steps": [
+        "dedup",
+        "prune",
+        "draco"
+      ]
+    },
+    "within_budget": true
+  },
+  "budget": {
+    "desktop": {
+      "tris": 120000,
+      "draws": 100
+    },
+    "lod1": {
+      "tris": 70000,
+      "draws": 100
+    }
+  },
+  "lod1_thinned_faces": 32983,
+  "lod1": {
+    "meshes": {
+      "Glass": {
+        "tris": 1308,
+        "draws": 2,
+        "materials": [
+          "web_glass_clear",
+          "web_glass_edge"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "House": {
+        "tris": 12740,
+        "draws": 9,
+        "materials": [
+          "web_rock",
+          "web_roof",
+          "web_wood",
+          "web_soft_goods",
+          "web_metal_dark",
+          "web_emit_screen",
+          "web_plants",
+          "web_emit_warm",
+          "web_plaster"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Rock": {
+        "tris": 12906,
+        "draws": 2,
+        "materials": [
+          "web_rock",
+          "web_grass"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Paths": {
+        "tris": 2148,
+        "draws": 5,
+        "materials": [
+          "web_wood",
+          "web_metal_dark",
+          "web_rock",
+          "web_flagstone",
+          "web_dark_matte"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Water": {
+        "tris": 296,
+        "draws": 1,
+        "materials": [
+          "web_water"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Props": {
+        "tris": 2826,
+        "draws": 8,
+        "materials": [
+          "web_dark_matte",
+          "web_rock",
+          "web_metal_dark",
+          "web_emit_warm",
+          "web_metal_bright",
+          "web_wood",
+          "web_emit_ember",
+          "web_soft_goods"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Turf": {
+        "tris": 10769,
+        "draws": 3,
+        "materials": [
+          "web_plants",
+          "web_grass",
+          "web_bark"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Trees": {
+        "tris": 13932,
+        "draws": 2,
+        "materials": [
+          "web_bark",
+          "web_crown"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Island": {
+        "tris": 8756,
+        "draws": 2,
+        "materials": [
+          "web_grass",
+          "web_soil"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      },
+      "Pad": {
+        "tris": 792,
+        "draws": 6,
+        "materials": [
+          "web_dark_matte",
+          "web_soft_goods",
+          "web_metal_dark",
+          "web_emit_pad_white",
+          "web_emit_pad_red",
+          "web_wood"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
+      }
+    },
+    "tris": 66473,
+    "draws": 40,
+    "materials": 22,
+    "raw_bytes": 6017644,
+    "glb": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\src\\assets\\models\\island_b_lod1.glb",
+    "compress": {
+      "bytes": 493964,
+      "steps": [
+        "dedup",
+        "prune",
+        "draco"
+      ]
+    },
+    "within_budget": true
+  },
+  "raw_dir": "C:\\Users\\Kidriel\\AppData\\Local\\Temp\\claude\\island_b_raw_ec202nje",
+  "source_untouched": true
+}

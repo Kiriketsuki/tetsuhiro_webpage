@@ -1,5 +1,34 @@
 # Urban aerie house studies
 
+## Current web export: 25 October 2026
+
+`export_island_b.py` turns `Island_B_Rolling_Rim` into web GLBs for the three.js site. Run it with background Blender from this folder:
+
+```
+blender --factory-startup -b island_b_rolling_rim.blend --python export_island_b.py -- [--replace] [--no-compress]
+```
+
+The script saves a copy, `island_b_web_export.blend` (scene `Island_B_Web`), before it changes anything, and it checks the SHA-256 of the source before and after. It keeps only meshes that render in this scene. It applies modifiers, moves every mesh into world space and joins the meshes into 11 named meshes: Island, Rock, Turf, Flowers, House, Glass, Trees, Water, Pad, Paths and Props. The 84 source materials in use become 23 web materials (`web_rock`, `web_crown`, `web_glass_clear`, `web_emit_warm` and so on). The report lists the full map.
+
+Cycles bakes every base-colour field into one colour attribute, COLOR_0, as an emission bake per face corner. This covers the rock height, slope and noise tint, the soil band, the crown gradient and the painted textures. The script then averages each vertex per material and relaxes it twice over its neighbours. The per-face `RockFacetValue` jitter and the single-point texture samples therefore drop out, and only the smooth fields stay. Material borders stay sharp. Glass and emissive faces carry white and keep their own colour in the material. The script never welds a vertex. Flat shading stays, with no smooth faces and no custom normals.
+
+Budgets, as three.js r180 draws them:
+
+| GLB | Triangles | Primitives | three.js draw calls | Size |
+| --- | --- | --- | --- | --- |
+| `src/assets/models/island_b.glb` | 111,936 | 43 | 45 | 900 KB (10.8 MB raw) |
+| `src/assets/models/island_b_lod1.glb` | 66,473 | 40 | 42 | 494 KB (6.0 MB raw) |
+
+Double-sided glass draws twice, so the draw-call column is two higher than the primitive count. gltf-transform 4.5.1 compresses in three steps. Dedup keeps materials by name, and prune keeps the empty anchors. Draco edgebreaker then quantises position to 14 bits, normal to 10 bits and colour to 8 bits. No textures remain, so no WebP step runs.
+
+The export leaves out the distant city (163,752 triangles), the city ground, roads and river, and the far ground. It also leaves out both cloud layers, the haze volume, the 464 falling-water faces and every light. Trees lose the 3,944 leaf faces that sit fully inside their crown. A smooth noise field with a lean toward the crown top then ranks each leaf, and the desktop GLB keeps the top 55 %. LOD1 has no flowers, keeps 8 % of the leaves, 35 % of the meadow and 50 % of the ground planting, by the same ranking.
+
+The GLB holds five perspective cameras for the stops, `Cam_01_Hero`, `Cam_02_Workshop`, `Cam_03_Telescope`, `Cam_04_Bedroom` (top floor) and `Cam_05_Pad`. `src/scene/island.js` reads `gltf.cameras`, so these are cameras, not empties. The telescope review camera was orthographic, so the export rebuilds it as a 50 mm perspective camera on the same line of sight. Empties mark the rooms and the light rig: `Anchor_Workshop`, `Anchor_Telescope`, `Anchor_Bedroom`, `Anchor_Pad`, `Anchor_BBQ`, `Anchor_Lookout`, `Anchor_Entry_Light`, `Anchor_Warm_Rim`, `Anchor_Cool_Rim`, `Anchor_Moon`, `Anchor_Waterfall_Top`, `Anchor_Waterfall_Base` and `Anchor_City`.
+
+`src/assets/models/island_b_city.json` holds the city as 3,200 building boxes and 10,446 window boxes in the GLB frame (metres, Y up). Windows store a centre and an index into a short size table. Instance one unit box per group with `InstancedMesh`. The file is 345 KB, or 80 KB gzipped.
+
+A three.js check loaded both GLBs with the planned rig of one hemisphere, one moon, one warm rim and one entry point light. Colours, glass, emissive windows, lanterns and pad lights all read as in the Blender renders, and the rock shows no checkerboard. Screenshots: `renders/web-export/`. Evidence: `island_b_web_export_report.json`. The site does not load these files yet.
+
 ## Current rolling rim — 25 October 2026
 
 Working file: `island_b_rolling_rim.blend`, scene `Island_B_Rolling_Rim`. A promontory now carries the sky-taxi pad. Ray by ray from the island centre, the rim moves out until it sits 0.35 inside the pad edge, so the pad keeps a small lip. The push fades over 6 units inland and from z -0.4 down to z -5. The soil band therefore leans out as a shelf, and its underside slopes back into the rock above the blunt spike. The largest push is 1.88. Under the pad, the turf drops to a bed 0.1 below the deck. The pad was rebuilt on the new ground: twelve posts and two struts now meet the terrain.

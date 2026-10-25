@@ -46,7 +46,17 @@ All 82 recorded contacts touch the house, a floor or a rug within 12 mm. The che
 | `src/assets/models/island_b.glb` | 117,196 | 51 | 930 KB |
 | `src/assets/models/island_b_lod1.glb` | 69,439 | 48 | 515 KB |
 
-The watercolour lab shows the workshop and bedroom stops with both GLBs and logs no errors. The corkboard cards still find the board. `npm run check` passes. Renders: `renders/cozy-interiors/before` and `renders/cozy-interiors/after`. Build and render: `cozy_interiors.py`. Evidence: `island_b_cozy_interiors_report.json`.
+The export also writes three empties that the site scene asked for. Cameras, earlier anchors and `web_*` names are unchanged. `anchor_details` in the export report holds the sizes.
+
+| Empty | Blender position | What it marks |
+| --- | --- | --- |
+| `Anchor_Corkboard` | (-3.62, 4.885, 2.55) | the centre of the cork face, 1.22 x 0.86 m |
+| `Anchor_Bedroom_Window` | (-5.84, 1.513, 9.0) | the centre of the front bedroom pane, 1.08 x 1.30 m |
+| `Anchor_Campfire` | (1.75, 8.5, 0.365) | a lawn spot behind the house, beside the pond |
+
+The two face empties keep an identity rotation, so their local -Y in Blender (local +Z in the glTF frame) points out of the face. The export finds the campfire spot itself. It scans the grass on a 0.25 m grid and keeps the point with the most clear ground. Meadow and grass accents do not count as obstacles. The ground 1.2 m from the centre must stay within 0.2 m of the centre height, because the lawn rolls. The chosen spot has 2.06 m of clear ground, and the ground at 1.2 m lies from z 0.32 to 0.53.
+
+The watercolour lab shows the workshop and bedroom stops with both GLBs and logs no errors. The corkboard cards now sit on `Anchor_Corkboard`, 17 mm in front of the cork face. `npm run check` passes. Renders: `renders/cozy-interiors/before` and `renders/cozy-interiors/after`. Build and render: `cozy_interiors.py`. Evidence: `island_b_cozy_interiors_report.json`.
 
 ## Watercolour lab and painted city: 25 October 2026
 

@@ -108,6 +108,17 @@ ANCHORS={  # name: source object whose world bounding-box centre marks the spot
 }
 LIGHT_ANCHORS={'Anchor_Entry_Light':'SS_NA_Entry_Downlight','Anchor_Warm_Rim':'NA_LP_SS_Warm_Horizon','Anchor_Cool_Rim':'NA_Rock_Rim'}
 MOON='NA_LP_SS_Cool_Sky_Key';MOON_DISTANCE=80
+# Anchors on the front face of a board or a pane: (source object, material pattern, world box of
+# face centres). Both faces look toward Blender -Y. The empties keep an identity rotation, so their
+# local -Y points out of the face, which is local +Z in the glTF frame.
+FACE_ANCHORS={
+    'Anchor_Corkboard':('SS_NA_Workshop_Project_Corkboard','Cork',None),
+    'Anchor_Bedroom_Window':('DR_GE_MH_RA_JG_RF_CO_PT_SS_SH_Recessed_Upper_Glazing',None,((-6.6,-5.0),(1.2,1.9),(8.2,9.8))),
+}
+# The campfire spot is the grass point with the most open ground around it. Meadow and grass
+# accents do not count as obstacles. Every other mesh from z -3 to 9 does, trees and rim lip included.
+# The ground at the clear radius must stay within CAMPFIRE_FLAT of the centre, because the lawn rolls.
+CAMPFIRE_CLEAR=1.2;CAMPFIRE_FLAT=.2;CAMPFIRE_STEP=.25;CAMPFIRE_SOFT=('Angular_Meadow','Grass_Accents')
 
 
 def sha256(path):
@@ -432,8 +443,49 @@ def add_cameras(scene,coll):
     scene.camera=bpy.data.objects[CAMERAS[0][0]]
     return out
 
-def add_anchors(coll,waterfall,city_centre):
+def face_anchor(name,material,box):
+    """Returns the centre and size of the front face of a board or pane that looks toward -Y."""
+    ob=bpy.data.objects[name];me=ob.data;M=ob.matrix_world;pts=[]
+    for p in me.polygons:
+        if material and material not in me.materials[p.material_index].name:continue
+        c=M@p.center
+        if box and not all(lo<v<hi for v,(lo,hi) in zip(c,box)):continue
+        pts+=[M@me.vertices[i].co for i in p.vertices]
+    if not pts:raise RuntimeError(f'No face for the anchor on {name}')
+    lo=Vector(map(min,*pts));hi=Vector(map(max,*pts))
+    return {'at':Vector(((lo.x+hi.x)/2,lo.y,(lo.z+hi.z)/2)),'size':[round(hi.x-lo.x,3),round(hi.z-lo.z,3)],'faces_toward':'-Y Blender, +Z glTF'}
+
+def campfire_anchor(scene):
+    """Scans the lawn on a grid and returns the grass point with the most open ground around it."""
+    from mathutils.kdtree import KDTree
+    objs=[o for o in renderable_objects(scene) if o.type=='MESH' and not any(d in o.name for d in DROP)]
+    terrain=next(o for o in objs if 'Rolling_Terrain' in o.name)
+    bm=bmesh.new();bm.from_mesh(terrain.data);bm.transform(terrain.matrix_world);bm.faces.ensure_lookup_table()
+    tree=BVHTree.FromBMesh(bm);names=[m.name for m in terrain.data.materials]
+    pts=[]
+    for o in objs:
+        if o is terrain or any(s in o.name for s in CAMPFIRE_SOFT):continue
+        pts+=[p for p in (o.matrix_world@v.co for v in o.data.vertices) if -3<p.z<9]
+    kd=KDTree(len(pts))
+    for i,p in enumerate(pts):kd.insert((p.x,p.y,0),i)
+    kd.balance();best=None;lo,hi=world_bbox(terrain)
+    for i in range(int(lo.x/CAMPFIRE_STEP),int(hi.x/CAMPFIRE_STEP)+1):
+        for j in range(int(lo.y/CAMPFIRE_STEP),int(hi.y/CAMPFIRE_STEP)+1):
+            x,y=i*CAMPFIRE_STEP,j*CAMPFIRE_STEP
+            hit=tree.ray_cast(Vector((x,y,hi.z+5)),Vector((0,0,-1)),hi.z-lo.z+10)
+            if hit[0] is None or hit[1].z<.97 or 'rass' not in names[bm.faces[hit[2]].material_index]:continue
+            clear=kd.find((x,y,0))[2]
+            if clear<CAMPFIRE_CLEAR or best and clear<=best[1]:continue
+            ring=[tree.ray_cast(hit[0]+Vector((CAMPFIRE_CLEAR*math.cos(a/8*math.tau),CAMPFIRE_CLEAR*math.sin(a/8*math.tau),5)),Vector((0,0,-1)),10)[0] for a in range(8)]
+            if None in ring or max(abs(r.z-hit[0].z) for r in ring)>CAMPFIRE_FLAT:continue
+            best=(hit[0],clear,[min(r.z for r in ring),max(r.z for r in ring)])
+    bm.free()
+    if best is None:raise RuntimeError('No flat lawn spot with enough clear ground')
+    return {'at':best[0],'clear_radius':round(best[1],3),'ground_z_at_1_2m':[round(z,3) for z in best[2]]}
+
+def add_anchors(coll,waterfall,city_centre,extra):
     spots={k:sum(world_bbox(bpy.data.objects[v]),Vector())/2 for k,v in ANCHORS.items()}
+    spots.update({k:v['at'] for k,v in extra.items()})
     spots.update({k:bpy.data.objects[v].matrix_world.translation.copy() for k,v in LIGHT_ANCHORS.items()})
     moon=bpy.data.objects[MOON];spots['Anchor_Moon']=(moon.matrix_world.to_3x3()@Vector((0,0,1))).normalized()*MOON_DISTANCE
     spots['Anchor_Waterfall_Top']=waterfall['Anchor_Waterfall_Top'];spots['Anchor_Waterfall_Base']=waterfall['Anchor_Waterfall_Base']
@@ -528,7 +580,8 @@ def build():
     mapping=remap_materials(copies,web_materials())
     families=build_families(scene,copies,coll)
     city_centre,city_counts=city_boxes()
-    cameras=add_cameras(scene,coll);anchors=add_anchors(coll,waterfall,city_centre)
+    details={k:face_anchor(*v) for k,v in FACE_ANCHORS.items()};details['Anchor_Campfire']=campfire_anchor(src)
+    cameras=add_cameras(scene,coll);anchors=add_anchors(coll,waterfall,city_centre,details)
     desktop=stats(families)
 
     raw=Path(tempfile.mkdtemp(prefix='island_b_raw_'))
@@ -537,7 +590,8 @@ def build():
             'waterfall_faces_removed':waterfall['faces_removed'],'buried_leaf_faces_removed':buried,'desktop_thinned_faces':thinned,
             'baked_materials':swapped,'material_map':mapping,'source_materials':len(mapping),
             'web_materials':sorted({m for r in desktop['meshes'].values() for m in r['materials']}),
-            'cameras':cameras,'anchors':anchors,'city_json':str(CITY_JSON),'city_boxes':city_counts,
+            'cameras':cameras,'anchors':anchors,'anchor_details':{k:{**v,'at':[round(x,3) for x in v['at']]} for k,v in details.items()},
+            'renames':'none. Cam_01 to Cam_05, every earlier Anchor_* and every web_* name are unchanged.','city_json':str(CITY_JSON),'city_boxes':city_counts,
             'lights':'none exported. Emissive materials carry windows, lanterns, screens and pad lights.',
             'desktop':desktop,'budget':BUDGET}
     report['desktop']['raw_bytes']=export(scene,raw/'island_b.glb')

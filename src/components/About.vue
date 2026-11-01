@@ -7,7 +7,7 @@ const facts = [
     ['Since', 'February 2025'],
     ['Teaching', 'Database Systems, Ngee Ann Poly'],
     ['Before', 'NTU, Computer Science'],
-    ['Also', 'Blender and Three.js'],
+    ['Also', 'Full-stack side projects'],
 ]
 </script>
 
@@ -30,12 +30,14 @@ const facts = [
             <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
                 Hello! I finished Computer Science at NTU in December 2024 and joined Aurrigo in
                 February 2025. There I build the screens people use to run driverless vehicles at
-                airports. Outside work I make 3D things, and this island is the biggest one so far.
+                airports. Outside work I build full-stack side projects. Some are tools I use every
+                day, like my agentic workflows. Others are just for fun, like Kinopy, a daily word
+                puzzle.
             </p>
 
             <p class="font-body text-sm text-text-body sm:text-[0.95rem]">
-                This month I also started teaching Database Systems to adult learners at Ngee Ann
-                Polytechnic. I am enjoying it a lot.
+                Since January 2026 I also teach Database Systems to adult learners at Ngee Ann
+                Polytechnic. I enjoy it a lot.
             </p>
 
             <dl class="rows hidden text-sm sm:grid">

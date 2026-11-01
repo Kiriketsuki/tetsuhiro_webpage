@@ -1,7 +1,6 @@
 <template>
     <div>
         <Name v-if="showGate" @lifted="showGate = false" />
-        <div ref="blob" class="blob" :class="{ shown: blobShown }" aria-hidden="true"></div>
         <div id="home" class="w-screen flex flex-col items-center justify-between" :style="{ visibility: entered ? 'visible' : 'hidden' }">
             <section class="snap-section welcome hero relative h-svh w-full">
                 <h1 class="sr-only">Jovian Lim, software engineer in Singapore</h1>
@@ -52,7 +51,6 @@ import ExplorePad from '../components/ExplorePad.vue'
 import { useWaypoints, sections } from '../composables/useWaypoints.js'
 import { useExplore } from '../composables/useExplore.js'
 import { useScramble } from '../composables/useScramble.js'
-import { useBlob } from '../composables/useBlob.js'
 
 gsap.registerPlugin(ScrollTrigger)
 // Phone toolbars grow and shrink the viewport while you scroll. Without this
@@ -73,13 +71,8 @@ const wordsHidden = computed(() => sceneOnly.value || exploring.value)
 // The gate only shows on the first visit. Coming back from /projects skips it.
 const showGate = ref(!entered.value)
 
-const blob = ref(null)
 const first = ref(null)
 const second = ref(null)
-useBlob(blob)
-
-// The blob belongs to the title. It leaves with it.
-const blobShown = computed(() => entered.value && active.value === 0 && !wordsHidden.value)
 
 let trigger = null
 
@@ -210,46 +203,6 @@ body {
 .hero-scene {
     margin-left: 0.3rem;
     text-shadow: 1px 1px 0 var(--color-bg-base);
-}
-
-/* rose, violet and sand, low and slow. */
-.blob {
-    position: fixed;
-    left: 30%;
-    top: 40%;
-    z-index: 0;
-    width: 36vmax;
-    aspect-ratio: 1;
-    translate: -50% -50%;
-    border-radius: 50%;
-    background: linear-gradient(to right, var(--color-rose), var(--color-violet), var(--color-sand));
-    filter: blur(90px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.8s;
-    animation: blob-turn 24s linear infinite;
-}
-
-.blob.shown {
-    opacity: 0.22;
-}
-
-@keyframes blob-turn {
-    from {
-        rotate: 0deg;
-    }
-    50% {
-        scale: 1 1.4;
-    }
-    to {
-        rotate: 360deg;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .blob {
-        animation: none;
-    }
 }
 
 .view-back {

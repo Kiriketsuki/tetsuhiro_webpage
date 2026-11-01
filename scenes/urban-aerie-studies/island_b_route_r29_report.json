@@ -1,0 +1,27 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r27.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r29.blend",
+  "lawn_level": {
+    "raised": 267,
+    "max_lift": 0.17,
+    "rim_lowered": 91,
+    "max_drop": 0.6,
+    "soil_to_lawn": 5
+  },
+  "ramp": {
+    "ramp_vertices": 116,
+    "widened": 28,
+    "head_reached": 4,
+    "skirt_flush": 8,
+    "head_along": 1.536
+  },
+  "bridge_foot": {
+    "slabs": 1,
+    "blocks": 1
+  },
+  "foot_lawn": {
+    "raised": 10,
+    "max_lift": 0.267
+  },
+  "source_untouched": true
+}

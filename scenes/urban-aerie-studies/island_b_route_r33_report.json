@@ -1,0 +1,34 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r30.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r33.blend",
+  "roof_parapet": {
+    "fascia_parts": 4,
+    "fascia": [
+      12.88,
+      13.11
+    ]
+  },
+  "ramp": {
+    "deck_front": 0.53,
+    "ramp_front": 0.478,
+    "deck_back": -1.825,
+    "ramp_back": -1.313,
+    "head_along": 1.715,
+    "moved": 116,
+    "lifted": 108,
+    "lawn_cleared": 42,
+    "rim_top": 0.69
+  },
+  "paving_lawn": {
+    "paving_top": 0.601,
+    "raised": 3,
+    "max_lift": 0.04
+  },
+  "wedge_rock": {
+    "faces": 1,
+    "verts": 7,
+    "top": -0.5,
+    "low": -1.7
+  },
+  "source_untouched": true
+}

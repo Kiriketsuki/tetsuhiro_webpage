@@ -30,3 +30,8 @@ dist-ssr
 *.blend
 *.blend[0-9]*
 __pycache__/
+
+# Look review rounds stay local. Only the final round is kept as a record.
+scenes/urban-aerie-studies/renders/look-v2/*
+!scenes/urban-aerie-studies/renders/look-v2/round-16/
+scenes/urban-aerie-studies/renders/look-v2/round-16/trials/

@@ -1,0 +1,18 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r16.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r17.blend",
+  "roof": {
+    "x": [
+      -8.5,
+      0.08
+    ],
+    "eave": 12.88,
+    "ridge": 14.34,
+    "pitch_degrees": 19.4
+  },
+  "pergola": {
+    "faces_removed": 72
+  },
+  "rear_slat": "removed",
+  "source_untouched": true
+}

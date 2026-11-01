@@ -1,0 +1,64 @@
+[
+  {
+    "variant": 1,
+    "source": "codex-clipboard-d67e60b9-8522-40d6-8252-1301a592fbac.png",
+    "reference_palette": {
+      "emerald": "#08aa7c",
+      "blue": "#1358c6",
+      "amethyst": "#7832c9",
+      "gold": "#fdb61a",
+      "wordmark": "#f5f5f7"
+    },
+    "chrysaki_palette": {
+      "emerald": "#1a8a6a",
+      "blue": "#1c3d7a",
+      "amethyst": "#583090",
+      "gold": "#fbb13c",
+      "wordmark": "#e0e2ea"
+    },
+    "mark_bounds": [
+      524,
+      140,
+      1012,
+      546
+    ],
+    "paths": {
+      "emerald": 4,
+      "blue": 1,
+      "amethyst": 4,
+      "gold": 1,
+      "wordmark": 20
+    }
+  },
+  {
+    "variant": 2,
+    "source": "codex-clipboard-d2f5e681-f7be-4ca4-bb45-679ed8251062.png",
+    "reference_palette": {
+      "emerald": "#0ea479",
+      "blue": "#1453b1",
+      "amethyst": "#7431ba",
+      "gold": "#fcb219",
+      "wordmark": "#f5f5f7"
+    },
+    "chrysaki_palette": {
+      "emerald": "#1a8a6a",
+      "blue": "#1c3d7a",
+      "amethyst": "#583090",
+      "gold": "#fbb13c",
+      "wordmark": "#e0e2ea"
+    },
+    "mark_bounds": [
+      524,
+      126,
+      1012,
+      543
+    ],
+    "paths": {
+      "emerald": 4,
+      "blue": 2,
+      "amethyst": 4,
+      "gold": 1,
+      "wordmark": 20
+    }
+  }
+]

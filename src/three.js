@@ -86,11 +86,9 @@ function boot() {
             ready.value = true
         })
 
-    // The gate lift is the sky-taxi arrival. Section and route changes are short moves.
+    // The gate lift is a long move. Section and route changes are shorter ones.
     watch(entered, (value) => {
-        if (!value) return
-        if (route === 'Home') manager.arrive(currentStop())
-        else manager.goTo(currentStop(), { duration: 2.4 })
+        if (value) manager.goTo(currentStop(), { duration: 2.4 })
     })
     watch(active, () => manager.goTo(currentStop()))
     watch(reducedMotion, (value) => manager.setReducedMotion(value))

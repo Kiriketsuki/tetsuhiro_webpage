@@ -1,0 +1,13 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r18.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r20.blend",
+  "berm": {
+    "moved": 31,
+    "max_lift": 0.165
+  },
+  "flare": {
+    "moved": 65,
+    "max_push": 0.66
+  },
+  "source_untouched": true
+}

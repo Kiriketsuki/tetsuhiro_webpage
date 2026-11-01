@@ -6,6 +6,8 @@ import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.j
 // its tone eases into its neighbours like a painted, rounded form.
 const CREASE = (44 * Math.PI) / 180
 
+// crease: the angle in radians above which an edge stays hard. Round metal parts pass a
+// wider angle, so a low-poly tube shades as one smooth cylinder and can carry a sheen.
 export function softenGeometry(geometry, crease = CREASE) {
     if (geometry.attributes.flatNormal) return geometry
     const flat = geometry.index ? geometry.toNonIndexed() : geometry

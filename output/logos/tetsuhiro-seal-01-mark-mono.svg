@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="495 76 546 546" width="546" height="546" role="img" aria-labelledby="logo-title" color="#e0e2ea">
+  <title id="logo-title">Tetsuhiro Development — 哲宏 sword seal</title>
+  <desc>Outlined vector reconstruction of the supplied logo. All lettering and artwork are paths. Flat emerald, royal blue, amethyst and gold fills; no bitmap content or font dependencies.</desc>
+  <g id="emerald" transform="translate(495 95)" fill="currentColor">
+    <path d="M0 0 L182 0 L175 10 L173 10 L171 14 L146 40 L14 40 L5 50 L146 50 L162 66 L161 73 L140 106 L-36 73 L-52 57 L-52 54 Z" transform="translate(82,45)" />
+    <path d="M0 0 L38 2 L38 23 L64 23 L64 60 L38 60 L38 71 L64 67 L64 101 L38 108 L38 146 L33 156 L25 161 L17 163 L-12 165 L-22 130 L0 128 L0 117 L-24 125 L-44 129 L-44 86 L0 78 L0 60 L-44 60 L-44 22 L0 22 Z" transform="translate(73,137)" />
+    <path d="M0 0 L5 1 L16 13 L27 27 L27 30 L7 38 L-24 45 L-24 58 L24 58 L24 94 L16 95 L16 144 L-20 144 L-20 94 L-33 94 L-36 104 L-57 143 L-90 127 L-67 81 L-63 67 L-61 14 L-26 8 Z" transform="translate(211,158)" />
+    <path d="M0 0 L184 0 L184 124 L32 124 L0 90 Z M38 37 L38 80 L43 85 L146 85 L146 37 Z" transform="translate(50,310)" />
+  </g>
+  <g id="blue" transform="translate(495 95)" fill="currentColor">
+    <path d="M0 0 L4 4 L23 37 L21 41 L2 59 L2 303 L-27 338 L-29 338 L-58 302 L-58 59 L-79 38 L-76 31 L-56 1 L-52 3 L-29 26 L-25 24 Z" transform="translate(301,113)" />
+  </g>
+  <g id="amethyst" transform="translate(495 95)" fill="currentColor">
+    <path d="M0 0 L183 0 L235 54 L232 59 L218 73 L42 106 L21 70 L21 65 L36 50 L177 50 L169 40 L36 40 L0 2 Z" transform="translate(282,45)" />
+    <path d="M0 0 L41 0 L41 25 L121 25 L121 90 L84 90 L84 64 L-47 64 L-47 88 L-49 90 L-84 90 L-84 34 L-76 25 L0 25 Z" transform="translate(396,147)" />
+    <path d="M0 0 L41 4 L31 36 L145 36 L145 76 L15 76 L-26 147 L-58 192 L-60 192 L-60 127 L-31 76 L-60 74 L-60 36 L-13 36 Z" transform="translate(372,218)" />
+    <path d="M0 0 L42 0 L44 3 L-13 86 L54 86 L57 81 L56 76 L37 34 L38 31 L71 25 L76 26 L105 91 L72 125 L-92 125 L-90 120 L-7 1 Z" transform="translate(406,309)" />
+  </g>
+  <g id="gold" transform="translate(495 95)" fill="currentColor">
+    <path d="M0 0 L30 30 L30 34 L1 63 L-3 61 L-31 33 L-29 29 Z" transform="translate(273,58)" />
+  </g>
+</svg>

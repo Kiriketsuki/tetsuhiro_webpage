@@ -1,5 +1,37 @@
 # Urban aerie house studies
 
+## Pad lobe, ramp and bridge foot: 1 November 2026, round 13 review
+
+`round17_route.py` reads `island_b_route_r27.blend` and writes `island_b_route_r29.blend`. Its first pass wrote `island_b_route_r28.blend`, which nothing reads now. It brings the lawn round the pad to one level at 0.57 m, so the lower shelf west of the pad, the soil sliver and the rim ridge beside the turf shoulder go. It moves the ramp front out to the deck front line, reaches the ramp head to the pad curb and lifts the ramp skirts flush with the boards. It raises the flagstone slab at the bridge foot to a half step, paves the block under the bridge, and raises the lawn along their south face.
+
+`export_island_b.py` reads r29. The desktop GLB holds 118,274 triangles and the mobile GLB 69,917.
+
+The site side swings the welcome camera to a corner view that holds the whole house, turns the stair soffit to timber, makes the frame timber chunkier, darkens the roof to graphite with soffit seams, softens the lap-board bands and paints the cream walls, warms the stones and the dark iron, lifts the lawn toward olive-gold, softens the crown clumps, steepens the sky gradient and lifts the city shimmer. Renders: `renders/look-v2/round-13/`.
+
+## Frame, roof and route: 1 November 2026
+
+Two new revisions, both built in background Blender. Neither script overwrites a `.blend`.
+
+- `round14_frame.py` reads `island_b_route_r20.blend` and writes `island_b_route_r21.blend`. It removes the five slim posts in the middle of the stair tower faces, so four corner posts carry the tower. It chamfers every post and beam of the tower frame and the pergola. It puts two timber rafters and two beams under the flat roof, and drops the metal fascia band to 0.29 m. It removes the glass screens at the open tower top. It lays the ramp boards on one sloped plane from the deck to the pad rim, and turns the east bridge-end blocks into one landing flush with the paving. It undoes the round 13 footing flare on the side of the pad that faces the deck.
+- `round15_route.py` reads r21 and writes `island_b_route_r22.blend`. It takes the remaining stair glass screens out of the render. It raises the lawn along the turned front of the lookout deck, and it puts three contact shadow empties on that lawn.
+
+`export_island_b.py` reads r22. The desktop GLB holds 117,944 triangles and the mobile GLB 69,587. The mobile meadow keeps 0.27 of its parts, down from 0.35, to pay for the chamfers.
+
+The site side changes the roof shader, the crowns, the welcome camera, the wood grain, the lawn tone, the contact shadows and the city shimmer. Renders: `renders/look-v2/round-11/`. The earlier round 11 run moved to `renders/look-v2/round-11/earlier-run/`.
+
+## Baked ambient occlusion: 25 October 2026
+
+`export_island_b.py` now bakes AO per vertex into the float attribute `_AO`, and the glTF exporter writes it on every primitive except the two glass ones. The bake is a ray cast against every family mesh except glass: 64 cosine-weighted rays per vertex, out to 0.8 m. The rays of a vertex split over the face corners at its spot. Each corner casts from a third of the way toward its face centre. A low-poly wall has vertices only at its corners, and each corner sits in a crease, so a corner sample darkens the whole wall. A first Cycles corner bake showed this: the large House faces averaged 0.24. The inset bake raises the House to 0.54, area weighted, and creases stay dark. Corners on buried faces drop out. The script then averages the corners at one spot and relaxes the value twice over its neighbours. Emissive faces cast no rays.
+
+The work copy is `island_b_ao_bake_web_export.blend`, and the report is `island_b_ao_bake_web_export_report.json`. Two earlier work copies from this pass stay: `island_b_ao_web_export.blend` holds the Cycles corner bake (report `island_b_ao_cycles_corner_report.json`), and `island_b_ao_raycast_web_export.blend` is a plain copy of the source from a failed run.
+
+| GLB | Triangles | Primitives with `_AO` | Size |
+| --- | --- | --- | --- |
+| `src/assets/models/island_b.glb` | 117,196 | 49 of 51 | 1,074 KB |
+| `src/assets/models/island_b_lod1.glb` | 69,439 | 46 of 48 | 587 KB |
+
+`island-look.js` renames `_ao` to `aoBake` before `softenGeometry`, and the opaque toon material turns on `AERIE_AO`. The shader multiplies the albedo by `mix(1, aoBake, 0.4)`, with the occluded part warm brown (#3a2620). Renders: `renders/look-v2/round-4-ao/`.
+
 ## Cozy interiors: 25 October 2026
 
 Working file: `island_b_cozy_interiors.blend`, scene `Island_B_Cozy_Interiors`. The three rooms of the house are rebuilt as one set. Each room has one purpose, a human-scale layout and one material language: oak and walnut, sage, oat, clay and dusk linen, warm ceramic, aged brass and charcoal. These values match the rooftop dining set and the telescope, so the two terraces stay as they are.

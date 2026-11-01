@@ -1,0 +1,84 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_pad_tidy_r6.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r7.blend",
+  "route_line": {
+    "from": [
+      7.235000133514404,
+      -5.050000190734863
+    ],
+    "to": [
+      15.199999809265137,
+      -2.9000000953674316
+    ],
+    "turn_at_bridge_degrees": 15.11
+  },
+  "old_ramp_removed": {
+    "boards": 9,
+    "stringers": 2
+  },
+  "marking": {
+    "h": 3,
+    "lamp": 24,
+    "degrees": -20.78
+  },
+  "deck": {
+    "yaw_degrees": 15.11,
+    "east_mid": [
+      11.386488914489746,
+      -3.929384708404541
+    ],
+    "west_mid": [
+      8.60600471496582,
+      -4.6799235343933105
+    ],
+    "ground_under_corners": [
+      0.403,
+      0.198,
+      0.4,
+      0.351
+    ]
+  },
+  "ramp": {
+    "boards": 5,
+    "run": 1.45,
+    "rise": 0.325,
+    "slope_degrees": 12.6
+  },
+  "step": {
+    "s": [
+      6.83,
+      7.18
+    ],
+    "top": 0.585
+  },
+  "path": {
+    "s": [
+      7.18,
+      8.45
+    ],
+    "stones": 12,
+    "rows": 4
+  },
+  "lantern": {
+    "parts": 3,
+    "at": [
+      8.566,
+      -5.778
+    ]
+  },
+  "cover_faces_cleared": {
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 516,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Ground_Planting.001": 182,
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_LP_SS_A_Grass_Accents.001": 8
+  },
+  "other_parts_on_walkway": {
+    "NA_BC_JG_RF_CO_PT_SH_SS_UA_Bridge_Abutments.001": 1
+  },
+  "tris": {
+    "SS_NA_Sky_Taxi_Pad.001": 1202,
+    "NA_BC_JG_RF_CO_PT_SH_SS_UA_City_Lookout.001": 548,
+    "NA_BC_JG_RF_CO_PT_SH_SS_UA_Lookout_Access_Step.001": 10,
+    "SS_NA_Lookout_Flagstone_Path": 144
+  },
+  "source_untouched": true
+}

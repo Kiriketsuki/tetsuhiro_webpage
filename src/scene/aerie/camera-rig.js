@@ -20,13 +20,16 @@ const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 
-// Builds one shot per stop from the GLB cameras, matched by name.
+// Builds one shot per stop from the GLB cameras, matched by name. A stop with a `tallView`
+// takes that view on a screen without side panels (a portrait phone), where the text sits
+// under the picture and the landscape view cannot hold its subject.
 export function shotsFromStops(stops, cameras = []) {
     const byName = new Map(cameras.map((camera) => [camera.name, camera]))
+    const portrait = !window.matchMedia(SIDE_PANELS).matches
     return Object.fromEntries(
         Object.entries(stops).map(([id, stop]) => {
-            const camera = stop.camera ? byName.get(stop.camera) : null
-            const { fallback } = stop
+            const fallback = portrait && stop.tallView ? stop.tallView : stop.fallback
+            const camera = stop.camera && !(portrait && stop.tallView) ? byName.get(stop.camera) : null
             const frame = { shift: stop.shift ?? [0, 0], tall: stop.tall ?? [0, 0], zoom: stop.zoom ?? 1, tallZoom: stop.tallZoom ?? stop.zoom ?? 1 }
             if (!camera) {
                 return [id, { position: new THREE.Vector3(...fallback.position), target: new THREE.Vector3(...fallback.target), fov: fallback.fov, ...frame }]

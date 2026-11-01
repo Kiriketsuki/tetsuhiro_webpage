@@ -4,14 +4,16 @@ import mobileUrl from '../assets/models/island_b_lod1.glb?url'
 import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { applyIslandLook } from './aerie/island-look.js'
+import { createDetailTexture } from './aerie/detail-texture.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
 import { createCityBackdrop } from './aerie/city-backdrop.js'
-import { createSky, NIGHT_SKY } from './aerie/sky.js'
+import { createSky, NIGHT_SKY, ISLAND_HAZE_DENSITY } from './aerie/sky.js'
+import { CAMPFIRE_BOUNCE } from './aerie/toon-material.js'
+import { createLeafCards } from './aerie/leaf-cards.js'
 import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
-import { createSkyTaxi, findDeck } from './aerie/sky-taxi.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
 import { createConstellation } from './aerie/constellation.js'
 import { projects } from '../data/projects.js'
@@ -26,16 +28,15 @@ import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './a
 // single frames only.
 
 const AMBIENT_FPS = 30
-// The sky-taxi flight, and the move from the pad to the first stop after it lands.
-const ARRIVAL_FLIGHT = 4.2
-const ARRIVAL_SETTLE = 2.2
-// The rain on the bedroom window lasts for the move plus this long after it.
-const RAIN_LINGER = 1.4
+// The share of the bedroom move that the fade takes to rise, and again to fall.
+const FADE_EDGE = 0.35
 // The board size when Anchor_Corkboard gives a position but no size, in metres.
 const BOARD_SIZE = { width: 1.0, height: 0.7 }
 const MOBILE = '(max-width: 767px)'
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
+// The city haze density: the painted city layers lose a little over half their colour.
+const CITY_HAZE_DENSITY = 1 / 2400
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer.
 export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
@@ -53,13 +54,15 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     renderer.setSize(...size(), false)
 
     const scene = new THREE.Scene()
+    // The island haze matches the sky haze below the horizon and the city haze.
+    scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, ISLAND_HAZE_DENSITY)
     const camera = new THREE.PerspectiveCamera(35, size()[0] / size()[1], 0.1, 12000)
     const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
-    const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, taxi: null, cards: null, constellation: null }
-    let arrival = null
-    let rain = null
+    const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, cards: null, constellation: null }
+    // The even darkening during the move into the bedroom: { t, duration } while it runs.
+    let fade = null
     // 'island' or 'sky'. The sky is the telescope's view of the skills.
     let view = 'island'
     const loaders = createLoaders()
@@ -105,30 +108,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         state.dirty = false
     }
 
-    // The taxi flight, the arrival hand-off and the rain envelope. Returns true while any of
-    // them needs frames.
+    // The skill sky reveal and the bedroom fade. Returns true while either needs frames.
     const advanceEffects = (delta) => {
-        const flying = parts.taxi?.update(delta) ?? false
         const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) : false
-        if (arrival) {
-            arrival.t += delta
-            if (arrival.t >= ARRIVAL_FLIGHT) {
-                rig.goTo(arrival.next, ARRIVAL_SETTLE)
-                arrival = null
-            }
-        }
-        let wet = false
-        if (rain) {
-            rain.t += delta
-            const k = rain.t / rain.duration
-            // Up fast, a long hold, then the glass clears as the camera settles in the room.
-            const amount = k >= 1 ? 0 : Math.min(1, k * 5) * (1 - THREE.MathUtils.smoothstep(k, 0.6, 1))
-            pipeline.grade.uniforms.uRain.value = amount
-            pipeline.grade.uniforms.uTime.value = seconds
-            if (k >= 1) rain = null
-            wet = true
-        }
-        return flying || revealing || Boolean(arrival) || wet
+        if (!fade) return revealing
+        fade.t += delta
+        const k = fade.t / fade.duration
+        // It rises over the first part of the move, holds, and falls over the last part.
+        const amount = k >= 1 ? 0 : THREE.MathUtils.smoothstep(k, 0, FADE_EDGE) * (1 - THREE.MathUtils.smoothstep(k, 1 - FADE_EDGE, 1))
+        pipeline.grade.uniforms.uFade.value = amount
+        if (k >= 1) fade = null
+        return true
     }
 
     const running = () => state.ready && state.wanted && !state.hidden && !state.lost && !state.reduced
@@ -160,6 +150,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.waterfall?.update(seconds)
             parts.stars?.update(seconds)
             parts.campfire?.update(ambient, seconds)
+            parts.look?.update(seconds)
+            parts.leaves?.update(seconds)
             ambient = 0
         }
         const moving = rig.moving
@@ -236,10 +228,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     parts.city = createCityBackdrop({
         textureLoader: loaders.texture,
         haze: NIGHT_SKY.haze,
+        hazeDensity: CITY_HAZE_DENSITY,
         maxAnisotropy: Math.min(4, renderer.capabilities.getMaxAnisotropy()),
     })
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
+
+    // The painted detail texture builds in small slices while the island downloads.
+    const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
 
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
@@ -251,17 +247,28 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             report(0)
         })
         .then(async (gltf) => {
-            const look = applyIslandLook(gltf)
+            const look = applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild })
             parts.look = look
             markShadows(gltf.scene)
             const root = gltf.scene
             const moon = anchor(root, 'Anchor_Moon') ?? MOON_FALLBACK
             const shadow = createMoonShadow({ direction: moon, small })
             scene.add(root, shadow, shadow.target)
+            const shots = shotsFromStops(stops, gltf.cameras)
+            const viewpoints = Object.values(shots).map((shot) => shot.position)
+            parts.leaves = createLeafCards({
+                meshes: look.meshes,
+                litterAt: look.litterAt,
+                uniforms: look.uniforms,
+                small,
+                viewpoints,
+                maxAnisotropy: small ? 1 : renderer.capabilities.getMaxAnisotropy(),
+            })
+            scene.add(parts.leaves.group)
 
             const spot = anchor(root, 'Anchor_Campfire') ?? findCampfireSpot(root)
             if (spot) {
-                parts.campfire = createCampfire({ position: spot, bounce: look.uniforms.uToonBounce.value[4] })
+                parts.campfire = createCampfire({ position: spot, bounce: look.uniforms.uToonBounce.value[CAMPFIRE_BOUNCE] })
                 scene.add(parts.campfire.group)
             }
             const glows = parts.campfire ? [...look.glowSpots, parts.campfire.glowSpot] : look.glowSpots
@@ -273,12 +280,6 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (top && base) {
                 parts.waterfall = createWaterfall({ top, base, haze: NIGHT_SKY.haze })
                 scene.add(parts.waterfall.group)
-            }
-
-            const padAnchor = anchor(root, 'Anchor_Pad')
-            if (padAnchor) {
-                parts.taxi = createSkyTaxi({ deck: findDeck(root, padAnchor), material: look.materials[0] })
-                scene.add(parts.taxi.group)
             }
 
             const board = boardFrom(root, gltf.cameras)
@@ -293,7 +294,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
             parts.constellation.resize(camera.aspect)
 
-            rig.setShots(shotsFromStops(stops, gltf.cameras))
+            rig.setShots(shots)
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
@@ -316,24 +317,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         parts,
         loaders,
         goTo: (id, { duration = 1.6 } = {}) => {
-            arrival = null
             const time = state.reduced ? 0 : duration
-            if (id === 'bedroom' && time > 0 && rig.current !== 'bedroom') rain = { t: 0, duration: time + RAIN_LINGER }
+            fade = id === 'bedroom' && time > 0 && rig.current !== 'bedroom' ? { t: 0, duration: time } : null
+            pipeline.grade.uniforms.uFade.value = 0
             rig.goTo(id, time)
-            requestRender()
-        },
-        // The gate lift: the taxi flies in and lands on the pad while the camera follows,
-        // then the camera moves on to `next`. Reduced motion parks the taxi and cuts.
-        arrive: (next) => {
-            if (state.reduced || !parts.taxi) {
-                parts.taxi?.park()
-                rig.goTo(next, 0)
-                requestRender()
-                return
-            }
-            parts.taxi.fly(ARRIVAL_FLIGHT)
-            rig.goTo('pad', ARRIVAL_FLIGHT)
-            arrival = { t: 0, next }
             requestRender()
         },
         // 0 stops the ambient clock: frames then draw only for camera moves and requests.
@@ -386,6 +373,21 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (!state.reduced) rig.setPointer(x, y)
         },
         requestRender,
+        // Draws one frame at once, even in a hidden tab, for the lab's still captures.
+        // advance moves the effect and ambient clocks by that many seconds first.
+        renderNow: (advance = 0) => {
+            if (!state.ready) return
+            if (advance > 0) {
+                seconds += advance
+                advanceEffects(advance)
+                parts.city?.update(seconds)
+                parts.waterfall?.update(seconds)
+                parts.look?.update(seconds)
+                parts.leaves?.update(seconds)
+            }
+            rig.update(advance)
+            render()
+        },
         get tier() {
             return { index: tierIndex, ...TIERS[tierIndex], pixelRatio: pipeline.pixelRatio }
         },

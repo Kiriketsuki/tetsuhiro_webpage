@@ -1,0 +1,27 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r21.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r22.blend",
+  "screens_hidden": "DR_GE_MH_SS_RA_Stair_Weather_Screens",
+  "lawn": {
+    "moved": 17,
+    "max_lift": 0.158
+  },
+  "shadows": {
+    "Shadow_Deck_Front_1": [
+      9.737,
+      -6.006,
+      0.566
+    ],
+    "Shadow_Deck_Front_2": [
+      11.034,
+      -5.632,
+      0.548
+    ],
+    "Shadow_Ramp_Side": [
+      12.524,
+      -4.691,
+      0.532
+    ]
+  },
+  "source_untouched": true
+}

@@ -1,0 +1,59 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r8.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r10.blend",
+  "footing": {
+    "old_faces": 40,
+    "rings": [
+      [
+        2.46,
+        0.7
+      ],
+      [
+        2.44,
+        0.3
+      ],
+      [
+        2.28,
+        -0.22
+      ],
+      [
+        1.9,
+        -0.8
+      ],
+      [
+        1.15,
+        -1.45
+      ]
+    ],
+    "segments": 16
+  },
+  "flaps_removed": {
+    "B4_BC_SS_JG_Overhanging_Edge_Grass.001": 198,
+    "B5_B4_BC_SS_JG_Overhanging_Edge_Grass.001": 198,
+    "BC_BC_SS_JG_Overhanging_Edge_Grass.001": 198,
+    "BC_SS_JG_Overhanging_Edge_Grass": 198,
+    "BC_SS_JG_Overhanging_Edge_Grass.001": 198,
+    "NA_B5_B4_BC_SS_JG_Overhanging_Edge_Grass.001": 144,
+    "RR_B5_B4_BC_SS_JG_Overhanging_Edge_Grass.001": 144,
+    "SS_JG_Overhanging_Edge_Grass": 198,
+    "SS_RR_Hanging_Roots": 180,
+    "SS_RR_Overhanging_Turf_Lip": 51
+  },
+  "step": {
+    "vertices_moved": 8,
+    "half_width": 0.7
+  },
+  "ramp": {
+    "stringers_removed": 2,
+    "board_parts": 5,
+    "skirt_pieces": 16
+  },
+  "kerbs": {
+    "path": 6,
+    "deck_sides": 12,
+    "deck_west": 2,
+    "deck_east": 2,
+    "ramp": 6
+  },
+  "source_untouched": true
+}

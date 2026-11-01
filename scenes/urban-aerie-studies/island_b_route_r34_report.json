@@ -1,0 +1,28 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r33.blend",
+  "accepted": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r20.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r34.blend",
+  "restored": {
+    "DR_SS_GE_Slender_Recessed_Structure": {
+      "verts": 408,
+      "faces": 306,
+      "materials": [
+        "LP_SS_A_metal",
+        "LP_SS_A_stone"
+      ]
+    },
+    "DR_GE_MH_SS_RA_Stair_Weather_Screens": {
+      "verts": 104,
+      "faces": 78,
+      "materials": [
+        "RA_Clear_Weather_Glazing"
+      ]
+    },
+    "materials_dropped": 3
+  },
+  "screens_shown": "DR_GE_MH_SS_RA_Stair_Weather_Screens",
+  "canopy": {
+    "faces_removed": 24
+  },
+  "source_untouched": true
+}

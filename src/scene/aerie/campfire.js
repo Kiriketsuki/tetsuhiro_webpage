@@ -1,19 +1,25 @@
 import * as THREE from 'three'
 
 // The campfire from the earlier island, kept as a prop on the urban aerie lawn. It has no
-// three.js light: its warmth reaches the toon island through one warm bounce spot, so no
-// lit material recompiles. A glow sprite stands in for bloom.
+// three.js light: its warmth reaches the toon island through one warm spill slot, so no
+// lit material recompiles. A small glow sprite stands in for bloom.
 
 const EMBER_COUNT = 28
 const EMBER_HEIGHT = 2.4
-// Linear colours a little above 1, so the flame stays orange after tone mapping.
-const FLAME_LAYERS = [
-    { color: 0xec4e2f, glow: 1.3, radius: 0.3, height: 0.9 },
-    { color: 0xfca942, glow: 1.6, radius: 0.21, height: 0.68 },
-    { color: 0xfff1c9, glow: 1.9, radius: 0.11, height: 0.42 },
+// Flame tongues: crossed upright cards, each with a painted teardrop flame that flickers in
+// the shader. width and height in metres, turn in radians about the vertical, and an
+// offset from the hearth centre. Two tall tongues cross at the centre, and three short
+// ones lean out around them, so the fire reads as layered flames, not as a cone.
+const TONGUES = [
+    { width: 0.62, height: 1.0, turn: 0, offset: [0, 0] },
+    { width: 0.62, height: 0.95, turn: Math.PI / 2, offset: [0, 0] },
+    { width: 0.42, height: 0.62, turn: 0.8, offset: [0.12, 0.06] },
+    { width: 0.4, height: 0.55, turn: 2.3, offset: [-0.1, 0.08] },
+    { width: 0.38, height: 0.5, turn: 4.0, offset: [0.02, -0.13] },
 ]
 const STONES = 7
-const BOUNCE_RADIUS = 2.6
+// The warm spill reach, three quarters of the earlier 2.6 m, so it shows no round pool.
+const BOUNCE_RADIUS = 1.95
 // Lawn search: candidate spots around this centre (GLB frame), in metres.
 const SEARCH_CENTRE = new THREE.Vector2(4, -2)
 const SEARCH_RADIUS = 9
@@ -59,31 +65,71 @@ export function findCampfireSpot(root) {
     return null
 }
 
+const flameVertex = /* glsl */ `
+varying vec2 vUv;
+void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+`
+
+// A teardrop flame in the card UV, wide at the base and pointed at the tip. Two waves
+// bend it sideways and move up the flame. The colour runs from a deep red rim through
+// orange to a pale yellow core near the base. Linear colours above 1 keep the core bright
+// after tone mapping.
+const flameFragment = /* glsl */ `
+uniform float uTime;
+uniform float uSeed;
+varying vec2 vUv;
+void main() {
+    float y = vUv.y;
+    float bend = sin( y * 8.0 - uTime * 7.0 + uSeed ) * 0.6 + sin( y * 15.0 - uTime * 11.0 + uSeed * 2.3 ) * 0.4;
+    float x = ( vUv.x - 0.5 ) * 2.0 + bend * 0.16 * y;
+    float width = pow( 1.0 - y, 0.9 ) * ( 0.45 + 0.55 * smoothstep( 0.0, 0.28, y ) );
+    float d = abs( x ) / max( width, 1e-3 );
+    if ( d >= 1.0 ) discard;
+    float core = 1.0 - d;
+    vec3 color = mix( vec3( 1.1, 0.22, 0.05 ), vec3( 1.7, 0.62, 0.14 ), smoothstep( 0.0, 0.45, core ) );
+    color = mix( color, vec3( 2.1, 1.7, 0.9 ), smoothstep( 0.5, 0.95, core ) * ( 1.0 - y ) );
+    gl_FragColor = vec4( color, smoothstep( 0.0, 0.3, core ) * 0.95 );
+}
+`
+
 function createFlame() {
     const group = new THREE.Group()
-    const layers = FLAME_LAYERS.map(({ color, glow, radius, height }, i) => {
-        const geometry = new THREE.ConeGeometry(radius, height, 6, 1, true)
-        geometry.translate(0, height / 2 + 0.08, 0)
-        const material = new THREE.MeshBasicMaterial({
-            color: new THREE.Color(color).multiplyScalar(glow),
-            transparent: true,
-            opacity: 0.9,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-        })
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.rotation.y = i * 0.6
+    const time = { value: 0 }
+    const geometry = new THREE.PlaneGeometry(1, 1)
+    geometry.translate(0, 0.5, 0)
+    const materials = TONGUES.map(
+        (_, i) =>
+            new THREE.ShaderMaterial({
+                name: 'campfire.flame',
+                uniforms: { uTime: time, uSeed: { value: i * 1.9 } },
+                vertexShader: flameVertex,
+                fragmentShader: flameFragment,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+            })
+    )
+    const tongues = TONGUES.map(({ width, height, turn, offset }, i) => {
+        const mesh = new THREE.Mesh(geometry, materials[i])
+        mesh.scale.set(width, height, 1)
+        mesh.position.set(offset[0], 0.06, offset[1])
+        mesh.rotation.y = turn
+        // Tall tongues draw last, so the short ones stay behind them.
+        mesh.renderOrder = 2 - Math.min(i, 2)
         group.add(mesh)
-        return mesh
+        return { mesh, height }
     })
-    return { group, layers }
+    return { group, tongues, time }
 }
 
 // A ring of stones and two crossed logs. They use flat basic colours, so they share the
 // glow program and need no light. Their low-poly shapes give each face one tone.
 function createHearth() {
     const group = new THREE.Group()
-    const stone = new THREE.MeshBasicMaterial({ color: 0x2b303d })
+    const stone = new THREE.MeshBasicMaterial({ color: 0x4a443f })
     const wood = new THREE.MeshBasicMaterial({ color: 0x3a2418 })
     const rock = new THREE.DodecahedronGeometry(0.16, 0)
     for (let i = 0; i < STONES; i += 1) {
@@ -144,14 +190,13 @@ export function createCampfire({ position, bounce }) {
     const flame = createFlame()
     const embers = createEmbers()
     group.add(createHearth(), flame.group, embers.points)
-    const glowSpot = { position: position.clone().add(new THREE.Vector3(0, 0.45, 0)), color: new THREE.Color(0xfca942).multiplyScalar(0.35), size: 1.6 }
+    const glowSpot = { position: position.clone().add(new THREE.Vector3(0, 0.45, 0)), color: new THREE.Color(0xfca942).multiplyScalar(0.22), size: 1.0 }
     bounce?.set(position.x, position.y + 0.6, position.z, BOUNCE_RADIUS)
 
     const update = (delta, time) => {
-        flame.layers.forEach((mesh, i) => {
-            mesh.scale.y = 1 + wobble(time, i * 1.7) * 0.18
-            mesh.scale.x = mesh.scale.z = 1 + wobble(time, i * 3.1 + 4) * 0.08
-            mesh.rotation.y += delta * (0.6 + i * 0.3)
+        flame.time.value = time
+        flame.tongues.forEach(({ mesh, height }, i) => {
+            mesh.scale.y = height * (1 + wobble(time, i * 1.7) * 0.14)
         })
         if (bounce) bounce.w = BOUNCE_RADIUS * (1 + wobble(time, 9) * 0.08)
         embers.update(delta, time)

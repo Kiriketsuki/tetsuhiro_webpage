@@ -1,0 +1,68 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r13.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r16.blend",
+  "footing": {
+    "old_faces": 110,
+    "shoulder_points_tucked": 11,
+    "rings": [
+      [
+        2.5,
+        0.96,
+        0
+      ],
+      [
+        3.45,
+        0.6,
+        0.38
+      ],
+      [
+        3.55,
+        -0.1,
+        0.42
+      ],
+      [
+        2.9,
+        -1.0,
+        0.45
+      ],
+      [
+        2.0,
+        -1.9,
+        0.35
+      ],
+      [
+        1.0,
+        -2.4,
+        0.2
+      ]
+    ],
+    "apex": [
+      14.899999618530273,
+      -2.5999999046325684,
+      -2.549999952316284
+    ],
+    "grass_slot": 8
+  },
+  "borders": {
+    "border_faces_removed": 120,
+    "border_verts_lifted": 32,
+    "landing_verts_lifted": 74
+  },
+  "deck": {
+    "skirt_verts_deepened": 8,
+    "fascia": [
+      [
+        3.95,
+        6.83
+      ],
+      1.17,
+      0.05
+    ]
+  },
+  "canopy": {
+    "eave": 12.88,
+    "ridge": 14.02,
+    "pitch_degrees": 15.5
+  },
+  "source_untouched": true
+}

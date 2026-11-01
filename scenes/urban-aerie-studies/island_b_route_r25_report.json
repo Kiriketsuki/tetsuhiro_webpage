@@ -1,0 +1,94 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r22.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r25.blend",
+  "pad_moved": [
+    "SS_NA_Sky_Taxi_Pad.001",
+    "SS_NA_Pad_Glow.001"
+  ],
+  "ramp": {
+    "ramp_vertices": 124,
+    "head_along": 1.536
+  },
+  "railing": {
+    "railing_faces": 30
+  },
+  "lawn_berms": [
+    {
+      "subdivided_faces": 88,
+      "moved": 197,
+      "max_lift": 0.175
+    },
+    {
+      "subdivided_faces": 245,
+      "moved": 513,
+      "max_lift": 0.174
+    },
+    {
+      "subdivided_faces": 35,
+      "moved": 55,
+      "max_lift": 0.25
+    }
+  ],
+  "pad_lawn": {
+    "sunk": 124,
+    "eased": 345
+  },
+  "pad_shoulder": {
+    "raised": 28
+  },
+  "soffit": {
+    "from": [
+      -1.56,
+      4.85,
+      4.195
+    ],
+    "to": [
+      -0.55,
+      0.4,
+      7.31
+    ]
+  },
+  "wedge": {
+    "outline": [
+      [
+        11.6,
+        -5.45
+      ],
+      [
+        12.9,
+        -5.3
+      ],
+      [
+        14.2,
+        -5.45
+      ],
+      [
+        14.6,
+        -6.3
+      ],
+      [
+        13.9,
+        -7.1
+      ],
+      [
+        12.6,
+        -7.2
+      ],
+      [
+        11.7,
+        -6.6
+      ]
+    ]
+  },
+  "bridge_slab": {
+    "slabs": 1
+  },
+  "fascia": {
+    "fascia_vertices": 16
+  },
+  "shadows_removed": [
+    "Shadow_Deck_Front_1",
+    "Shadow_Deck_Front_2"
+  ],
+  "source_untouched": true
+}

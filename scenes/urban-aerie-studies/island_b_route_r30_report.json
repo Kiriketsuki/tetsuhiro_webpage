@@ -1,0 +1,30 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r29.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r30.blend",
+  "roof_edge": {
+    "membrane": 1,
+    "fascia": 4,
+    "beams": 4,
+    "fascia_height": 0.12
+  },
+  "entry_canopy": {
+    "panes": 1
+  },
+  "west_boards": {
+    "faces_removed": 120,
+    "boards": 20
+  },
+  "bridge_foot": {
+    "slab_top": 0.585,
+    "step_top": 0.775,
+    "step_x": [
+      6.53,
+      6.86
+    ]
+  },
+  "foot_lawn": {
+    "lowered": 1,
+    "max_drop": 0.007
+  },
+  "source_untouched": true
+}

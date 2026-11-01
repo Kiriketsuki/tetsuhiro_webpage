@@ -5,7 +5,7 @@ import * as THREE from 'three'
 const COUNT = 1500
 const COUNT_SMALL = 600
 const RADIUS = 8500
-const LOWEST = 0.06
+const LOWEST = 0.02
 
 const vertexShader = /* glsl */ `
 attribute float aSize;
@@ -19,7 +19,7 @@ void main() {
     gl_Position.z = gl_Position.w * 0.99999;
     float height = normalize( position ).y;
     float twinkle = 0.75 + 0.25 * sin( uTime * ( 0.6 + aSeed * 1.8 ) + aSeed * 50.0 );
-    vBright = smoothstep( 0.04, 0.35, height ) * twinkle;
+    vBright = smoothstep( 0.0, 0.16, height ) * twinkle;
     gl_PointSize = aSize * uPixelRatio;
 }
 `
@@ -53,7 +53,7 @@ export function createStars({ small = false, pixelRatio = 1 } = {}) {
         positions[i * 3] = Math.cos(angle) * ring * RADIUS
         positions[i * 3 + 1] = height * RADIUS
         positions[i * 3 + 2] = Math.sin(angle) * ring * RADIUS
-        sizes[i] = 1.2 + Math.pow(random(), 6) * 3.2
+        sizes[i] = 2.0 + Math.pow(random(), 5) * 3.6
         seeds[i] = random()
     }
     const geometry = new THREE.BufferGeometry()
@@ -65,7 +65,7 @@ export function createStars({ small = false, pixelRatio = 1 } = {}) {
     const uniforms = {
         uTime: { value: 0 },
         uPixelRatio: { value: pixelRatio },
-        uColor: { value: new THREE.Color(0.85, 0.9, 1.0).multiplyScalar(1.6) },
+        uColor: { value: new THREE.Color(0.9, 0.92, 1.0).multiplyScalar(3.0) },
     }
     const material = new THREE.ShaderMaterial({
         name: 'aerie.stars',

@@ -2,19 +2,31 @@ import * as THREE from 'three'
 import { Pass, FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js'
 
 // The final pass. It replaces OutputPass, so it does the tone mapping and the sRGB step.
-// On top of that it grades the night for a soft stylized look: a little more colour, a
-// gentle S curve, violet-blue lifted shadows and a soft vignette. It adds the desktop glow
-// when glow-pass.js runs, and the rain on the bedroom window.
+// On top of that it grades the cozy night: a soft highlight shoulder, so only lamps and
+// flames reach the top values, a gentle S curve, warm brown lifted shadows and a soft
+// vignette. A slight saturation lift keeps the autumn colour vivid under the night light.
+// It adds the desktop glow when glow-pass.js runs, and an even darkening (uFade) during
+// the move into the bedroom. It has no film grain, no paper texture and no outline.
 //
-// Texture fetches per pixel: 1 scene colour and 1 glow. The rain only moves the UV.
+// Texture fetches per pixel: 1 scene colour, plus 1 glow on the desktop tier.
 
+// Round 5 makes the lift a near-neutral warm grey, because the red lift pulled the olive
+// lawn and the cream plaster toward brown. The frame no longer reads dim: the palette fix
+// in field-noise.js lifted the albedo itself.
 export const GRADE = {
-    exposure: 1.2,
-    saturation: 1.12,
-    contrast: 0.12,
-    lift: new THREE.Color(0.014, 0.012, 0.03),
-    vignette: 0.32,
-    glow: 0.55,
+    // Round 11 lowers the exposure, so only the windows, the lamps and the campfire read bright.
+    exposure: 1.15,
+    // Round 10 lifts the saturation, because the review read the frame as muddy brown-olive.
+    // Round 12 lifts it again, toward the saturated store page shots.
+    saturation: 1.24,
+    contrast: 0.16,
+    // Round 12 cuts the lift to a trace of brown-indigo. A lift of 0.02 in linear light encodes
+    // to about 40 of 255 in sRGB, and the review read it as a grey veil over every dark area.
+    // Round 14 raises it a little, so the darkest exterior areas read warm brown-indigo and
+    // not near black, still well under the round 11 veil.
+    lift: new THREE.Color(0.0095, 0.006, 0.0125),
+    vignette: 0.22,
+    glow: 0.2,
 }
 
 const vertexShader = /* glsl */ `
@@ -40,62 +52,36 @@ uniform float uSaturation;
 uniform float uContrast;
 uniform vec3 uLift;
 uniform float uVignette;
-uniform float uRain;
-uniform float uTime;
+uniform float uFade;
 varying vec2 vUv;
 
 #include <tonemapping_pars_fragment>
 #include <colorspace_pars_fragment>
 
-float rainHash( vec2 p ) {
-    return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
-}
-
-// Rain on the window glass for the bedroom reveal. Each cell may hold one drop that slides
-// down and leaves a short trail. The drops bend the picture like lenses. Returns the UV
-// offset in xy and a highlight in z.
-vec3 rainOnGlass( vec2 uv, float scale, float speed ) {
-    vec2 grid = uv * uAspect * scale;
-    vec2 cell = floor( grid );
-    float seed = rainHash( cell );
-    if ( seed < 0.6 ) return vec3( 0.0 );
-    vec2 local = fract( grid ) - 0.5;
-    float fall = fract( uTime * speed * ( 0.4 + seed ) + seed * 7.0 );
-    vec2 drop = vec2( ( seed - 0.5 ) * 0.5, 0.45 - fall * 0.9 );
-    vec2 toDrop = ( local - drop ) * vec2( 1.0, 1.4 );
-    float d = length( toDrop );
-    float lens = smoothstep( 0.16, 0.06, d );
-    float trail = smoothstep( 0.025, 0.0, abs( local.x - drop.x ) ) * ( 1.0 - smoothstep( drop.y, drop.y + 0.3, local.y ) ) * step( drop.y, local.y ) * 0.4;
-    return vec3( -toDrop * lens * 0.6 / scale, lens * 0.1 + trail * 0.05 );
-}
-
 void main() {
-    vec2 uv = vUv;
-    float rainLight = 0.0;
-    if ( uRain > 0.001 ) {
-        vec3 near = rainOnGlass( vUv, 9.0, 0.35 );
-        vec3 far = rainOnGlass( vUv + 0.37, 17.0, 0.5 );
-        uv += ( near.xy + far.xy * 0.6 ) * uRain;
-        rainLight = ( near.z + far.z * 0.6 ) * uRain;
-    }
-
-    vec3 hdr = texture2D( tDiffuse, uv ).rgb;
-    if ( uGlow > 0.0 ) hdr += texture2D( tGlow, uv ).rgb * uGlow;
+    vec3 hdr = texture2D( tDiffuse, vUv ).rgb;
+    if ( uGlow > 0.0 ) hdr += texture2D( tGlow, vUv ).rgb * uGlow;
+    // A gentle shoulder above 0.8, so lit walls stay in the mid band and only the lamps
+    // reach the top of the range.
+    hdr = hdr / ( 1.0 + 0.15 * max( hdr - 0.8, 0.0 ) );
 
     vec3 color = NeutralToneMapping( hdr );
     float value = dot( color, vec3( 0.2126, 0.7152, 0.0722 ) );
     color = mix( vec3( value ), color, uSaturation );
     // A gentle S curve around the middle grey.
     color = clamp( color + uContrast * ( color - 0.5 ) * ( 1.0 - abs( color - 0.5 ) * 2.0 ), 0.0, 1.0 );
-    // Lift the blacks toward violet blue, so the night stays soft instead of crushed.
+    // Lift the blacks toward a warm brown indigo, so the night stays soft, not crushed.
     color += uLift * ( 1.0 - value ) * ( 1.0 - value );
-
-    color = mix( color, color * vec3( 0.86, 0.92, 1.0 ), uRain * 0.5 ) + rainLight * vec3( 0.55, 0.62, 0.72 );
 
     vec2 centred = ( vUv - 0.5 ) * uAspect / uAspect.x;
     color *= 1.0 - uVignette * smoothstep( 0.08, 0.42, dot( centred, centred ) );
+    // The bedroom move darkens the frame evenly, with no colour shift.
+    color *= 1.0 - 0.28 * uFade;
 
     gl_FragColor = sRGBTransferOETF( vec4( max( color, 0.0 ), 1.0 ) );
+    // A dither of 1/255 on the encoded value stops the banding in the dark sky gradient.
+    float dither = fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) );
+    gl_FragColor.rgb += ( dither - 0.5 ) / 255.0;
 }
 `
 
@@ -112,8 +98,7 @@ export class GradePass extends Pass {
             uContrast: { value: grade.contrast },
             uLift: { value: grade.lift.clone() },
             uVignette: { value: grade.vignette },
-            uRain: { value: 0 },
-            uTime: { value: 0 },
+            uFade: { value: 0 },
         }
         this.glowStrength = grade.glow
         this.material = new THREE.RawShaderMaterial({

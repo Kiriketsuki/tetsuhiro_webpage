@@ -23,7 +23,7 @@ void main() {
 }
 `
 
-// Streaks come from a smooth noise along the ribbon. The noise scrolls down over time.
+// Streaks come from a smooth noise along the ribbon.
 const ribbonFragment = /* glsl */ `
 uniform float uTime;
 uniform vec3 uColor;
@@ -43,7 +43,9 @@ float noise( vec2 p ) {
 
 void main() {
     float fall = vUv.y;
-    vec2 p = vec2( vUv.x * 7.0, fall * 9.0 + uTime * 1.6 );
+    // fall runs 0 at the lip to 1 at the base. Subtracting time moves each streak toward a
+    // larger fall, so the water runs down.
+    vec2 p = vec2( vUv.x * 7.0, fall * 9.0 - uTime * 1.6 );
     float streak = noise( p ) * 0.65 + noise( p * vec2( 2.0, 2.7 ) + 3.1 ) * 0.35;
     float edge = smoothstep( 0.0, 0.22, vUv.x ) * smoothstep( 1.0, 0.78, vUv.x );
     // Solid at the lip, thinning out over the lower half into mist.
@@ -153,8 +155,8 @@ export function createWaterfall({ top, base, haze }) {
             name: 'aerie.waterfall',
             uniforms: {
                 uTime: time,
-                uColor: { value: new THREE.Color(0x3d6f9a) },
-                uFoam: { value: new THREE.Color(0xa9c8e4) },
+                uColor: { value: new THREE.Color(0x2f4a52) },
+                uFoam: { value: new THREE.Color(0x9fb8bf) },
             },
             vertexShader: ribbonVertex,
             fragmentShader: ribbonFragment,
@@ -169,7 +171,9 @@ export function createWaterfall({ top, base, haze }) {
         mistGeometry(base, out),
         new THREE.ShaderMaterial({
             name: 'aerie.waterfall.mist',
-            uniforms: { uTime: time, uScale: scale, uColor: { value: haze.clone().multiplyScalar(2.6) }, uOpacity: { value: 0.2 } },
+            // Round 13 thins the mist and keeps it at the haze value. A puff near the phone lens read
+            // as a pink blotch at the lower left of the phone overview (S6).
+            uniforms: { uTime: time, uScale: scale, uColor: { value: haze.clone().multiplyScalar(1.1) }, uOpacity: { value: 0.07 } },
             vertexShader: mistVertex,
             fragmentShader: mistFragment,
             transparent: true,

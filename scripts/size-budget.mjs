@@ -24,7 +24,11 @@ const LIMITS = {
     lazyChunk: 8_000,
     shellCss: 8_000,
     model: 1_500_000,
+    // The scene's image textures. The detail texture and the leaf atlas build at runtime,
+    // so only the painted city layers count here.
+    textures: 150_000,
 }
+const TEXTURE = /\.(png|webp|jpe?g|ktx2)$/i
 
 const gzipSize = (file) => gzipSync(readFileSync(join(DIST, file)), { level: 9 }).length
 const rawSize = (file) => statSync(join(DIST, file)).size
@@ -73,6 +77,7 @@ function measure(manifest) {
         (file) => file.endsWith('.js') && !taken.has(file)
     )
     const largestLazy = lazyFiles.map((file) => ({ file, size: gzipSize(file) })).sort((a, b) => b.size - a.size)[0]
+    const sceneTextures = filesOf(manifest, sceneKeys, 'assets').filter((file) => TEXTURE.test(file))
     const models = readdirSync(join(DIST, 'assets'))
         .filter((file) => file.endsWith('.glb'))
         .map((file) => ({ file: `assets/${file}`, size: rawSize(`assets/${file}`) }))
@@ -94,6 +99,12 @@ function measure(manifest) {
             note: filesOf(manifest, shellKeys, 'css').join(', '),
         },
         { name: 'largest model (raw)', limit: LIMITS.model, size: models[0]?.size ?? 0, note: models[0]?.file ?? 'none' },
+        {
+            name: 'scene textures (raw)',
+            limit: LIMITS.textures,
+            size: sum(sceneTextures, rawSize),
+            note: sceneTextures.length ? sceneTextures.join(', ') : 'none',
+        },
     ]
 }
 

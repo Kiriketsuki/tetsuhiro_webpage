@@ -1,0 +1,41 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r7.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r8.blend",
+  "lookout": {
+    "posts_removed": 4,
+    "bench_parts": 4,
+    "bench_reach_before": 1.075,
+    "bench_moved_in": 0.2
+  },
+  "path_bed": {
+    "bed_vertices_lifted": 26,
+    "bed_material": "NA_Path_Flagstone"
+  },
+  "step": {
+    "s": [
+      6.79,
+      7.18
+    ],
+    "top": 0.582,
+    "path_top": 0.459,
+    "deck_top": 0.705
+  },
+  "lantern": {
+    "parts": 3,
+    "at": [
+      7.473,
+      -3.898
+    ],
+    "dz": -0.044
+  },
+  "lawn_grade": {
+    "vertices_raised": 37,
+    "faces_to_lawn": 65
+  },
+  "pad_footing": {
+    "bottom_vertices_moved": 9,
+    "bottom_z": -0.95,
+    "share": 0.72
+  },
+  "source_untouched": true
+}

@@ -23,9 +23,22 @@ const chunkFileNames = (chunk) =>
         ? 'assets/scene-[hash].js'
         : 'assets/[name]-[hash].js'
 
+// The scene shaders sit in template strings, so the minifier keeps their comments. This
+// plugin drops every line that holds only a // comment from the scene modules at build time.
+// The minifier removes such lines outside the strings anyway, and inside a shader string a
+// line that starts with // is always a GLSL comment. The source keeps every comment.
+const stripShaderComments = () => ({
+    name: 'strip-shader-comments',
+    apply: 'build',
+    transform(code, id) {
+        if (!/[\\/]src[\\/]scene[\\/].*\.js$/.test(id)) return null
+        return { code: code.replace(/^[ \t]*\/\/[^\n]*\n/gm, ''), map: null }
+    },
+})
+
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [vue(), tailwindcss()],
+    plugins: [vue(), tailwindcss(), stripShaderComments()],
     build: {
         // scripts/size-budget.mjs reads the manifest to tell the shell from the lazy chunks.
         manifest: true,

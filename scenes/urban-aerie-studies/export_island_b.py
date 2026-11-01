@@ -1,12 +1,36 @@
-"""Web export of Island_B_Cozy_Interiors: baked vertex colours, about 24 web materials, a dozen joined meshes and a Draco GLB.
+"""Web export of Island_B_Cozy_Interiors: baked vertex colours, baked AO in _AO, about 24 web materials, a dozen joined meshes and a Draco GLB.
 
 Run it from this folder with background Blender. Never run it inside the open source file.
 
-    blender --factory-startup -b island_b_cozy_interiors.blend --python export_island_b.py -- [--replace] [--no-compress]
+    blender --factory-startup -b island_b_route_r34.blend --python export_island_b.py -- [--replace] [--no-compress]
 
 The painted city layers for the site come from a second mode, which also works on a copy:
 
-    blender --factory-startup -b island_b_cozy_interiors.blend --python export_island_b.py -- --city-layers
+    blender --factory-startup -b island_b_route_r34.blend --python export_island_b.py -- --city-layers
+
+island_b_route_r34.blend comes from round20_glass.py, which reads island_b_route_r33.blend and takes the
+frame and the glass screens of the stair tower back from island_b_route_r20.blend.
+island_b_route_r33.blend comes from round19_look.py, which reads island_b_route_r30.blend. Its earlier
+passes wrote island_b_route_r31.blend and r32, which nothing reads now.
+island_b_route_r30.blend comes from round18_look.py, which reads island_b_route_r29.blend.
+island_b_route_r29.blend comes from round17_route.py, which reads island_b_route_r27.blend. Its first
+pass wrote island_b_route_r28.blend, which nothing reads now.
+island_b_route_r27.blend comes from round16_look.py, which reads island_b_route_r22.blend. Its earlier
+passes wrote island_b_route_r23.blend to r26, which nothing reads now.
+island_b_route_r22.blend comes from round15_route.py, which reads island_b_route_r21.blend.
+island_b_route_r21.blend comes from round14_frame.py, which reads island_b_route_r20.blend.
+island_b_route_r20.blend comes from round13_route.py, which reads island_b_route_r18.blend. Its first
+pass wrote island_b_route_r19.blend, which nothing reads now.
+island_b_route_r18.blend comes from round12_flat_roof.py, which reads island_b_route_r17.blend.
+island_b_route_r17.blend comes from round11_roof.py, which reads island_b_route_r16.blend.
+island_b_route_r16.blend comes from round10_pad.py, which reads island_b_route_r13.blend. Its earlier
+passes wrote island_b_route_r14.blend and r15, which nothing reads now.
+island_b_route_r13.blend comes from round9_route.py, which reads island_b_route_r10.blend. Its earlier
+passes wrote island_b_route_r11.blend and r12, which nothing reads now.
+island_b_route_r10.blend comes from seat_pad_route.py, which reads island_b_route_r8.blend.
+island_b_route_r8.blend comes from polish_route.py, which reads island_b_route_r7.blend.
+island_b_route_r7.blend comes from connect_route.py, which reads island_b_pad_tidy_r6.blend.
+island_b_pad_tidy_r6.blend comes from tidy_pad.py, which reads island_b_cozy_interiors.blend.
 
 The script saves a copy first and only ever writes that copy. The source .blend stays untouched.
 """
@@ -20,11 +44,51 @@ from mathutils.bvhtree import BVHTree
 ROOT=Path(__file__).resolve().parent
 SITE=ROOT.parent.parent
 # The 25 October 2026 export read island_b_rolling_rim.blend. Its work copy and report keep their names.
-SOURCE=ROOT/'island_b_cozy_interiors.blend'
+# The AO export wrote island_b_ao_bake_web_export.blend from island_b_cozy_interiors.blend.
+# The pad export reads the tidy pad revision (tidy_pad.py) and writes a new work copy and
+# report, so no earlier .blend is overwritten. Round 6 reads r6: no threshold plate, a flush
+# ramp, a stone footing and soil under the pad overhang. The route export reads r7: one
+# walkway from the bridge, over the turned lookout deck and a new ramp, to the pad. Round 7
+# reads r8: no deck posts, the bench on the deck, a flagstone step and joint bed, a lawn grade
+# up to the pad curb and a tapered pad footing. Round 8 reads r10: the pad footing rebuilt as a
+# faceted bank, no cliff flaps near the pad, a step at the path width, border stones along the
+# route and solid timber skirts under the ramp. Round 9 reads r13: a rock footing that leans in
+# under the curb, no soil shards on the lawn near the pad, a straight sloped ramp with straight
+# skirts, the deck at path level, and the Shadow_* empties for the contact shadows. Round 10
+# reads r16: a turf shoulder over a short rock footing under the pad curb, no border stones
+# along the deck and the ramp, a fascia under the deck edges, the landing at the deck level and
+# a slate gable over the stair canopy. Round 11 reads r17: the slate gable runs over the whole
+# tower top, and the pergola slats under it go. Round 12 reads r18: a flat membrane roof with a
+# thin dark metal fascia replaces the slate gable, because the user asked for a flat modern look.
+# Round 13 reads r20: a lawn berm flush with the front of the deck, the path and the bridge-end
+# step, and a pad footing that flares out like the island cliff instead of a steep drum.
+# Round 14 reads r21: four corner posts on the stair tower, chamfered frame timber, rafters and
+# beams under the flat roof, no glass screens at the open tower top, one sloped plane for the
+# ramp boards, a bridge-end landing flush with the paving and shadows along the deck front.
+# Round 15 reads r22: no stair glass screens at all, the lawn raised along the turned front of
+# the lookout deck, and the deck shadows moved out onto that lawn.
+# Round 16 reads r27: the pad drops to just over the lawn, the ramp follows it, a rock wedge
+# fills the notch between the island lip and the pad lobe, the front railing of the deck goes,
+# the lawn rises flush with the deck front and both ramp sides, the turf shoulder of the pad
+# levels out, the bridge-foot slab sits flush with the path, the roof fascia stands 21 cm, and a
+# flat graphite soffit closes the stair flight over the workshop.
+# Round 17 reads r29: the lawn round the pad comes to one level, so the lower shelf west of the
+# pad, the soil sliver and the rim ridge beside the pad shoulder go, the ramp front moves out to the deck front
+# line and its head reaches the curb, the ramp skirts rise flush with the boards, and the bridge
+# foot climbs from the path in two flagstone steps with the lawn raised along their south face.
+# Round 18 reads r30: a thinner roof membrane with a fascia of about half the old height, the
+# entry canopy as a small graphite membrane roof in place of a clear pane, no lap boards on the
+# west wall, and a bridge-foot slab flush with the path behind one new flagstone step.
+# Round 19 reads r33: the roof fascia runs from the beam tops to a low parapet over the membrane,
+# the ramp sides line up with the deck sides, the ramp head rises to the top of the pad rim, the
+# lawn rises along the south side of the paving, and the wedge west of the pad drops into a rock cleft.
+# Round 20 reads r34: the glass stair tower comes back. The slim steel frame and every glass screen
+# return from r20, and the timber rafters and beams under the flat roof go.
+SOURCE=ROOT/'island_b_route_r34.blend'
 SCENE='Island_B_Cozy_Interiors'
 WEB_SCENE='Island_B_Web'
-WORK=ROOT/'island_b_cozy_web_export.blend'
-REPORT=ROOT/'island_b_cozy_web_export_report.json'
+WORK=ROOT/'island_b_route_r34_web_export.blend'
+REPORT=ROOT/'island_b_route_r34_web_export_report.json'
 # The site imports its models from src/assets/models with a ?url import, so the GLBs sit beside island.glb.
 MODELS=SITE/'src'/'assets'/'models'
 OUT_DESKTOP=MODELS/'island_b.glb'
@@ -41,6 +105,29 @@ WATERFALL_MATERIAL='Falling_Water'
 BAKE_SAMPLES=16
 SMOOTH_PASSES=2
 BUDGET={'desktop':{'tris':120000,'draws':100},'lod1':{'tris':70000,'draws':100}}
+# Ambient occlusion bake. A ray-cast AO traces AO_SAMPLES cosine-weighted rays per vertex, out to
+# AO_DISTANCE metres, against every family mesh except glass. The rays of a vertex split over the
+# face corners at its spot. Each corner casts from AO_INSET of the way toward its face centre, not
+# from the corner itself. A low-poly wall has vertices only at its corners, and every corner sits in
+# a crease, so a corner sample would darken the whole wall. The inset sample measures the ground
+# around the vertex instead. The bake then averages the corners at one spot and relaxes the value
+# over its neighbours, so a crease darkens as a soft gradient and never as one band per facet.
+# The glTF exporter writes every attribute whose name starts with an underscore, so _AO reaches
+# each primitive.
+AO_SAMPLES=64
+AO_DISTANCE=.8
+AO_SMOOTH_PASSES=2
+AO_ATTRIBUTE='_AO'
+AO_INSET=1/3
+AO_BIAS=2e-3
+AO_SEED=20261025
+# A corner sample under this value sits on a buried face that nobody sees, such as a slab end inside
+# a wall. It does not count toward its spot, unless every corner at the spot is buried.
+AO_BURIED=.05
+# Glass gets no AO and does not occlude, so clear panes cast no occlusion on the rooms.
+AO_SKIP=('Glass',)
+# Spots closer than this, in metres, count as one spot. Flat faces often keep their own vertices.
+AO_WELD=1e-4
 
 # Web materials. Each source material maps to the first family whose pattern it contains.
 # 'vc' families take their albedo from COLOR_0, so their base colour stays white.
@@ -90,7 +177,7 @@ FAMILY=[
 # Thinning groups. Each loose part gets a rank from a smooth noise field, so parts leave in
 # coherent patches, never as per-part random speckle. 'desktop' and 'lod1' give the fraction each stage keeps.
 # The interior detail meshes hold books, tools and small desk items. The mobile GLB drops all of them.
-THIN={1:('Folded_Leaves',dict(desktop=.55,lod1=.08)),2:('Angular_Meadow',dict(desktop=1,lod1=.35)),3:('Ground_Planting',dict(desktop=1,lod1=.5)),
+THIN={1:('Folded_Leaves',dict(desktop=.55,lod1=.08)),2:('Angular_Meadow',dict(desktop=1,lod1=.27)),3:('Ground_Planting',dict(desktop=1,lod1=.5)),
       4:('Interior_Detail',dict(desktop=1,lod1=0))}
 THIN_FREQUENCY=1.1;THIN_SEED=Vector((5.3,1.9,8.1))
 
@@ -424,6 +511,89 @@ def build_families(scene,objs,coll):
     return out
 
 
+# ---- ambient occlusion ------------------------------------------------------------------------
+
+def web_kind(m):
+    """Returns the kind of a web material: 'vc', 'glass' or 'emit'."""
+    fam=m.name[4:] if m and m.name.startswith('web_') else web_family(m.name if m else '')
+    return next(k for f,_,k,_ in WEB if f==fam)
+
+def ao_tree(objs):
+    """Builds one BVH tree from the family meshes. They already sit in world space."""
+    verts=[];polys=[];off=0
+    for ob in objs:
+        me=ob.data;co=np.empty(len(me.vertices)*3);me.vertices.foreach_get('co',co);verts.append(co.reshape(-1,3))
+        cv=np.empty(len(me.loops),np.int64);me.loops.foreach_get('vertex_index',cv);cv+=off
+        ls=np.empty(len(me.polygons),np.int64);me.polygons.foreach_get('loop_start',ls)
+        polys+=[f.tolist() for f in np.split(cv,ls[1:])] if len(ls) else []
+        off+=len(me.vertices)
+    return BVHTree.FromPolygons(np.concatenate(verts).tolist(),polys)
+
+def bake_ao(scene,families):
+    """Ray casts AO for every family mesh except glass and writes it to the point attribute _AO."""
+    targets=[o for o in families if o.name not in AO_SKIP]
+    tree=ao_tree(targets);rng=np.random.default_rng(AO_SEED);out={}
+    for ob in targets:out[ob.name]=settle_ao(ob,tree,rng)
+    return {'method':'ray cast, inset corners','samples':AO_SAMPLES,'distance':AO_DISTANCE,'inset':round(AO_INSET,3),
+            'smooth_passes':AO_SMOOTH_PASSES,'skipped':[o.name for o in families if o.name in AO_SKIP],'meshes':out}
+
+def corner_rays(origin,normal,count,rng):
+    """Returns cosine-weighted directions around each normal, stratified per corner, with a random
+    turn per corner so that neighbouring corners do not share one ray pattern."""
+    corner=np.repeat(np.arange(len(count)),count)
+    first=np.cumsum(count)-count;i=np.arange(len(corner))-first[corner]
+    u=(i+rng.random(len(corner)))/count[corner]
+    phi=2*math.pi*(i*0.6180339887+rng.random(len(count))[corner])
+    r=np.sqrt(u);local=np.stack([r*np.cos(phi),r*np.sin(phi),np.sqrt(1-u)],axis=1)
+    n=normal[corner];a=np.where(np.abs(n[:,:1])<.9,[[1.0,0,0]],[[0,1.0,0]])
+    t=np.cross(n,a);t/=np.linalg.norm(t,axis=1)[:,None];b=np.cross(n,t)
+    return corner,origin[corner],local[:,:1]*t+local[:,1:2]*b+local[:,2:]*n
+
+def settle_ao(ob,tree,rng):
+    """Casts the AO rays of one mesh and writes one value per vertex to _AO.
+
+    Corners at one spot are averaged, across faces and materials, so a facet edge carries one
+    value. Two relax passes over the edges then soften the field. Emissive corners cast no rays,
+    and a vertex that only emissive faces use keeps 1.0, because emissive parts take no light."""
+    me=ob.data;n=len(me.loops);nv=len(me.vertices);np_=len(me.polygons)
+    cv=np.empty(n,np.int64);me.loops.foreach_get('vertex_index',cv)
+    pm=np.empty(np_,np.int64);lt=np.empty(np_,np.int64);me.polygons.foreach_get('material_index',pm);me.polygons.foreach_get('loop_total',lt)
+    cf=np.repeat(np.arange(np_),lt);lit=np.array([web_kind(m)!='emit' for m in me.materials])[pm[cf]]
+    co=np.empty(nv*3);me.vertices.foreach_get('co',co);co=co.reshape(-1,3)
+    centre=np.empty(np_*3);me.polygons.foreach_get('center',centre);centre=centre.reshape(-1,3)
+    normal=np.empty(np_*3);me.polygons.foreach_get('normal',normal);normal=normal.reshape(-1,3)
+    _,spot=np.unique(np.round(co/AO_WELD).astype(np.int64),axis=0,return_inverse=True)
+    spot=spot.ravel();ns=spot.max()+1
+    lc=np.flatnonzero(lit);ls_=spot[cv[lc]]
+    per_spot=np.bincount(ls_,minlength=ns)
+    count=np.maximum(np.ceil(AO_SAMPLES/np.maximum(per_spot[ls_],1)),4).astype(np.int64)
+    fn=normal[cf[lc]]
+    origin=co[cv[lc]]*(1-AO_INSET)+centre[cf[lc]]*AO_INSET+fn*AO_BIAS
+    corner,o,d=corner_rays(origin,fn,count,rng)
+    hit=np.zeros(len(corner),bool);cast=tree.ray_cast
+    for k,(a,b) in enumerate(zip(o.tolist(),d.tolist())):hit[k]=cast(a,b,AO_DISTANCE)[0] is not None
+    ao=1-np.bincount(corner,weights=hit,minlength=len(lc))/count
+    # Buried corners drop out, unless every corner at the spot is buried.
+    seen=ao>=AO_BURIED;any_seen=np.bincount(ls_,weights=seen,minlength=ns)>0
+    use=seen|~any_seen[ls_]
+    cnt=np.bincount(ls_[use],minlength=ns).astype(np.float64)
+    val=np.bincount(ls_[use],weights=ao[use],minlength=ns)/np.maximum(cnt,1)
+    used=cnt>0;val[~used]=1.0
+    ev=np.empty(len(me.edges)*2,np.int64);me.edges.foreach_get('vertices',ev)
+    a=spot[ev[0::2]];b=spot[ev[1::2]];keep=used[a]&used[b]&(a!=b);a,b=a[keep],b[keep]
+    for _ in range(AO_SMOOTH_PASSES):
+        acc=np.bincount(a,weights=val[b],minlength=ns)+np.bincount(b,weights=val[a],minlength=ns)
+        deg=np.bincount(a,minlength=ns)+np.bincount(b,minlength=ns)
+        val=np.where(used&(deg>0),.5*val+.5*acc/np.maximum(deg,1),val)
+    per_vertex=val[spot].astype(np.float32)
+    attr=me.attributes.get(AO_ATTRIBUTE) or me.attributes.new(AO_ATTRIBUTE,'FLOAT','POINT')
+    attr.data.foreach_set('value',per_vertex)
+    area=np.empty(np_);me.polygons.foreach_get('area',area)
+    face=np.bincount(cf,weights=per_vertex[cv],minlength=np_)/lt;lf=lit[np.cumsum(lt)-lt]
+    return {'vertices':nv,'rays':int(len(corner)),'area_mean':round(float((face*area)[lf].sum()/max(area[lf].sum(),1e-9)),3),
+            'p10':round(float(np.percentile(face[lf],10)),3) if lf.any() else None,'min':round(float(per_vertex.min()),3)}
+
+
 # ---- markers ----------------------------------------------------------------------------------
 
 def add_cameras(scene,coll):
@@ -492,6 +662,11 @@ def add_anchors(coll,waterfall,city_centre,extra):
     spots['Anchor_City']=city_centre
     for name,p in spots.items():
         e=bpy.data.objects.new(name,None);e.empty_display_type='PLAIN_AXES';e.location=p;coll.objects.link(e)
+    # The contact shadow empties (round9_route.py) keep their full transform: the x and y scale
+    # give the shadow radii and the turn about z its facing.
+    for src in [o for o in bpy.data.objects if o.type=='EMPTY' and o.name.startswith('Shadow_') and o.users_collection and o.users_collection[0] is not coll]:
+        e=bpy.data.objects.new(src.name+'_web',None);e.matrix_world=src.matrix_world.copy();coll.objects.link(e)
+        spots[e.name]=src.matrix_world.translation.copy()
     return {k:[round(x,3) for x in v] for k,v in spots.items()}
 
 def city_boxes():
@@ -540,7 +715,7 @@ def export(scene,path):
             use_visible=False,use_renderable=False,export_cameras=True,export_lights=False,export_extras=False,
             export_yup=True,export_apply=True,export_texcoords=False,export_normals=True,export_tangents=False,
             export_materials='EXPORT',export_vertex_color='ACTIVE',export_all_vertex_colors=False,
-            export_active_vertex_color_when_no_material=False,export_attributes=False,export_animations=False,
+            export_active_vertex_color_when_no_material=False,export_attributes=True,export_animations=False,
             export_draco_mesh_compression_enable=False,export_image_format='NONE')
     return path.stat().st_size
 
@@ -579,6 +754,7 @@ def build():
     for ob in copies:settle_colours(ob)
     mapping=remap_materials(copies,web_materials())
     families=build_families(scene,copies,coll)
+    ao=bake_ao(scene,families)
     city_centre,city_counts=city_boxes()
     details={k:face_anchor(*v) for k,v in FACE_ANCHORS.items()};details['Anchor_Campfire']=campfire_anchor(src)
     cameras=add_cameras(scene,coll);anchors=add_anchors(coll,waterfall,city_centre,details)
@@ -593,7 +769,7 @@ def build():
             'cameras':cameras,'anchors':anchors,'anchor_details':{k:{**v,'at':[round(x,3) for x in v['at']]} for k,v in details.items()},
             'renames':'none. Cam_01 to Cam_05, every earlier Anchor_* and every web_* name are unchanged.','city_json':str(CITY_JSON),'city_boxes':city_counts,
             'lights':'none exported. Emissive materials carry windows, lanterns, screens and pad lights.',
-            'desktop':desktop,'budget':BUDGET}
+            'ambient_occlusion':ao,'desktop':desktop,'budget':BUDGET}
     report['desktop']['raw_bytes']=export(scene,raw/'island_b.glb')
     bpy.ops.wm.save_as_mainfile(filepath=str(WORK),check_existing=False)
 

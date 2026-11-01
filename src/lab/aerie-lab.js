@@ -4,14 +4,53 @@ import { stops } from '../data/stops.js'
 import { TIERS } from '../scene/aerie/quality.js'
 import { createGpuTimer } from './gpu-timer.js'
 
-// Dev-only lab for the soft stylized look on the urban aerie island. Open
-// /lab/watercolour.html on the dev server. The live site does not load this file.
+// Dev-only lab for the cozy night look on the urban aerie island, after the art style of
+// Leaf it Alone. Open /lab/aerie.html on the dev server. The live site does not load this file.
 // Query options: ?lod=0|1 picks the GLB, ?tier=0..3 pins a tier, ?still renders one frame,
 // ?cam=<stop id> picks the start stop.
 
 const params = new URLSearchParams(location.search)
 const reducedMotion = params.has('still') || window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const pinned = params.has('tier') ? THREE.MathUtils.clamp(Number(params.get('tier')), 0, TIERS.length - 1) : null
+
+// Lab-only acceptance shots, which the site never shows. padclose is the close look at the
+// arrival pad: the deck, its curb and lamps, the marking and the ramp join. The lab adds a
+// shot only when ?cam names it, so the crown cards (placed for the camera stops) match the
+// site in every other shot.
+const LAB_STOPS = {
+    padclose: {
+        camera: null,
+        anchor: 'Anchor_Pad',
+        fallback: { position: [21.2, 5.0, 8.8], target: [14.6, 0.8, 2.7], fov: 40 },
+        shift: [0, 0],
+        tall: [0, 0],
+    },
+    // The close look at the walkway from the bridge to the pad: the bridge end, the path,
+    // the step, the lookout deck, the ramp and the pad rim in one frame (connect_route.py).
+    route: {
+        camera: null,
+        anchor: null,
+        fallback: { position: [11.0, 3.4, 10.2], target: [9.2, 0.6, 4.6], fov: 46 },
+        shift: [0, 0],
+        tall: [0, 0],
+    },
+    // The water flow pair: the pond outlet, the stream, the lip and the top of the ribbon.
+    water: {
+        camera: null,
+        anchor: null,
+        fallback: { position: [12.5, 5.5, 17.5], target: [4.6, -0.6, 8.0], fov: 42 },
+        shift: [0, 0],
+        tall: [0, 0],
+    },
+}
+// ?pose=x,y,z,tx,ty,tz,fov adds a trial shot, so a framing search can render a candidate
+// view without an edit to stops.js.
+const pose = params.get('pose')?.split(',').map(Number)
+if (pose?.length === 7 && pose.every(Number.isFinite)) {
+    LAB_STOPS.trial = { camera: null, anchor: null, fallback: { position: pose.slice(0, 3), target: pose.slice(3, 6), fov: pose[6] }, shift: [0, 0], tall: [0, 0] }
+    params.set('cam', 'trial')
+}
+if (LAB_STOPS[params.get('cam')]) stops[params.get('cam')] = LAB_STOPS[params.get('cam')]
 const startStop = stops[params.get('cam')] ? params.get('cam') : 'overview'
 
 const canvas = document.getElementById('lab')
@@ -20,6 +59,9 @@ const controlsBar = document.getElementById('controls')
 
 let gpu = null
 let frames = 0
+// A pending still capture. The canvas keeps no drawing buffer, so the PNG must be read
+// right after the render that drew it.
+let capture = null
 const manager = createSceneManager({
     canvas,
     reducedMotion,
@@ -31,6 +73,10 @@ const manager = createSceneManager({
         after: () => {
             gpu?.end()
             frames += 1
+            if (capture) {
+                capture(canvas.toDataURL('image/png'))
+                capture = null
+            }
         },
     },
 })
@@ -111,7 +157,15 @@ manager.ready
         buildControls()
         writeHud()
         setInterval(writeHud, 500)
-        window.lab = { manager }
+        // lab.capture() resolves with a PNG data URL of the next frame, without the HUD.
+        window.lab = {
+            manager,
+            capture: (advance = 0) =>
+                new Promise((resolve) => {
+                    capture = resolve
+                    manager.renderNow(advance)
+                }),
+        }
     })
     .catch((error) => {
         hud.textContent = `lab failed to start: ${error.message}`

@@ -28,8 +28,11 @@ export function createMoonShadow({ direction, centre = new THREE.Vector3(0, 0, 0
     // Flat facets need a little normal bias, or the lit faces speckle with acne.
     light.shadow.bias = -0.0004
     light.shadow.normalBias = 0.04
-    light.shadow.radius = 3
-    light.shadow.intensity = 0.85
+    // PCFShadowMap reads the radius, in texels, and blends 17 filtered taps across it. The
+    // slats on the telescope wall threw shadow edges that showed each map texel as a
+    // diagonal stair step. A blur over about 2.5 texels hides the steps.
+    light.shadow.radius = 2.5
+    light.shadow.intensity = 0.7
     return light
 }
 
@@ -46,7 +49,8 @@ export function markShadows(root) {
 
 export function configureShadows(renderer) {
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    // PCFSoftShadowMap ignores the radius, so the soft edge comes from PCFShadowMap.
+    renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.shadowMap.autoUpdate = false
     renderer.shadowMap.needsUpdate = true
 }

@@ -1,0 +1,111 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r10.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_route_r11.blend",
+  "footing": {
+    "old_faces": 144,
+    "rings": [
+      [
+        2.47,
+        0.7
+      ],
+      [
+        2.3,
+        0.36
+      ],
+      [
+        2.0,
+        -0.18
+      ],
+      [
+        1.62,
+        -0.85
+      ],
+      [
+        1.1,
+        -1.55
+      ],
+      [
+        0.55,
+        -2.2
+      ]
+    ],
+    "segments": 20,
+    "apex": -2.65
+  },
+  "terrain": {
+    "regrassed": 119,
+    "folds_removed": 4
+  },
+  "lookout": {
+    "deck_parts": 23,
+    "deck_drop": 0.12,
+    "ramp_boards": 5,
+    "skirts_replaced": 16
+  },
+  "shadows": {
+    "Shadow_Telescope": [
+      -7.62,
+      4.7,
+      7.455,
+      0.62,
+      0.62
+    ],
+    "Shadow_Stool": [
+      -7.57,
+      3.92,
+      7.455,
+      0.34,
+      0.34
+    ],
+    "Shadow_Table": [
+      -7.2,
+      3.28,
+      7.455,
+      0.3,
+      0.3
+    ],
+    "Shadow_Lantern_1": [
+      -6.25,
+      -1.8,
+      0.281,
+      0.34,
+      0.34
+    ],
+    "Shadow_Lantern_2": [
+      -0.6,
+      -3.6,
+      0.4,
+      0.34,
+      0.34
+    ],
+    "Shadow_Lantern_3": [
+      1.8,
+      -6.05,
+      0.377,
+      0.34,
+      0.34
+    ],
+    "Shadow_Lantern_4": [
+      6.9,
+      -4.4,
+      0.4,
+      0.34,
+      0.34
+    ],
+    "Shadow_Lantern_5": [
+      7.47,
+      -3.9,
+      0.356,
+      0.34,
+      0.34
+    ],
+    "Shadow_Bench": [
+      9.83,
+      -3.728,
+      0.585,
+      0.95,
+      0.42
+    ]
+  },
+  "source_untouched": true
+}

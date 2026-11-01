@@ -5,8 +5,8 @@ import { Pass, FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js'
 // target, a separable blur runs twice at growing radius, and the grade pass adds the result.
 // It does not change the composer's buffers, so the grade pass still reads the scene.
 
-const THRESHOLD = 0.85
-const KNEE = 0.45
+const THRESHOLD = 0.95
+const KNEE = 0.3
 const SCALE = 4
 
 const vertexShader = /* glsl */ `

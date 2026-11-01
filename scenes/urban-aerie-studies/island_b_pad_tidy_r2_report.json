@@ -1,0 +1,43 @@
+{
+  "source": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_cozy_interiors.blend",
+  "output": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\scenes\\urban-aerie-studies\\island_b_pad_tidy_r2.blend",
+  "pad": "SS_NA_Sky_Taxi_Pad.001",
+  "home": [
+    -0.81,
+    -0.586
+  ],
+  "stripped": {
+    "kept_parts": 11,
+    "removed_parts": 40,
+    "removed_by_kind": {
+      "deck, marking or lamp": 17,
+      "post or strut": 14,
+      "windsock": 5,
+      "ramp lamp": 4
+    }
+  },
+  "built": {
+    "plinth_bottom_z": [
+      -0.1,
+      0.394
+    ],
+    "lamps": 12,
+    "segments": 40
+  },
+  "windsock_slot_removed": true,
+  "cover_faces_cleared": {
+    "RR_GE_MH_B5_B4_BC_JG_RF_CO_PT_SH_UA_Keep_SS_LP_Angular_Meadow.001": 40
+  },
+  "pad_tris": 1304,
+  "materials": [
+    "SS_NA_Pad_Deck.001",
+    "SS_NA_Pad_Paint.001",
+    "LP_SS_A_metal",
+    "SS_NA_Pad_Light_White.001",
+    "SS_NA_Pad_Light_Red.001",
+    "LP_SS_A_wood",
+    "LP_SS_A_wood_light",
+    "LP_SS_A_stone"
+  ],
+  "source_untouched": true
+}

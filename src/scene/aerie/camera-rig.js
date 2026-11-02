@@ -197,6 +197,10 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         get current() {
             return current
         },
+        // The distance from the camera to the point it looks at, for the lens focus.
+        get focus() {
+            return camera.position.distanceTo(target)
+        },
         // True while anything moves the camera, so the frame needs a render.
         get moving() {
             const drifting = Math.abs(pointer.x - pointer.sx) + Math.abs(pointer.y - pointer.sy) > 1e-4

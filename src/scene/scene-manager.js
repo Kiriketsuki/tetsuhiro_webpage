@@ -19,6 +19,7 @@ import { createConstellation } from './aerie/constellation.js'
 import { projects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
+import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
 // The scene layer behind one small API: init, goTo, setQuality, pause, resume and dispose.
 // It has no Vue import, so the site shell and the lab both drive it.
@@ -72,6 +73,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let ambientFps = AMBIENT_FPS
     let tierIndex = tier ?? startTier(small)
     let pipeline = null
+    // The look options in force (look-options.js). A new pipeline takes them again.
+    let lookSet = SITE_LOOK
+    let lookControl = null
     let submits = []
 
     const bufferHeight = () => renderer.getDrawingBufferSize(new THREE.Vector2()).y
@@ -87,6 +91,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pipeline?.dispose()
         pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[index], small })
         if (view === 'sky' && parts.constellation) pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+        lookControl?.apply(lookSet, pipeline.grade.uniforms)
         resizeSprites()
         state.dirty = true
     }
@@ -101,6 +106,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         renderer.info.reset()
         hooks.before?.()
         const begin = performance.now()
+        pipeline.grade.uniforms.uFocus.value = rig.focus
         pipeline.render()
         submits.push(performance.now() - begin)
         if (submits.length > 120) submits = submits.slice(-60)
@@ -249,6 +255,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         .then(async (gltf) => {
             const look = applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild })
             parts.look = look
+            lookControl = createLookControl(look.uniforms)
+            lookControl.apply(lookSet, pipeline.grade.uniforms)
             markShadows(gltf.scene)
             const root = gltf.scene
             const moon = anchor(root, 'Anchor_Moon') ?? MOON_FALLBACK
@@ -397,6 +405,18 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         },
         get lod() {
             return useLod
+        },
+        get pipeline() {
+            return pipeline
+        },
+        get lookControl() {
+            return lookControl
+        },
+        // set: a Set of option names from look-options.js. The lab uses it to compare looks.
+        setLook: (set) => {
+            lookSet = set
+            lookControl?.apply(lookSet, pipeline.grade.uniforms)
+            requestRender()
         },
         dispose: () => {
             renderer.setAnimationLoop(null)

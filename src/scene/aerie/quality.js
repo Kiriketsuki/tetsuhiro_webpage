@@ -5,13 +5,14 @@ import { GradePass } from './grade-pass.js'
 import { GlowPass } from './glow-pass.js'
 
 // The quality ladder. The soft glow runs on the desktop only, and the ladder drops it
-// first, then MSAA, then the pixel ratio. Reduced motion is not a tier: it renders one frame.
+// first, then MSAA, then the ink and the lens (depth), then the pixel ratio. Reduced motion is
+// not a tier: it renders one frame.
 export const TIERS = [
-    { name: 'glow-msaa4', samples: 4, maxPixelRatio: 2, glow: true },
-    { name: 'msaa4', samples: 4, maxPixelRatio: 2, glow: false },
-    { name: 'no-msaa', samples: 0, maxPixelRatio: 2, glow: false },
-    { name: 'dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false },
-    { name: 'dpr-1', samples: 0, maxPixelRatio: 1, glow: false },
+    { name: 'glow-msaa4', samples: 4, maxPixelRatio: 2, glow: true, depth: true },
+    { name: 'msaa4', samples: 4, maxPixelRatio: 2, glow: false, depth: true },
+    { name: 'no-msaa', samples: 0, maxPixelRatio: 2, glow: false, depth: true },
+    { name: 'dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false, depth: false },
+    { name: 'dpr-1', samples: 0, maxPixelRatio: 1, glow: false, depth: false },
 ]
 
 // Frame budgets from docs/site-rewrite-plan.md.
@@ -22,7 +23,10 @@ export const startTier = (mobile) => (mobile ? 2 : 0)
 
 // Builds the composer for one tier: the scene into a half-float target, the glow on the
 // desktop tier, then the grade pass to the screen.
+// The scene depth goes to a texture on a tier with depth, for the ink and the lens in
+// grade-pass.js.
 export function createPipeline({ renderer, scene, camera, tier, small = false }) {
+    const depth = tier.depth
     const pixelRatio = Math.min(tier.maxPixelRatio, window.devicePixelRatio || 1)
     renderer.setPixelRatio(pixelRatio)
     const size = renderer.getSize(new THREE.Vector2())
@@ -31,6 +35,7 @@ export function createPipeline({ renderer, scene, camera, tier, small = false })
         samples: tier.samples,
     })
     target.texture.name = `aerie.main.${tier.name}`
+    if (depth) target.depthTexture = new THREE.DepthTexture(size.x * pixelRatio, size.y * pixelRatio)
     const composer = new EffectComposer(renderer, target)
     const renderPass = new RenderPass(scene, camera)
     const grade = new GradePass()
@@ -39,6 +44,7 @@ export function createPipeline({ renderer, scene, camera, tier, small = false })
     if (glow) composer.addPass(glow)
     composer.addPass(grade)
     grade.setGlow(glow?.texture ?? null)
+    grade.setCamera(depth ? camera : null, pixelRatio)
 
     const resize = (width, height) => {
         composer.setPixelRatio(pixelRatio)
@@ -55,6 +61,7 @@ export function createPipeline({ renderer, scene, camera, tier, small = false })
     const setView = (nextScene, nextCamera) => {
         renderPass.scene = nextScene
         renderPass.camera = nextCamera
+        grade.setCamera(depth && nextScene === scene ? camera : null, pixelRatio)
     }
     return { composer, grade, pixelRatio, resize, dispose, setView, render: () => composer.render() }
 }

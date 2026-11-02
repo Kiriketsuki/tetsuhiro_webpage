@@ -95,6 +95,14 @@ export function createToonUniforms({ moonDirection, bounces = [], warmStrength =
         uToonSaturation: { value: 1.0 },
         // 0 keeps pure flat facets, 1 is fully smooth. At 0.9 the facets read only faintly.
         uToonSoftness: { value: 0.9 },
+        // Look options, all off by default (the lab turns them on). uToonBands 1 steps the moon
+        // light into three soft cel bands. uToonRimSpread 1 lets the rim reach the lit side too.
+        uToonBands: { value: 0 },
+        uToonRimSpread: { value: 0 },
+        // uToonCel 1 is a hard two-tone cel: one lit tone, one shade tone in uToonShadeTint, and
+        // the lamp pools in two steps.
+        uToonCel: { value: 0 },
+        uToonShadeTint: { value: new THREE.Color(0.78, 0.74, 1.0) },
         uToonDetail: { value: detail },
         uToonCarpet: { value: carpet?.texture ?? null },
         uToonCarpetShadow: { value: carpet?.shadow ?? null },
@@ -198,6 +206,10 @@ uniform vec3 uToonRim;
 uniform vec4 uToonBounce[ ${TOON_BOUNCES} ];
 uniform float uToonSaturation;
 uniform float uToonSoftness;
+uniform float uToonBands;
+uniform float uToonRimSpread;
+uniform float uToonCel;
+uniform vec3 uToonShadeTint;
 uniform sampler2D uToonDetail;
 
 // Per surface family, in SURFACE order: metres per detail tile along u (the board length)
@@ -266,6 +278,12 @@ float toonSmoothLength = length( toonSmooth );
 toonSmooth = toonSmoothLength > 1e-4 ? toonSmooth / toonSmoothLength : ( toonFlatLength > 0.5 ? toonFlat / toonFlatLength : vec3( 0.0, 1.0, 0.0 ) );
 toonFlat = toonFlatLength > 0.5 ? toonFlat / toonFlatLength : toonSmooth;
 int toonSurface = int( vToonSurface + 0.5 );
+// The ink mask for the outline in grade-pass.js. The house, the trees, the bridge, the pad and
+// the props take ink. The ground does not. The scene target alpha holds 1 - toonInk, so a
+// blended layer such as the waterfall can only raise the alpha and turn ink off, never on.
+// The leaf cards keep their own alpha, because alpha to coverage turns it into the MSAA
+// coverage: a zero alpha made the crowns vanish. So the crowns take no ink.
+float toonInk = toonSurface == ${SURFACE.stone} || toonSurface == ${SURFACE.lawn} || toonSurface == ${SURFACE.soil} || toonSurface == ${SURFACE.paving} ? 0.0 : 1.0;
 // Round 10: a crown leaf or lump on the far side of its crown, seen through a gap between the
 // near leaves, takes the normal of the near side mirrored through the view plane. Its own
 // normal turned it to the shade side, and the far side showed through the gaps as dark
@@ -600,6 +618,14 @@ toonAlbedo *= mix( vec3( 1.0 ), mix( vec3( 0.259, 0.2, 0.157 ), vec3( 1.0 ), vTo
 // Half-lambert wrap from the moon, so the light falls off smoothly with no band steps.
 float toonWrap = dot( toonN, uToonMoonDir ) * 0.5 + 0.5;
 float toonDiffuse = toonWrap * toonWrap * toonShadow;
+// Soft cel bands: three steps, each with a short soft edge, so no band edge aliases.
+float toonBand = ( floor( toonDiffuse * 3.0 ) + smoothstep( 0.4, 0.6, fract( toonDiffuse * 3.0 ) ) ) / 3.0;
+toonDiffuse = mix( toonDiffuse, toonBand, uToonBands );
+// The two-tone edge spans about one pixel, so the cel line stays crisp but does not alias.
+float toonCelEdge = fwidth( toonDiffuse ) + 0.015;
+float toonCel = smoothstep( 0.3 - toonCelEdge, 0.3 + toonCelEdge, toonDiffuse );
+toonDiffuse = mix( toonDiffuse, mix( 0.12, 0.78, toonCel ), uToonCel );
+toonAlbedo = mix( toonAlbedo, toonAlbedo * uToonShadeTint, uToonCel * ( 1.0 - toonCel ) );
 // The shade side keeps its hue: darker values get richer and warmer instead of grey.
 toonAlbedo = max( toonAlbedo, vec3( 0.0 ) );
 // A power of 1.2 pushed every shaded honey board to red-brown, so the shade side keeps a
@@ -697,6 +723,7 @@ for ( int i = 0; i < ${TOON_BOUNCES}; i ++ ) {
 // Round 11 breaks the spill on the ground into soft irregular patches with the 1.7 m
 // mottle, so no round disc shows on the lawn, the deck or the steps.
 toonWarm *= mix( 1.0, 0.45 + 1.1 * texture2D( uToonDetail, vToonWorld.xz / 1.7 + 0.83 ).g, smoothstep( 0.5, 0.9, toonN.y ) );
+toonWarm = mix( toonWarm, 0.45 * smoothstep( 0.12, 0.16, toonWarm ) + 0.55 * smoothstep( 0.42, 0.48, toonWarm ), uToonCel );
 toonLight += uToonWarm * toonWarm * 1.25 / ( 1.0 + toonWarm );
 
 // Metal takes less diffuse light, so its highlights carry the form, as on real brass.
@@ -707,7 +734,7 @@ reflectedLight.indirectDiffuse += toonAlbedo * toonLight * ( toonSurface == ${SU
 
 vec3 toonView = normalize( cameraPosition - vToonWorld );
 // A faint cool rim, only on the side the moon leaves in shade.
-float toonRim = pow( 1.0 - clamp( dot( toonSmooth, toonView ), 0.0, 1.0 ), 3.0 ) * smoothstep( 0.5, 0.7, 1.0 - toonWrap );
+float toonRim = pow( 1.0 - clamp( dot( toonSmooth, toonView ), 0.0, 1.0 ), 3.0 ) * mix( smoothstep( 0.5, 0.7, 1.0 - toonWrap ), 1.0, uToonRimSpread );
 reflectedLight.indirectDiffuse += uToonRim * toonRim * ( 0.4 + 0.6 * toonAlbedo );
 
 // Metal reads through a small procedural matcap in view space, so the brass shows the
@@ -768,6 +795,7 @@ function patch(uniforms) {
             .replace('#include <lights_fragment_maps>', '')
             .replace('#include <lights_fragment_end>', '')
             .replace('#include <alphatest_fragment>', CARD_ALPHA)
+            .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n#ifndef AERIE_CARD\ngl_FragColor.a = 1.0 - toonInk;\n#endif')
     }
 }
 

@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { createSceneManager } from '../scene/scene-manager.js'
 import { stops } from '../data/stops.js'
 import { TIERS } from '../scene/aerie/quality.js'
+import { LOOK_OPTIONS, SITE_LOOK } from '../scene/aerie/look-options.js'
 import { createGpuTimer } from './gpu-timer.js'
 
 // Dev-only lab for the cozy night look on the urban aerie island, after the art style of
@@ -84,6 +85,71 @@ gpu = createGpuTimer(manager.renderer.getContext())
 manager.resume()
 
 let currentStop = startStop
+
+// Look options (look-options.js). ?look=ink,bands picks the mix at load, and without it the
+// lab starts on the site look. ?look=none starts on the base night look.
+const looks = params.has('look')
+    ? new Set(params.get('look').split(',').filter((name) => LOOK_OPTIONS.includes(name)))
+    : new Set(SITE_LOOK)
+// Sets the look uniforms for one set of options. It draws nothing.
+function setLooks(set) {
+    const control = manager.lookControl
+    if (!control) return false
+    control.apply(set, manager.pipeline.grade.uniforms)
+    return true
+}
+// ?compare splits the frame: the site look left of the bar, the picked mix right of it.
+// ?compare&left=none puts the base night look on the left.
+// The wrapped pipeline draws the frame twice under two scissors. A render target keeps its own
+// scissor, so only the last pass to the screen takes the cut, and the passes before it draw in full.
+const compare = params.has('compare')
+let cut = 0.5
+const LEFT = params.get('left') === 'none' ? new Set() : SITE_LOOK
+function wrapPipeline() {
+    const pipeline = manager.pipeline
+    if (!compare || pipeline.split) return
+    const draw = pipeline.render
+    pipeline.split = true
+    pipeline.render = () => {
+        const renderer = manager.renderer
+        const size = renderer.getSize(new THREE.Vector2())
+        const left = Math.round(size.x * cut)
+        renderer.setScissorTest(true)
+        if (setLooks(LEFT)) {
+            renderer.setScissor(0, 0, left, size.y)
+            draw()
+        }
+        setLooks(looks)
+        renderer.setScissor(left, 0, size.x - left, size.y)
+        draw()
+        renderer.setScissorTest(false)
+    }
+}
+function applyLooks() {
+    wrapPipeline()
+    manager.setLook(looks)
+}
+if (compare) {
+    hud.style.display = 'none'
+    const bar = document.createElement('div')
+    bar.style.cssText = 'position:fixed;top:0;bottom:0;width:14px;margin-left:-7px;cursor:ew-resize;z-index:5;touch-action:none;'
+    bar.innerHTML = '<div style="position:absolute;left:6px;top:0;bottom:0;width:2px;background:#ffb36b"></div>' +
+        `<div style="position:absolute;top:8px;right:16px;font:11px ui-monospace,monospace;color:#ffd8b0;background:rgba(3,12,26,.7);padding:2px 6px;border-radius:4px;white-space:nowrap">${LEFT.size ? 'site' : 'base'}</div>` +
+        '<div id="mixtag" style="position:absolute;top:8px;left:16px;font:11px ui-monospace,monospace;color:#ffd8b0;background:rgba(3,12,26,.7);padding:2px 6px;border-radius:4px;white-space:nowrap">mix</div>'
+    const place = () => (bar.style.left = `${cut * 100}%`)
+    place()
+    bar.addEventListener('pointerdown', (e) => {
+        bar.setPointerCapture(e.pointerId)
+        e.stopPropagation()
+    })
+    bar.addEventListener('pointermove', (e) => {
+        if (!bar.hasPointerCapture(e.pointerId)) return
+        cut = Math.min(0.98, Math.max(0.02, e.clientX / innerWidth))
+        place()
+        manager.requestRender()
+    })
+    document.body.appendChild(bar)
+}
 function button(label, pressed, onClick) {
     const el = document.createElement('button')
     el.textContent = label
@@ -93,6 +159,8 @@ function button(label, pressed, onClick) {
 }
 
 function buildControls() {
+    const tag = document.getElementById('mixtag')
+    if (tag) tag.textContent = [...looks].join(' + ') || 'pick options below'
     const tier = manager.tier.index
     controlsBar.replaceChildren(
         ...Object.keys(stops).map((id) =>
@@ -105,6 +173,15 @@ function buildControls() {
         ...TIERS.map((t, i) =>
             button(t.name, tier === i, () => {
                 manager.setQuality(i)
+                applyLooks()
+                buildControls()
+            })
+        ),
+        ...LOOK_OPTIONS.map((name) =>
+            button(`+${name}`, looks.has(name), () => {
+                if (looks.has(name)) looks.delete(name)
+                else looks.add(name)
+                applyLooks()
                 buildControls()
             })
         ),
@@ -123,7 +200,7 @@ function writeHud() {
     gpuMs = gpu.poll() ?? gpuMs
     const tier = manager.tier
     hud.textContent = [
-        `aerie lab  ${manager.lod === 1 ? 'island_b_lod1.glb' : 'island_b.glb'}  ${currentStop}`,
+        `aerie lab  ${manager.lod === 1 ? 'island_b_lod1.glb' : 'island_b.glb'}  ${currentStop}  look ${[...looks].join('+') || 'base'}`,
         `tier ${tier.name}  msaa ${tier.samples}  dpr ${tier.pixelRatio}  ${reducedMotion ? 'still' : 'on demand'}`,
         `renders ${((frames * 1000) / (now - last)).toFixed(0)}/s  cpu submit ${manager.submitMs.toFixed(2)} ms  gpu ${gpuMs === null ? 'n/a' : gpuMs.toFixed(2) + ' ms'}`,
         `calls ${info.render.calls}  tris ${info.render.triangles}  points ${info.render.points}`,
@@ -154,12 +231,19 @@ canvas.addEventListener('wheel', (e) => manager.zoom(e.deltaY < 0 ? 1.08 : 1 / 1
 
 manager.ready
     .then(() => {
+        applyLooks()
         buildControls()
         writeHud()
         setInterval(writeHud, 500)
         // lab.capture() resolves with a PNG data URL of the next frame, without the HUD.
         window.lab = {
             manager,
+            setLooks: (names) => {
+                looks.clear()
+                names.filter((name) => LOOK_OPTIONS.includes(name)).forEach((name) => looks.add(name))
+                applyLooks()
+                buildControls()
+            },
             capture: (advance = 0) =>
                 new Promise((resolve) => {
                     capture = resolve

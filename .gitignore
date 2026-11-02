@@ -35,3 +35,6 @@ __pycache__/
 scenes/urban-aerie-studies/renders/look-v2/*
 !scenes/urban-aerie-studies/renders/look-v2/round-16/
 scenes/urban-aerie-studies/renders/look-v2/round-16/trials/
+
+# The look option trial renders stay local.
+scenes/urban-aerie-studies/renders/oomph/

@@ -6,7 +6,8 @@ import { Pass, FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js'
 // flames reach the top values, a gentle S curve, warm brown lifted shadows and a soft
 // vignette. A slight saturation lift keeps the autumn colour vivid under the night light.
 // It adds the desktop glow when glow-pass.js runs, and an even darkening (uFade) during
-// the move into the bedroom. It has no film grain and no paper texture. The ink
+// the move into the bedroom, and the six-blade iris (uIris) of the look through the telescope.
+// It has no film grain and no paper texture. The ink
 // outline, the lens blur and the split toning are look options, off by default.
 //
 // Texture fetches per pixel: 1 scene colour, plus 1 glow on the desktop tier.
@@ -76,6 +77,8 @@ uniform float uCursorClear;
 // The vignette centre in uv. It leans a little toward the cursor.
 uniform vec2 uVignetteCentre;
 uniform float uSplit;
+// The telescope iris: 0 open, 1 closed.
+uniform float uIris;
 varying vec2 vUv;
 
 #include <tonemapping_pars_fragment>
@@ -170,6 +173,30 @@ vec3 lens( vec2 uv, vec3 sharp, float dc ) {
     return mix( sharp, sum / weight, smoothstep( 0.5, 1.5, reach ) );
 }
 
+// A camera-shutter iris of six blades, for the look through the telescope. Each blade is a
+// half-plane whose edge lies uR from the frame centre, so the opening is a hexagon that
+// shrinks and turns as uIris rises. Each blade lies on the one before it, so the visible blade
+// is the last of a run of covering blades, and the blade on top casts a soft shadow along its
+// edge. The blades are a warm near-black with a thin lit rim on the inner edge.
+vec3 iris( vec3 color ) {
+    vec2 p = ( vUv - 0.5 ) * uAspect;
+    // Open, the hexagon clears the frame corners.
+    float r = ( 1.0 - uIris ) * 0.5 * length( uAspect );
+    float aa = uTexel.y * 1.5;
+    vec3 blade = color;
+    for ( int i = 0; i < 6; i ++ ) {
+        float a = float( i ) * 1.0472 + uIris * 1.6;
+        float s = dot( p, vec2( cos( a ), sin( a ) ) ) - r;
+        float next = dot( p, vec2( cos( a + 1.0472 ), sin( a + 1.0472 ) ) ) - r;
+        if ( s > 0.0 && next <= 0.0 ) {
+            vec3 shade = vec3( 0.028, 0.02, 0.022 ) * ( 0.8 + 0.12 * float( i - i / 2 * 2 ) ) * ( 0.55 + 0.45 * smoothstep( 0.0, 0.05, -next ) );
+            shade += vec3( 0.2, 0.12, 0.05 ) * ( 1.0 - smoothstep( aa, aa * 2.5, s ) );
+            blade = mix( color, shade, smoothstep( 0.0, aa, s ) );
+        }
+    }
+    return blade;
+}
+
 void main() {
     vec4 scene = texture2D( tDiffuse, vUv );
     vec3 hdr = scene.rgb;
@@ -198,6 +225,7 @@ void main() {
     color *= 1.0 - uVignette * smoothstep( 0.08, 0.42, dot( centred, centred ) );
     // The bedroom move darkens the frame evenly, with no colour shift.
     color *= 1.0 - 0.28 * uFade;
+    if ( uIris > 0.0 ) color = iris( color );
 
     gl_FragColor = sRGBTransferOETF( vec4( max( color, 0.0 ), 1.0 ) );
     // A dither of 1/255 on the encoded value stops the banding in the dark sky gradient.
@@ -237,6 +265,7 @@ export class GradePass extends Pass {
             uCursorClear: { value: 0 },
             uVignetteCentre: { value: new THREE.Vector2(0.5, 0.5) },
             uSplit: { value: 0 },
+            uIris: { value: 0 },
         }
         this.camera = null
         this.glowStrength = grade.glow

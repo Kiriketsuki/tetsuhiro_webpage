@@ -31,6 +31,9 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 const AMBIENT_FPS = 30
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
+// The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
+// the iris close and open, and how early the iris starts to close before the camera stops.
+const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
 // The board size when Anchor_Corkboard gives a position but no size, in metres.
 const BOARD_SIZE = { width: 1.0, height: 0.7 }
 const MOBILE = '(max-width: 767px)'
@@ -66,6 +69,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let fade = null
     // 'island' or 'sky'. The sky is the telescope's view of the skills.
     let view = 'island'
+    // The move through the eyepiece while it runs: { t, on, legs, close, swap, end }.
+    let scope = null
     const loaders = createLoaders()
     const clock = new THREE.Clock(false)
     let seconds = 0
@@ -115,7 +120,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
         lensCursor.last = now
         const uniforms = pipeline.grade.uniforms
-        const dof = lookSet.has('lens') && uniforms.uDepthOn.value ? 1 - Math.min(1, rig.travel * 1.6) : 0
+        const dof = lookSet.has('lens') && uniforms.uDepthOn.value && !scope ? 1 - Math.min(1, rig.travel * 1.6) : 0
         uniforms.uDof.value = dof
         uniforms.uFocus.value = rig.focus
         if (cursor) lensCursor.uv.lerp(cursor, k)
@@ -143,9 +148,45 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         state.dirty = false
     }
 
-    // The skill sky reveal and the bedroom fade. Returns true while either needs frames.
+    // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
+    // order. Without it they all show at once.
+    const showSky = (on, { reveal = true } = {}) => {
+        if (!parts.constellation) return
+        view = on ? 'sky' : 'island'
+        if (on) {
+            parts.constellation.open()
+            if (!reveal || state.reduced) parts.constellation.showAll()
+            pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+        } else {
+            pipeline.setView(scene, camera)
+        }
+        requestRender()
+    }
+
+    // Steps the move through the eyepiece. Each leg starts the camera on its way when its time
+    // comes. The iris closes, the picture swaps while it is shut, and the iris opens again.
+    const stepScope = (delta) => {
+        const s = scope
+        s.t += delta
+        while (s.legs.length && s.t >= s.legs[0][0]) {
+            const [, id, duration] = s.legs.shift()
+            rig.goTo(id, duration)
+        }
+        if (!s.swapped && s.t >= s.swap) {
+            s.swapped = true
+            showSky(s.on)
+        }
+        const k = s.t < s.swap ? (s.t - s.close) / SCOPE.close : 1 - (s.t - s.swap) / SCOPE.open
+        pipeline.grade.uniforms.uIris.value = THREE.MathUtils.smoothstep(k, 0, 1)
+        if (s.t >= s.swap + SCOPE.open && !s.legs.length) scope = null
+        return true
+    }
+
+    // The eyepiece move, the skill sky reveal and the bedroom fade. Returns true while any of
+    // them needs frames.
     const advanceEffects = (delta) => {
-        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) : false
+        const scoping = scope ? stepScope(delta) : false
+        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) || scoping : scoping
         if (!fade) return revealing
         fade.t += delta
         const k = fade.t / fade.duration
@@ -292,7 +333,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const shadow = createMoonShadow({ direction: moon, small })
             scene.add(root, shadow, shadow.target)
             const shots = shotsFromStops(stops, gltf.cameras, (name) => anchor(root, name))
-            const viewpoints = Object.values(shots).map((shot) => shot.position)
+            // The eyepiece looks only at the sky, so its shot places no crown cards.
+            const viewpoints = Object.entries(shots).filter(([id]) => id !== 'eyepiece').map(([, shot]) => shot.position)
             parts.leaves = createLeafCards({
                 meshes: look.meshes,
                 litterAt: look.litterAt,
@@ -388,17 +430,28 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             else rig.zoom(factor)
             requestRender()
         },
-        // Swaps the picture between the island and the skill sky. `reveal` lights the stars
-        // up in order. Without it they all show at once.
-        showSky: (on, { reveal = true } = {}) => {
-            if (!parts.constellation) return
-            view = on ? 'sky' : 'island'
+        showSky,
+        // The look through the telescope. The camera flies up to the eyepiece (by way of the
+        // terrace from any other stop), the iris closes, and it opens on the skill sky. Off
+        // plays it in reverse and flies on to the stop `back`. Reduced motion swaps at once,
+        // and src/three.js crossfades the frame.
+        lookThrough: (on, back = 'telescope') => {
+            pipeline.grade.uniforms.uIris.value = 0
+            scope = null
+            if (on === (view === 'sky') || state.reduced) {
+                if (on !== (view === 'sky')) showSky(on)
+                if (!on) api.goTo(back)
+                return
+            }
+            const { fly, close } = SCOPE
             if (on) {
-                parts.constellation.open()
-                if (!reveal || state.reduced) parts.constellation.showAll()
-                pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+                const lead = ['telescope', 'eyepiece'].includes(rig.current) ? 0 : 1.6
+                const shut = lead + fly - SCOPE.overlap
+                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1) }
             } else {
-                pipeline.setView(scene, camera)
+                const legs = [[close, 'eyepiece', 0], [close, 'telescope', fly]]
+                if (back !== 'telescope') legs.push([close + fly, back, 1.6])
+                scope = { t: 0, on, close: 0, swap: close, legs }
             }
             requestRender()
         },

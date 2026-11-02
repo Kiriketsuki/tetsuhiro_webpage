@@ -86,6 +86,8 @@ gpu = createGpuTimer(manager.renderer.getContext())
 manager.resume()
 
 let currentStop = startStop
+// True while the lab shows the skill sky through the telescope.
+let skyOn = false
 
 // Look options (look-options.js). ?look=ink,bands picks the mix at load, and without it the
 // lab starts on the site look. ?look=none starts on the base night look.
@@ -189,6 +191,12 @@ function buildControls() {
                 buildControls()
             })
         ),
+        // Plays the move through the eyepiece to the skill sky, and back to the current stop.
+        button('look through', skyOn, () => {
+            skyOn = !skyOn
+            manager.lookThrough(skyOn, currentStop)
+            buildControls()
+        }),
         ...TIERS.map((t, i) =>
             button(t.name, tier === i, () => {
                 manager.setQuality(i)

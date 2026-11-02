@@ -109,6 +109,17 @@ export const stops = {
         tallView: { position: [-10.4, 10.2, -0.4], target: [-7.6, 9.3, -4.6], fov: 44 },
         tall: [0, 0.08],
     },
+    // The look through the telescope. The eyepiece sits under the back of the brass tube and
+    // faces the terrace, nearly on the line from the telescope stop. So the move in is a push
+    // with little turn, and it ends with the eyepiece lens at the frame centre, where the iris
+    // closes (scene-manager.js).
+    eyepiece: {
+        camera: null,
+        anchor: 'Anchor_Telescope',
+        fallback: { position: [-7.51, 8.61, -4.17], target: [-7.24, 8.4, -4.46], fov: 38 },
+        shift: [0, 0],
+        tall: [0, 0],
+    },
     workshop: {
         camera: 'Cam_02_Workshop',
         anchor: 'Anchor_Workshop',

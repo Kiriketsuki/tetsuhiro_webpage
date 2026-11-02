@@ -36,7 +36,8 @@ const BOARD_SIZE = { width: 1.0, height: 0.7 }
 const MOBILE = '(max-width: 767px)'
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
-// The city haze density: the painted city layers lose a little over half their colour.
+// The city haze density: the city loses about a fifth of its colour at the bottom of the
+// overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer.
@@ -260,12 +261,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The parts that need no download draw first, so the night sky shows at once.
     parts.sky = createSky()
     parts.stars = createStars({ small, pixelRatio: renderer.getPixelRatio() })
-    parts.city = createCityBackdrop({
-        textureLoader: loaders.texture,
-        haze: NIGHT_SKY.haze,
-        hazeDensity: CITY_HAZE_DENSITY,
-        maxAnisotropy: Math.min(4, renderer.capabilities.getMaxAnisotropy()),
-    })
+    parts.city = createCityBackdrop({ haze: NIGHT_SKY.haze, hazeDensity: CITY_HAZE_DENSITY })
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
 

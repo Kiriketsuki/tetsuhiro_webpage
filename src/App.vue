@@ -2,6 +2,7 @@
     <Navbar id="navbar" />
     <canvas id="webgl" class="w-screen h-lvh"></canvas>
     <router-view />
+    <FocusRing :active="route.name === 'Home'" />
 </template>
 
 <script setup>
@@ -9,6 +10,7 @@ import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import gsap from 'gsap'
 import Navbar from './components/Navbar.vue'
+import FocusRing from './components/FocusRing.vue'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { useScene } from './composables/useScene.js'
 

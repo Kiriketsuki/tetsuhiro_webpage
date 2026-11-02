@@ -110,6 +110,7 @@ function boot() {
         window.addEventListener('mousemove', (e) => {
             manager.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1)
         })
+        document.documentElement.addEventListener('mouseleave', () => manager.clearPointer())
     }
 
     // Handy in the console while tuning shots. Not in the build.

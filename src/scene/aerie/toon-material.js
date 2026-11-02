@@ -279,11 +279,12 @@ toonSmooth = toonSmoothLength > 1e-4 ? toonSmooth / toonSmoothLength : ( toonFla
 toonFlat = toonFlatLength > 0.5 ? toonFlat / toonFlatLength : toonSmooth;
 int toonSurface = int( vToonSurface + 0.5 );
 // The ink mask for the outline in grade-pass.js. The house, the trees, the bridge, the pad and
-// the props take ink. The ground does not. The scene target alpha holds 1 - toonInk, so a
+// the props take full ink. The ground takes a silhouette line only (0.5), so the island edge
+// reads against the void but the lawn, the paths and the cliff faces draw no crease lines. The scene target alpha holds 1 - toonInk, so a
 // blended layer such as the waterfall can only raise the alpha and turn ink off, never on.
 // The leaf cards keep their own alpha, because alpha to coverage turns it into the MSAA
-// coverage: a zero alpha made the crowns vanish. So the crowns take no ink.
-float toonInk = toonSurface == ${SURFACE.stone} || toonSurface == ${SURFACE.lawn} || toonSurface == ${SURFACE.soil} || toonSurface == ${SURFACE.paving} ? 0.0 : 1.0;
+// coverage: a zero alpha made the crowns vanish. Their alpha of 1 reads as silhouette ink.
+float toonInk = toonSurface == ${SURFACE.stone} || toonSurface == ${SURFACE.lawn} || toonSurface == ${SURFACE.soil} || toonSurface == ${SURFACE.paving} ? 0.5 : 1.0;
 // Round 10: a crown leaf or lump on the far side of its crown, seen through a gap between the
 // near leaves, takes the normal of the near side mirrored through the view plane. Its own
 // normal turned it to the shade side, and the far side showed through the gaps as dark
@@ -734,7 +735,12 @@ reflectedLight.indirectDiffuse += toonAlbedo * toonLight * ( toonSurface == ${SU
 
 vec3 toonView = normalize( cameraPosition - vToonWorld );
 // A faint cool rim, only on the side the moon leaves in shade.
-float toonRim = pow( 1.0 - clamp( dot( toonSmooth, toonView ), 0.0, 1.0 ), 3.0 ) * mix( smoothstep( 0.5, 0.7, 1.0 - toonWrap ), 1.0, uToonRimSpread );
+float toonRim = pow( 1.0 - clamp( dot( toonSmooth, toonView ), 0.0, 1.0 ), 3.0 ) * mix( smoothstep( 0.5, 0.7, 1.0 - toonWrap ), 1.0, toonSurface == ${SURFACE.stone} || toonCrownSide ? 0.0 : uToonRimSpread );
+// The cliff takes a third of the rim. At full strength its broad down faces read as pale blue
+// holes into the void under the island edge.
+// The crowns take a sixth. At half strength the crown edge still read as a pale lilac glass dome.
+if ( toonSurface == ${SURFACE.stone} ) toonRim *= 0.35;
+if ( toonCrownSide ) toonRim *= 0.16;
 reflectedLight.indirectDiffuse += uToonRim * toonRim * ( 0.4 + 0.6 * toonAlbedo );
 
 // Metal reads through a small procedural matcap in view space, so the brass shows the

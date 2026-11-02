@@ -3,6 +3,7 @@ import { createSceneManager } from '../scene/scene-manager.js'
 import { stops } from '../data/stops.js'
 import { TIERS } from '../scene/aerie/quality.js'
 import { LOOK_OPTIONS, SITE_LOOK } from '../scene/aerie/look-options.js'
+import { NIGHT_SKY } from '../scene/aerie/sky.js'
 import { createGpuTimer } from './gpu-timer.js'
 
 // Dev-only lab for the cozy night look on the urban aerie island, after the art style of
@@ -98,6 +99,24 @@ function setLooks(set) {
     control.apply(set, manager.pipeline.grade.uniforms)
     return true
 }
+// Void colour trials for the sky, the haze and the space under the island. ?void=<name>
+// picks one at load. plum is the site colour. The lab writes the shared NIGHT_SKY colours, so
+// the sky, the haze, the city veil and the fog all follow.
+const VOIDS = {
+    plum: { zenith: 0x0f1440, horizon: 0x342f60, haze: 0x4e3f4c, cityGlow: 0x66545c, hazeBand: 0x6e5c64, hazeDeep: 0x18152e },
+    indigo: { zenith: 0x0a1238, horizon: 0x1f2a5c, haze: 0x2e3556, cityGlow: 0x4a4a6a, hazeBand: 0x4c5578, hazeDeep: 0x0c1028 },
+    teal: { zenith: 0x07162a, horizon: 0x143a4e, haze: 0x1f3c48, cityGlow: 0x3c5a5e, hazeBand: 0x3f6268, hazeDeep: 0x081620 },
+    ember: { zenith: 0x1a1438, horizon: 0x4a2f52, haze: 0x5a3a40, cityGlow: 0x7a4e48, hazeBand: 0x8a5a50, hazeDeep: 0x1c1220 },
+    ink: { zenith: 0x05070f, horizon: 0x151a2c, haze: 0x1a1c26, cityGlow: 0x2e2c34, hazeBand: 0x30303c, hazeDeep: 0x06070c },
+}
+let currentVoid = VOIDS[params.get('void')] ? params.get('void') : 'plum'
+function applyVoid(name) {
+    currentVoid = name
+    Object.entries(VOIDS[name]).forEach(([key, hex]) => NIGHT_SKY[key].set(hex))
+    manager.scene.fog.color.copy(NIGHT_SKY.haze)
+    manager.requestRender()
+}
+
 // ?compare splits the frame: the site look left of the bar, the picked mix right of it.
 // ?compare&left=none puts the base night look on the left.
 // The wrapped pipeline draws the frame twice under two scissors. A render target keeps its own
@@ -177,6 +196,12 @@ function buildControls() {
                 buildControls()
             })
         ),
+        ...Object.keys(VOIDS).map((name) =>
+            button(`void:${name}`, currentVoid === name, () => {
+                applyVoid(name)
+                buildControls()
+            })
+        ),
         ...LOOK_OPTIONS.map((name) =>
             button(`+${name}`, looks.has(name), () => {
                 if (looks.has(name)) looks.delete(name)
@@ -227,11 +252,13 @@ canvas.addEventListener('pointerup', () => {
     dragging = null
     manager.release()
 })
+canvas.addEventListener('pointerleave', () => manager.clearPointer())
 canvas.addEventListener('wheel', (e) => manager.zoom(e.deltaY < 0 ? 1.08 : 1 / 1.08), { passive: true })
 
 manager.ready
     .then(() => {
         applyLooks()
+        if (currentVoid !== 'plum') applyVoid(currentVoid)
         buildControls()
         writeHud()
         setInterval(writeHud, 500)

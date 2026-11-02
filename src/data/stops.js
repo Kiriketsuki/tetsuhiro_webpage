@@ -5,7 +5,8 @@
 //
 // shift slides the subject on a wide screen, as a share of the screen: x right, y up.
 // tall does the same on a portrait screen, where the text sits at the bottom. zoom widens
-// the lens above 1, and tallZoom does the same on a portrait screen.
+// the lens above 1, and tallZoom does the same on a portrait screen. focus names the anchor
+// (or gives the point) that the lens keeps sharp. Without it the lens focuses on the target.
 export const stops = {
     // The arrival view from island_b_rolling_rim.blend (NA_Arrival_ThreeQuarter). It looks
     // down far enough to show the painted city.
@@ -88,6 +89,7 @@ export const stops = {
     bedroom: {
         camera: 'Cam_04_Bedroom',
         anchor: 'Anchor_Bedroom',
+        focus: 'Anchor_Bedroom',
         fallback: { position: [-1.2, 9.3, 4.6], target: [-5, 7.8, -3.3], fov: 33 },
         shift: [0.12, 0],
         tall: [0, 0.18],
@@ -98,6 +100,7 @@ export const stops = {
     telescope: {
         camera: null,
         anchor: 'Anchor_Telescope',
+        focus: 'Anchor_Telescope',
         fallback: { position: [-12.0, 9.7, 0.8], target: [-7.6, 9.1, -4.6], fov: 34 },
         shift: [-0.12, 0],
         // A portrait phone takes a closer, higher view of the terrace. From the wide view, a
@@ -109,6 +112,7 @@ export const stops = {
     workshop: {
         camera: 'Cam_02_Workshop',
         anchor: 'Anchor_Workshop',
+        focus: 'Anchor_Corkboard',
         fallback: { position: [-3.9, 2.4, 3.2], target: [-3.6, 2.5, -4.9], fov: 33 },
         shift: [0.12, 0],
         tall: [0, 0.18],
@@ -120,6 +124,7 @@ export const stops = {
     pad: {
         camera: null,
         anchor: 'Anchor_Pad',
+        focus: 'Anchor_Pad',
         fallback: { position: [19, 15, 14], target: [9, 0, 1.5], fov: 36 },
         shift: [0, 0],
         // A portrait phone looks west from beyond the pad, along the whole walkway: the pad at

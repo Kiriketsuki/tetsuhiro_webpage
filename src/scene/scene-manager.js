@@ -74,7 +74,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let tierIndex = tier ?? startTier(small)
     let pipeline = null
     // The look options in force (look-options.js). A new pipeline takes them again.
-    let lookSet = SITE_LOOK
+    // A phone has no cursor, and the lens costs too much at a phone pixel ratio.
+    let lookSet = small ? new Set([...SITE_LOOK].filter((name) => name !== 'lens')) : SITE_LOOK
+    // The pointer in uv, or null without one. The lens clears its blur a little around it.
+    let cursor = null
+    const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), clear: 0, last: performance.now(), shown: -1 }
     let lookControl = null
     let submits = []
 
@@ -102,11 +106,36 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         onStep: (next) => buildPipeline(next),
     })
 
+    // The lens follows the stop's focus point. It fades out during a move between stops, so the
+    // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
+    // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
+    // lens is, so the ring fades with it.
+    const updateLens = () => {
+        const now = performance.now()
+        const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
+        lensCursor.last = now
+        const uniforms = pipeline.grade.uniforms
+        const dof = lookSet.has('lens') && uniforms.uDepthOn.value ? 1 - Math.min(1, rig.travel * 1.6) : 0
+        uniforms.uDof.value = dof
+        uniforms.uFocus.value = rig.focus
+        if (cursor) lensCursor.uv.lerp(cursor, k)
+        lensCursor.clear += ((cursor ? 0.4 : 0) - lensCursor.clear) * k
+        uniforms.uCursor.value.copy(lensCursor.uv)
+        uniforms.uCursorClear.value = lensCursor.clear
+        uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.clear * 2.5, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.clear * 2.5)
+        uniforms.uVignette.value = (lookSet.has('split') ? 0.27 : 0.22) + 0.04 * dof
+        const shown = Math.round(dof * 20) / 20
+        if (shown !== lensCursor.shown) {
+            lensCursor.shown = shown
+            document.documentElement.style.setProperty('--aerie-lens', String(shown))
+        }
+    }
+
     const render = () => {
         renderer.info.reset()
         hooks.before?.()
         const begin = performance.now()
-        pipeline.grade.uniforms.uFocus.value = rig.focus
+        updateLens()
         pipeline.render()
         submits.push(performance.now() - begin)
         if (submits.length > 120) submits = submits.slice(-60)
@@ -262,7 +291,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const moon = anchor(root, 'Anchor_Moon') ?? MOON_FALLBACK
             const shadow = createMoonShadow({ direction: moon, small })
             scene.add(root, shadow, shadow.target)
-            const shots = shotsFromStops(stops, gltf.cameras)
+            const shots = shotsFromStops(stops, gltf.cameras, (name) => anchor(root, name))
             const viewpoints = Object.values(shots).map((shot) => shot.position)
             parts.leaves = createLeafCards({
                 meshes: look.meshes,
@@ -379,6 +408,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         },
         setPointer: (x, y) => {
             if (!state.reduced) rig.setPointer(x, y)
+            cursor = new THREE.Vector2((x + 1) / 2, 1 - (y + 1) / 2)
+            requestRender()
+        },
+        // The pointer left the page: the cursor patch fades out.
+        clearPointer: () => {
+            cursor = null
+            requestRender()
         },
         requestRender,
         // Draws one frame at once, even in a hidden tab, for the lab's still captures.

@@ -46,6 +46,11 @@ void main() {
 
 const fragmentShader = /* glsl */ `
 precision highp float;
+// A phone GPU reads a sampler at low or medium precision unless the shader asks for more. The
+// depth of the aerie sits near 1 with this near and far plane, so a half-float read stepped
+// the depth into bands, and the ink drew those bands as contour lines across the lawn, the
+// cliff and the walls. Desktop GPUs ignore the qualifier, so the lab never showed it.
+precision highp sampler2D;
 uniform sampler2D tDiffuse;
 uniform sampler2D tGlow;
 uniform float uGlow;

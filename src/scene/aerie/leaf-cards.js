@@ -288,41 +288,127 @@ function createAtlas(anisotropy) {
     return texture
 }
 
-// Picks triangles by area, so the cards spread evenly over a surface.
+// The world corners of one triangle, nine numbers: a, then b, then c. The area sampler and
+// the clear zones both read them. Vector3 holds doubles, so a Float64Array keeps every value.
+const CORNERS = new Float64Array(9)
+const CORNER_A = new THREE.Vector3()
+const CORNER_B = new THREE.Vector3()
+const CORNER_C = new THREE.Vector3()
+
+// True when the attribute is plain Float32 triples. Only then does a direct read of the array
+// equal Vector3.fromBufferAttribute. A normalized, half float or interleaved attribute takes
+// the vector path instead, so it keeps its own decode.
+function isPlainFloat3(attribute) {
+    return attribute.isBufferAttribute === true && attribute.itemSize === 3 && !attribute.normalized && attribute.array instanceof Float32Array
+}
+
+// Writes the world position of one vertex into CORNERS. Each term copies Vector3.applyMatrix4
+// in the same order, including the divide by w, so the doubles match the vector path bit for bit.
+function worldCorner(array, vertex, e, at) {
+    const x = array[vertex * 3]
+    const y = array[vertex * 3 + 1]
+    const z = array[vertex * 3 + 2]
+    const w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15])
+    CORNERS[at] = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w
+    CORNERS[at + 1] = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w
+    CORNERS[at + 2] = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w
+}
+
+// Fills CORNERS with the world corners of triangle t of a mesh. `plain` comes from isPlainFloat3.
+function loadCorners(mesh, position, plain, t) {
+    if (plain) {
+        const e = mesh.matrixWorld.elements
+        worldCorner(position.array, t * 3, e, 0)
+        worldCorner(position.array, t * 3 + 1, e, 3)
+        worldCorner(position.array, t * 3 + 2, e, 6)
+        return
+    }
+    CORNER_A.fromBufferAttribute(position, t * 3).applyMatrix4(mesh.matrixWorld).toArray(CORNERS, 0)
+    CORNER_B.fromBufferAttribute(position, t * 3 + 1).applyMatrix4(mesh.matrixWorld).toArray(CORNERS, 3)
+    CORNER_C.fromBufferAttribute(position, t * 3 + 2).applyMatrix4(mesh.matrixWorld).toArray(CORNERS, 6)
+}
+
+// The distance between two CORNERS vertices, as Vector3.distanceTo computes it.
+function cornerDistance(from, to) {
+    const dx = CORNERS[from] - CORNERS[to]
+    const dy = CORNERS[from + 1] - CORNERS[to + 1]
+    const dz = CORNERS[from + 2] - CORNERS[to + 2]
+    return Math.sqrt(dx * dx + dy * dy + dz * dz)
+}
+
+// Picks triangles by area, so the cards spread evenly over a surface. The sampler keeps the
+// running area in a Float64Array and the owner and triangle index in Uint32Arrays, so a build
+// allocates three arrays and not one object for each triangle. The pick returns one shared
+// { mesh, t } object. The caller reads it before the next pick, as every caller here does.
 function areaSampler(meshes) {
-    const entries = []
-    let total = 0
-    const a = new THREE.Vector3()
-    const b = new THREE.Vector3()
-    const c = new THREE.Vector3()
+    let size = 0
     meshes.forEach((mesh) => {
+        size += Math.ceil(mesh.geometry.attributes.position.count / 3)
+    })
+    const ends = new Float64Array(size)
+    const owners = new Uint32Array(size)
+    const triangles = new Uint32Array(size)
+    let total = 0
+    let filled = 0
+    meshes.forEach((mesh, owner) => {
         const position = mesh.geometry.attributes.position
+        const plain = isPlainFloat3(position)
         for (let t = 0; t < position.count / 3; t += 1) {
-            a.fromBufferAttribute(position, t * 3).applyMatrix4(mesh.matrixWorld)
-            b.fromBufferAttribute(position, t * 3 + 1).applyMatrix4(mesh.matrixWorld)
-            c.fromBufferAttribute(position, t * 3 + 2).applyMatrix4(mesh.matrixWorld)
-            total += b.sub(a).cross(c.sub(a)).length() * 0.5
-            entries.push({ mesh, t, end: total })
+            loadCorners(mesh, position, plain, t)
+            // The cross product and its length copy Vector3.cross and Vector3.length in order.
+            const ux = CORNERS[3] - CORNERS[0]
+            const uy = CORNERS[4] - CORNERS[1]
+            const uz = CORNERS[5] - CORNERS[2]
+            const vx = CORNERS[6] - CORNERS[0]
+            const vy = CORNERS[7] - CORNERS[1]
+            const vz = CORNERS[8] - CORNERS[2]
+            const x = uy * vz - uz * vy
+            const y = uz * vx - ux * vz
+            const z = ux * vy - uy * vx
+            total += Math.sqrt(x * x + y * y + z * z) * 0.5
+            ends[filled] = total
+            owners[filled] = owner
+            triangles[filled] = t
+            filled += 1
         }
     })
+    const entry = { mesh: null, t: 0 }
     return (r) => {
+        if (!filled) return undefined
         const target = r * total
         let lo = 0
-        let hi = entries.length - 1
+        let hi = filled - 1
         while (lo < hi) {
             const mid = (lo + hi) >> 1
-            if (entries[mid].end < target) lo = mid + 1
+            if (ends[mid] < target) lo = mid + 1
             else hi = mid
         }
-        return entries[lo]
+        entry.mesh = meshes[owners[lo]]
+        entry.t = triangles[lo]
+        return entry
     }
 }
+
+// The result of pointOn is one shared object with shared vectors. Every caller reads it, and
+// the vectors it holds, before the next call. Each call resets the sums to +0, so a sum that
+// no input feeds starts at +0 and never at a stale value or a -0.
+const POINT = {
+    p: new THREE.Vector3(),
+    n: new THREE.Vector3(),
+    h: 0,
+    depth: 0,
+    shift: 0,
+    centre: new THREE.Vector3(),
+    half: new THREE.Vector3(),
+}
+const POINT_TMP = new THREE.Vector3()
+const POINT_WEIGHTS = [0, 0, 0]
 
 // A random point on a triangle, with its world normal, its crown height and depth. A crown
 // reads its full-size surface (crowns.js keeps it), not the shrunken lumps.
 function pointOn({ mesh, t }, random) {
     const surface = mesh.userData.crownSurface
-    const position = surface ? new THREE.BufferAttribute(surface, 3) : mesh.geometry.attributes.position
+    const position = mesh.geometry.attributes.position
     const normal = mesh.geometry.attributes.normal
     let u = random()
     let v = random()
@@ -330,44 +416,58 @@ function pointOn({ mesh, t }, random) {
         u = 1 - u
         v = 1 - v
     }
-    const weights = [1 - u - v, u, v]
-    const p = new THREE.Vector3()
-    const n = new THREE.Vector3()
-    const tmp = new THREE.Vector3()
+    POINT_WEIGHTS[0] = 1 - u - v
+    POINT_WEIGHTS[1] = u
+    POINT_WEIGHTS[2] = v
+    const { p, n, centre, half } = POINT
+    const tmp = POINT_TMP
+    p.set(0, 0, 0)
+    n.set(0, 0, 0)
+    centre.set(0, 0, 0)
+    half.set(0, 0, 0)
     let h = 0
     let depth = 0
     let shift = 0
-    const centre = new THREE.Vector3()
     const centres = mesh.userData.crownCentre
     const halves = mesh.userData.crownHalf
-    const half = new THREE.Vector3()
     const height = mesh.userData.crownHeight
     const depths = mesh.userData.crownDepth
     const shifts = mesh.userData.crownShift
-    weights.forEach((weight, k) => {
+    for (let k = 0; k < 3; k += 1) {
+        const weight = POINT_WEIGHTS[k]
         const i = t * 3 + k
-        p.addScaledVector(tmp.fromBufferAttribute(position, i), weight)
+        // The crown surface is a plain array of triples, so a direct read equals an attribute read.
+        p.addScaledVector(surface ? tmp.fromArray(surface, i * 3) : tmp.fromBufferAttribute(position, i), weight)
         n.addScaledVector(tmp.fromBufferAttribute(normal, i), weight)
         if (height) h += height[i] * weight
         if (depths) depth += depths[i] * weight
         if (shifts) shift += shifts[i] * weight
         if (centres) centre.addScaledVector(tmp.fromArray(centres, i * 3), weight)
         if (halves) half.addScaledVector(tmp.fromArray(halves, i * 3), weight)
-    })
+    }
     p.applyMatrix4(mesh.matrixWorld)
     n.transformDirection(mesh.matrixWorld)
     centre.applyMatrix4(mesh.matrixWorld)
-    return { p, n, h, depth, shift, centre, half }
+    POINT.h = h
+    POINT.depth = depth
+    POINT.shift = shift
+    return POINT
 }
 
 const Z = new THREE.Vector3(0, 0, 1)
+const CARD_TURN = new THREE.Quaternion()
+const CARD_SPIN = new THREE.Quaternion()
+const CARD_SCALE = new THREE.Vector3()
+const FLAT = [1, 1]
 
 // Builds one card transform that faces along `facing`, with a twist about it. `shape`
 // mirrors and stretches the card: x and y scale factors around 1, x negative to mirror.
-function cardMatrix(position, facing, twist, size, out, shape = [1, 1]) {
-    const q = new THREE.Quaternion().setFromUnitVectors(Z, facing)
-    q.multiply(new THREE.Quaternion().setFromAxisAngle(Z, twist))
-    return out.compose(position, q, new THREE.Vector3(size * shape[0], size * shape[1], size))
+// The two quaternions and the scale vector are shared. setFromUnitVectors and
+// setFromAxisAngle write all four components, so no value carries over between cards.
+function cardMatrix(position, facing, twist, size, out, shape = FLAT) {
+    CARD_TURN.setFromUnitVectors(Z, facing)
+    CARD_TURN.multiply(CARD_SPIN.setFromAxisAngle(Z, twist))
+    return out.compose(position, CARD_TURN, CARD_SCALE.set(size * shape[0], size * shape[1], size))
 }
 
 // A random mirror and stretch for one card.
@@ -411,7 +511,10 @@ function writeCard(mesh, index, { matrix, bent, color, cell, sprite = null, radi
     mesh.geometry.attributes.aSprite.array.set(sprite ?? [0, 0, 0, 0], index * 4)
 }
 
-const jitter = (random, amount) => new THREE.Vector3(random() - 0.5, random() - 0.5, random() - 0.5).multiplyScalar(amount)
+// One shared vector. Each caller adds it to a facing at once. The three random calls keep
+// the order x, y, z.
+const JITTER = new THREE.Vector3()
+const jitter = (random, amount) => JITTER.set(random() - 0.5, random() - 0.5, random() - 0.5).multiplyScalar(amount)
 
 // The fringe on the shrubs. It skips the undersides.
 function fringe(meshes, count, tone, random, emit) {
@@ -518,9 +621,10 @@ function crownCards(crowns, count, sizes, viewpoints, random, emit) {
 // under: true places cards only under the crowns, every one kept, so the carpet there is
 // dense. false places the open-lawn drifts and skips the ground under the crowns, which the
 // under pass already covers.
-function litter(grounds, count, litterAt, sizes, random, emit, blocked = () => false, under = false) {
-    if (!grounds.length || !count) return
-    const pick = areaSampler(grounds)
+// pick: the area sampler of the lawn meshes, or null when there are none. Both passes share one
+// sampler, so the build of its area table runs once. The sampler holds no random state.
+function litter(pick, count, litterAt, sizes, random, emit, blocked = () => false, under = false) {
+    if (!pick || !count) return
     const up = new THREE.Vector3(0, 1, 0)
     const facing = new THREE.Vector3()
     const color = new THREE.Color()
@@ -561,32 +665,59 @@ function litter(grounds, count, litterAt, sizes, random, emit, blocked = () => f
 // The ground the litter keeps clear of: the flagstone path, the water and the arrival pad.
 // Returns a test on a grid of cells LITTER_CLEAR wide. Every triangle marks the cells it
 // covers and their neighbours.
+// A cell index packs into one number key. The offset keeps the key of a negative cell positive.
+const CELL_SHIFT = 1e6
+const cellKey = (cx, cz) => (cx + CELL_SHIFT) * 2 * CELL_SHIFT + (cz + CELL_SHIFT)
+
+// The cells within one cell of a sample count as blocked. The samples go into one set first,
+// and the ring of cells round each one is added at the end. That is the same set of cells as
+// a ring added at each sample, for a ninth of the set writes, and the number keys skip the
+// string building that took most of the time.
 function clearZones(meshes) {
     const cell = LITTER_CLEAR
-    const cells = new Set()
-    const a = new THREE.Vector3()
-    const b = new THREE.Vector3()
-    const c = new THREE.Vector3()
-    const q = new THREE.Vector3()
+    const samples = new Set()
     meshes.forEach((mesh) => {
         const position = mesh.geometry.attributes.position
+        const plain = isPlainFloat3(position)
         for (let t = 0; t < position.count / 3; t += 1) {
-            a.fromBufferAttribute(position, t * 3).applyMatrix4(mesh.matrixWorld)
-            b.fromBufferAttribute(position, t * 3 + 1).applyMatrix4(mesh.matrixWorld)
-            c.fromBufferAttribute(position, t * 3 + 2).applyMatrix4(mesh.matrixWorld)
-            const longest = Math.max(a.distanceTo(b), b.distanceTo(c), c.distanceTo(a))
+            loadCorners(mesh, position, plain, t)
+            const ax = CORNERS[0]
+            const az = CORNERS[2]
+            const bx = CORNERS[3]
+            const bz = CORNERS[5]
+            const cx = CORNERS[6]
+            const cz = CORNERS[8]
+            // The edge lengths need y. The sample points need only x and z, so they skip y.
+            const longest = Math.max(
+                cornerDistance(0, 3),
+                cornerDistance(3, 6),
+                cornerDistance(6, 0)
+            )
             const steps = Math.max(1, Math.min(40, Math.ceil(longest / (cell * 0.5))))
             for (let i = 0; i <= steps; i += 1) {
+                const toB = i / steps
                 for (let j = 0; j <= steps - i; j += 1) {
-                    q.copy(a).multiplyScalar(1 - (i + j) / steps).addScaledVector(b, i / steps).addScaledVector(c, j / steps)
-                    const cx = Math.floor(q.x / cell)
-                    const cz = Math.floor(q.z / cell)
-                    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) cells.add(`${cx + dx},${cz + dz}`)
+                    // Each axis takes the same three steps as Vector3.multiplyScalar then
+                    // addScaledVector twice, so the doubles match the vector version.
+                    const scale = 1 - (i + j) / steps
+                    let qx = ax * scale
+                    qx += bx * toB
+                    qx += cx * (j / steps)
+                    let qz = az * scale
+                    qz += bz * toB
+                    qz += cz * (j / steps)
+                    samples.add(cellKey(Math.floor(qx / cell), Math.floor(qz / cell)))
                 }
             }
         }
     })
-    return (x, z) => cells.has(`${Math.floor(x / cell)},${Math.floor(z / cell)}`)
+    const cells = new Set()
+    samples.forEach((key) => {
+        const cx = Math.floor(key / (2 * CELL_SHIFT)) - CELL_SHIFT
+        const cz = (key % (2 * CELL_SHIFT)) - CELL_SHIFT
+        for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) cells.add(cellKey(cx + dx, cz + dz))
+    })
+    return (x, z) => cells.has(cellKey(Math.floor(x / cell), Math.floor(z / cell)))
 }
 const CLEAR_OF = ['web_flagstone', 'web_water']
 // The pad and the walkway meshes (Paths: the bridge, the lookout deck, its step and its
@@ -681,8 +812,10 @@ export function createLeafCards({ meshes, litterAt, uniforms, small = false, vie
     fringe(byFamily('web_plants'), counts.shrub, plantTone, random, emit)
     const blocked = litterBlocked(meshes)
     const litterSizes = small ? PHONE_LITTER_CARD : LITTER_CARD
-    litter(byFamily('web_grass'), counts.under, litterAt, litterSizes, random, emit, blocked, true)
-    litter(byFamily('web_grass'), counts.litter, litterAt, litterSizes, random, emit, blocked)
+    const grass = byFamily('web_grass')
+    const grassPick = grass.length ? areaSampler(grass) : null
+    litter(grassPick, counts.under, litterAt, litterSizes, random, emit, blocked, true)
+    litter(grassPick, counts.litter, litterAt, litterSizes, random, emit, blocked)
     cards.count = index
     cards.computeBoundingSphere()
 

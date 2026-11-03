@@ -8,7 +8,7 @@ import { createGpuTimer } from './gpu-timer.js'
 
 // Dev-only lab for the cozy night look on the urban aerie island, after the art style of
 // Leaf it Alone. Open /lab/aerie.html on the dev server. The live site does not load this file.
-// Query options: ?lod=0|1 picks the GLB, ?tier=0..3 pins a tier, ?still renders one frame,
+// Query options: ?lod=0|1 picks the GLB, ?tier=0..5 pins a tier, ?still renders one frame,
 // ?cam=<stop id> picks the start stop.
 
 const params = new URLSearchParams(location.search)

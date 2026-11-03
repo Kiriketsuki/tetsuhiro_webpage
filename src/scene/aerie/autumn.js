@@ -51,6 +51,9 @@ const BANK_DEPTH = 1.6
 const BANK_SLOPE = 0.55
 // The cell size of the lawn top map, in metres.
 const TOP_CELL = 1.5
+// The most cells a dense lookup grid may hold. A larger span of cells falls back to a Map, so a
+// stray far point cannot allocate a huge array.
+const DENSE_LIMIT = 1e6
 // Litter from gold through amber and orange to red, as the leaf carpets of the reference.
 // A broad field picks the band of a pile, and each leaf picks a stop near that band.
 // The carpets of the reference are mostly amber and orange with a few red leaves. Round 5
@@ -150,8 +153,53 @@ function litterMap(crowns) {
             }
         }
     })
-    const at = (x, z) => blurred.get(`${x},${z}`) ?? 0
+    return litterLookup(blurred)
+}
+
+// A reader for one blurred cell, as (x, z) with whole numbers. It copies the Map into a dense
+// grid, so a read is one array lookup and builds no string key. A cell outside the grid, or a
+// NaN coordinate, reads 0, as a missing key did. A key that a whole-number query can never
+// build is left out: a non-finite part, a fraction, or a spelling that differs from the
+// canonical one. A query that would hit a non-finite key has a NaN fraction, so the result is
+// NaN with or without that key. A span over DENSE_LIMIT cells keeps the Map.
+function litterCellReader(blurred) {
+    const xs = []
+    const zs = []
+    const values = []
+    let minX = Infinity
+    let maxX = -Infinity
+    let minZ = Infinity
+    let maxZ = -Infinity
+    for (const [key, value] of blurred) {
+        const [x, z, extra] = key.split(',').map(Number)
+        if (extra !== undefined || !Number.isInteger(x) || !Number.isInteger(z) || `${x},${z}` !== key) continue
+        xs.push(x)
+        zs.push(z)
+        values.push(value)
+        minX = Math.min(minX, x)
+        maxX = Math.max(maxX, x)
+        minZ = Math.min(minZ, z)
+        maxZ = Math.max(maxZ, z)
+    }
+    if (!xs.length) return () => 0
+    const width = maxX - minX + 1
+    const depth = maxZ - minZ + 1
+    if (!(width * depth <= DENSE_LIMIT)) return (x, z) => blurred.get(`${x},${z}`) ?? 0
+    const grid = new Float64Array(width * depth)
+    for (let i = 0; i < xs.length; i += 1) grid[(zs[i] - minZ) * width + (xs[i] - minX)] = values[i]
     return (x, z) => {
+        const ix = x - minX
+        const iz = z - minZ
+        return ix >= 0 && ix < width && iz >= 0 && iz < depth ? grid[iz * width + ix] : 0
+    }
+}
+
+// The litter amount at a point, read from the blurred cells of litterMap with bilinear
+// filtering. The cells ride along as `cells`, so the look worker can send them back to the
+// page, and the page builds the same lookup from them.
+export function litterLookup(blurred) {
+    const at = litterCellReader(blurred)
+    const litterAt = (x, z) => {
         const gx = x / LITTER_CELL - 0.5
         const gz = z / LITTER_CELL - 0.5
         const x0 = Math.floor(gx)
@@ -162,6 +210,8 @@ function litterMap(crowns) {
         const bottom = at(x0, z0 + 1) * (1 - fx) + at(x0 + 1, z0 + 1) * fx
         return top * (1 - fz) + bottom * fz
     }
+    litterAt.cells = blurred
+    return litterAt
 }
 
 function paintCrowns(meshes) {
@@ -203,9 +253,24 @@ function paintPlants(meshes, litterAt) {
 }
 
 // The highest up-facing lawn point in each TOP_CELL cell, read as the highest of a cell and
-// its eight neighbours, so a bank face can tell its depth below the lip it hangs from.
+// its eight neighbours, so a bank face can tell its depth below the lip it hangs from. It
+// collects the up-facing points first, then fills a dense grid, padded by one cell on each
+// side and joined with the neighbour maximum, so a query is one array read. Math.max does not
+// depend on the order of its operands, not even for NaN or a signed zero, so the grid gives
+// the same top as the Map did. A query outside the padded grid has no point within a cell of
+// it, so it reads -Infinity, as a missing key did.
 function lawnTop(meshes) {
-    const cells = new Map()
+    let total = 0
+    meshes.forEach((mesh) => (total += mesh.geometry.attributes.position.count))
+    const cellsX = new Float64Array(total)
+    const cellsZ = new Float64Array(total)
+    const heights = new Float64Array(total)
+    let count = 0
+    let minX = Infinity
+    let maxX = -Infinity
+    let minZ = Infinity
+    let maxZ = -Infinity
+    let finite = true
     const p = new THREE.Vector3()
     const n = new THREE.Vector3()
     meshes.forEach((mesh) => {
@@ -215,10 +280,60 @@ function lawnTop(meshes) {
         for (let i = 0; i < position.count; i += 1) {
             if (n.fromBufferAttribute(flat, i).applyMatrix3(normalMatrix).normalize().y < BANK_SLOPE) continue
             p.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld)
-            const key = `${Math.floor(p.x / TOP_CELL)},${Math.floor(p.z / TOP_CELL)}`
-            cells.set(key, Math.max(cells.get(key) ?? -Infinity, p.y))
+            const cx = Math.floor(p.x / TOP_CELL)
+            const cz = Math.floor(p.z / TOP_CELL)
+            if (!Number.isFinite(cx) || !Number.isFinite(cz)) finite = false
+            cellsX[count] = cx
+            cellsZ[count] = cz
+            heights[count] = p.y
+            count += 1
+            if (cx < minX) minX = cx
+            if (cx > maxX) maxX = cx
+            if (cz < minZ) minZ = cz
+            if (cz > maxZ) maxZ = cz
         }
     })
+    if (!count) return () => -Infinity
+    // The padded grid spans one extra cell on each side of the cells that hold a point.
+    const width = maxX - minX + 3
+    const depth = maxZ - minZ + 3
+    // A non-finite cell or a huge span keeps the Map, which reads a NaN or infinite key as before.
+    if (!finite || !(width * depth <= DENSE_LIMIT)) return lawnTopMap(cellsX, cellsZ, heights, count)
+    const raw = new Float64Array(width * depth).fill(-Infinity)
+    for (let k = 0; k < count; k += 1) {
+        const at = (cellsZ[k] - minZ + 1) * width + (cellsX[k] - minX + 1)
+        raw[at] = Math.max(raw[at], heights[k])
+    }
+    const tops = new Float64Array(width * depth)
+    for (let iz = 0; iz < depth; iz += 1) {
+        for (let ix = 0; ix < width; ix += 1) {
+            let top = -Infinity
+            for (let dz = -1; dz <= 1; dz += 1) {
+                const z = iz + dz
+                if (z < 0 || z >= depth) continue
+                for (let dx = -1; dx <= 1; dx += 1) {
+                    const x = ix + dx
+                    if (x >= 0 && x < width) top = Math.max(top, raw[z * width + x])
+                }
+            }
+            tops[iz * width + ix] = top
+        }
+    }
+    return (x, z) => {
+        const ix = Math.floor(x / TOP_CELL) - minX + 1
+        const iz = Math.floor(z / TOP_CELL) - minZ + 1
+        return ix >= 0 && ix < width && iz >= 0 && iz < depth ? tops[iz * width + ix] : -Infinity
+    }
+}
+
+// The Map form of lawnTop, for a point that falls on a non-finite cell or a span too wide for
+// a dense grid. It keeps the string keys, so it gives the same top as the grid in every case.
+function lawnTopMap(cellsX, cellsZ, heights, count) {
+    const cells = new Map()
+    for (let k = 0; k < count; k += 1) {
+        const key = `${cellsX[k]},${cellsZ[k]}`
+        cells.set(key, Math.max(cells.get(key) ?? -Infinity, heights[k]))
+    }
     return (x, z) => {
         const cx = Math.floor(x / TOP_CELL)
         const cz = Math.floor(z / TOP_CELL)
@@ -246,11 +361,13 @@ function bankDepths(mesh, topAt) {
     const below = [0, 0, 0]
     for (let t = 0; t < position.count / 3; t += 1) {
         n.fromBufferAttribute(flat, t * 3).applyMatrix3(normalMatrix).normalize()
+        // A lawn triangle keeps depth -1, so the slope test runs before the three top lookups. A
+        // NaN slope fails the test and falls through, as it did.
+        if (n.y >= BANK_SLOPE) continue
         for (let k = 0; k < 3; k += 1) {
             p.fromBufferAttribute(position, t * 3 + k).applyMatrix4(mesh.matrixWorld)
             below[k] = Math.max(0, topAt(p.x, p.z) - p.y)
         }
-        if (n.y >= BANK_SLOPE) continue
         below.forEach((depth, k) => (depths[t * 3 + k] = depth))
     }
     return depths

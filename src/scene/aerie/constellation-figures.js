@@ -7,7 +7,9 @@
 // polyline that ends on its first point is closed and gets a soft fill.
 // bands: thick soft strokes, as [width, x, y, x, y, ...], for a body or a tail.
 // at and tall: the figure centre (azimuth, elevation) and scale on a wide and a tall screen.
-// title: where the name sits, when the default spot under the figure is taken.
+// title: where the name sits, when the default spot under the figure is taken. tallTitle
+// does the same on a tall screen.
+// curve: a chain of stars whose lines follow one smooth curve instead of straight lines.
 
 // A closed copy of a polygon, scaled toward the origin.
 const ring = (points, k) => [...points, points[0], points[1]].map((v) => Math.round(v * k * 10) / 10)
@@ -16,37 +18,46 @@ const ring = (points, k) => [...points, points[0], points[1]].map((v) => Math.ro
 const hex = (cx, cy, r) =>
     [0, 1, 2, 3, 4, 5, 0].flatMap((i) => [cx + r * Math.cos((i * Math.PI) / 3), cy + r * Math.sin((i * Math.PI) / 3)].map((v) => Math.round(v * 100) / 100))
 
-const WEB_RIM = [7.3, 6.1, -0.8, 9.2, -8.2, 4.8, -8.7, -2.3, -2.3, -8.7, 4.5, -7.8, 8.9, -2.3]
-const WEB_SPOKES = WEB_RIM.flatMap((v, i) => (i % 2 ? [] : [[0, 0, v, WEB_RIM[i + 1]]]))
+// A smooth curve through points [x, y, x, y, ...], as a dense polyline (Catmull-Rom).
+export const smooth = (flat, steps = 6) => {
+    const points = []
+    for (let i = 0; i < flat.length; i += 2) points.push([flat[i], flat[i + 1]])
+    const out = []
+    points.slice(0, -1).forEach((p1, i) => {
+        const p0 = points[i - 1] ?? p1
+        const p2 = points[i + 1]
+        const p3 = points[i + 2] ?? p2
+        for (let s = 0; s < steps; s += 1) {
+            const t = s / steps
+            const at = (k) =>
+                0.5 * (2 * p1[k] + (p2[k] - p0[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t * t + (3 * p1[k] - p0[k] - 3 * p2[k] + p3[k]) * t * t * t)
+            out.push(Math.round(at(0) * 100) / 100, Math.round(at(1) * 100) / 100)
+        }
+    })
+    return [...out, ...points[points.length - 1]]
+}
+
+// The five rim stars of the Weaver, in order round the web.
+const WEB_RIM = [6.9, 4, -1.7, 8.2, -7.8, 0.8, -3.3, -7.5, 5.6, -5.1]
 
 export const figures = {
+    // The web is its stars: JavaScript is the hub, the spokes run out to the five rim
+    // skills, and the rim lines close the web. Faint threads spiral between the spokes.
     web: {
         name: 'The Weaver',
         at: [0, 15, 0.85],
         tall: [-2, 19, 0.8],
         stars: {
             javascript: [0, 0],
-            typescript: [3.4, 2.9],
-            svelte: [7.3, 6.1],
-            vue: [-3.9, 2.3],
-            tailwind: [-8.2, 4.8],
-            maplibre: [-8.7, -2.3],
+            typescript: [6.9, 4],
+            svelte: [-1.7, 8.2],
+            tailwind: [-7.8, 0.8],
+            vue: [-3.3, -7.5],
+            maplibre: [5.6, -5.1],
         },
-        art: [
-            ...WEB_SPOKES,
-            ring(WEB_RIM, 0.3),
-            ring(WEB_RIM, 0.55),
-            ring(WEB_RIM, 0.8),
-            ring(WEB_RIM, 1),
-            [4.5, -7.8, 5.6, -10.6],
-            [5.6, -10.6, 6.3, -11, 6.3, -11.8, 5.6, -12.2, 4.9, -11.8, 4.9, -11, 5.6, -10.6],
-            [5.6, -12.2, 6.6, -12.8, 6.6, -14.2, 5.6, -15, 4.6, -14.2, 4.6, -12.8, 5.6, -12.2],
-            [4.9, -11.2, 3.4, -10.2, 2.8, -11],
-            [4.8, -11.9, 3.2, -12.2, 2.6, -13.4],
-            [6.3, -11.2, 7.8, -10.2, 8.4, -11],
-            [6.4, -11.9, 8, -12.2, 8.6, -13.4],
-        ],
-        title: [-8, -10],
+        edges: 'javascript-svelte javascript-tailwind javascript-maplibre svelte-tailwind maplibre-typescript',
+        art: [ring(WEB_RIM, 0.28), ring(WEB_RIM, 0.5), ring(WEB_RIM, 0.72)],
+        title: [1, -12],
     },
     '3d': {
         name: 'The Paper Crane',
@@ -69,23 +80,30 @@ export const figures = {
         ],
         title: [11, -1.5],
     },
+    // An S of four stars from the head to the tail, with a smooth body drawn through them.
     backend: {
         name: 'The Serpent',
-        at: [31, 31, 0.85],
+        at: [31, 30, 0.85],
         tall: [5.5, 37, 0.72],
         stars: {
-            python: [7, 8.5],
-            fastapi: [2.5, 6.5],
-            grpc: [0, 2],
-            firebase: [-7.5, -5],
+            python: [6, 8],
+            fastapi: [-1.5, 5.5],
+            grpc: [2.5, -0.5],
+            firebase: [-6, -6],
         },
+        edges: 'grpc-firebase',
+        curve: ['python', 'fastapi', 'grpc', 'firebase'],
         art: [
-            [10.2, 8.5, 12, 8.5, 12.8, 9.3],
-            [12, 8.5, 12.8, 7.7],
-            [7.6, 9.4, 8.2, 9.4, 8.2, 8.8, 7.6, 8.8, 7.6, 9.4],
+            [10.2, 8.6, 8.4, 10, 6.2, 9.4, 6.2, 6.8, 8.4, 7.2, 10.2, 8.6],
+            [8.3, 9, 8.8, 9, 8.8, 8.5, 8.3, 8.5, 8.3, 9],
+            [10.2, 8.6, 11.8, 8.6, 12.6, 9.4],
+            [11.8, 8.6, 12.6, 7.8],
         ],
-        bands: [[1.8, 10.2, 8.5, 7, 8.5, 2.5, 6.5, 0, 2, 3.5, -2.5, 1.5, -6.5, -3.5, -7.5, -7.5, -5]],
-        title: [-5, 7],
+        bands: [
+            [1.7, ...smooth([6, 8, -1.5, 5.5, 2.5, -0.5, -6, -6])],
+            [1.1, ...smooth([-6, -6, -7.6, -5.2, -9, -3.6])],
+        ],
+        title: [-8, 9],
     },
     data: {
         name: 'The Squirrel',
@@ -126,28 +144,29 @@ export const figures = {
             [2.6, 5, 5, 5.8],
         ],
     },
+    // A kite on its string. Agent orchestration is the kite, and MCP is the reel on the
+    // ground that steers it. The line between the two stars is the string.
     agents: {
-        name: 'The Hive',
-        at: [0, 38, 0.75],
-        tall: [13.6, 54, 0.66],
+        name: 'The Kite',
+        at: [0, 37, 0.75],
+        tall: [13.6, 52, 0.6],
         stars: {
-            agents: [0.4, 2.9],
-            mcp: [-1.1, -1.5],
+            agents: [0, 4.5],
+            mcp: [4, -10.5],
         },
         edges: 'agents-mcp',
         art: [
-            [-1.6, 2.9, -1, 3.9, 0.4, 4.2, 1.8, 3.9, 2.8, 3.2, 3.4, 2.4, 2.6, 1.9, 0.4, 1.6, -1, 1.9, -1.6, 2.9],
-            [-0.3, 4.1, -0.3, 1.7],
-            [1, 4.1, 1, 1.7],
-            [-0.2, 4, -2.2, 7, -0.8, 6.8, 0.4, 4.2],
-            [0.8, 4.1, 2.6, 7.4, 3.2, 6, 1.8, 3.9],
-            hex(-2.6, 3.1, 0.9),
-            [-3, 3.9, -3.8, 5.2],
-            [-2.4, 4, -2.2, 5.4],
-            hex(0, -3.4, 2.2),
-            hex(-3.3, -5.3, 2.2),
-            hex(3.3, -5.3, 2.2),
-            hex(0, -7.2, 2.2),
+            [0, 10.5, 4.5, 4.5, 0, -1.5, -4.5, 4.5, 0, 10.5],
+            [0, 10.5, 0, -1.5],
+            [-4.5, 4.5, 4.5, 4.5],
+            smooth([0, -1.5, -1.2, -3.4, 0.6, -5.4, -0.8, -7.4, 0.2, -9]),
+            [-1.2, -3.4, -2.2, -2.8, -2, -4, -1.2, -3.4],
+            [-1.2, -3.4, -0.2, -4.2, -0.6, -2.8, -1.2, -3.4],
+            [-0.8, -7.4, -1.8, -6.8, -1.6, -8, -0.8, -7.4],
+            [-0.8, -7.4, 0.2, -8.2, -0.2, -6.8, -0.8, -7.4],
+            hex(4, -10.5, 0.9),
         ],
+        title: [-9, 7],
+        tallTitle: [8, 2],
     },
 }

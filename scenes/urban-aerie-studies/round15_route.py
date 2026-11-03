@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the round 14 revision:
 
 The script saves a new revision, island_b_route_r22.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why (the round 14 trial shots):
 - The glass screens beside the stair flights read as a lighter pane in the sky beside the tower

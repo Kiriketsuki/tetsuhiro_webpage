@@ -1,5 +1,5 @@
 // Ends the current task, so the browser can paint the loading screen and handle input between
-// the long steps of the island build. scheduler.yield resumes ahead of other queued tasks. A
+// the long steps of the aerie build. scheduler.yield resumes ahead of other queued tasks. A
 // MessageChannel message stands in where it is missing. A hidden tab throttles neither of
 // them the way it throttles setTimeout.
 export function nextTask() {

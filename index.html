@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#03111e" />
     <meta
       name="description"
-      content="Jovian Lim, software engineer in Singapore. Projects, skills and write-ups on a floating island at night."
+      content="Jovian Lim, software engineer in Singapore. Projects, skills and write-ups in an aerie above the city at night."
     />
     <link rel="canonical" href="https://tetsuhiro.dev/" />
     <meta property="og:type" content="website" />
@@ -19,7 +19,7 @@
     <meta property="og:title" content="Jovian Lim, software engineer in Singapore" />
     <meta
       property="og:description"
-      content="Projects, skills and write-ups on a floating island at night."
+      content="Projects, skills and write-ups in an aerie above the city at night."
     />
     <meta property="og:url" content="https://tetsuhiro.dev/" />
     <meta property="og:image" content="https://tetsuhiro.dev/icon-512.png" />
@@ -28,8 +28,397 @@
     <meta property="og:locale" content="en_SG" />
     <meta name="twitter:card" content="summary" />
     <title>Jovian Lim</title>
+    <!--
+      The gate: a paper lantern on an autumn branch under the night sky. It lives here, not in
+      the app bundle, so it paints before the JS arrives and costs nothing against the shell
+      budgets. The lantern, the branch and the falling leaves are frames from
+      lab/gate-lantern.html, drawn with the island's own toon material, ink and lens, so they
+      match the island. src/components/Name.vue sets --p to the real load share, opens the art
+      as an iris onto the island when the scene is ready, and removes it after the visitor
+      goes in. Colours are hex, because the token CSS loads with the bundle.
+    -->
+    <style>
+      #gate-art {
+        --p: 0;
+        position: fixed;
+        inset: 0;
+        z-index: 59;
+        overflow: hidden;
+        background:
+          radial-gradient(120% 60% at 50% 108%, #3a2a5a 0, #23234a 30%, transparent 62%),
+          radial-gradient(80% 50% at 82% 8%, #10244a, transparent 70%),
+          linear-gradient(#020812, #071330 45%, #141a3c 78%, #2a2148);
+      }
+      #gate-art.is-ready {
+        -webkit-mask: radial-gradient(circle at var(--x) var(--y), transparent var(--hole), #000 calc(var(--hole) + 7rem));
+        mask: radial-gradient(circle at var(--x) var(--y), transparent var(--hole), #000 calc(var(--hole) + 7rem));
+      }
+      #gate-art > *,
+      .ga-art > * {
+        position: absolute;
+      }
+      .ga-star {
+        left: 0;
+        top: 0;
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        animation: ga-twinkle 4s ease-in-out infinite;
+      }
+      .ga-star.b {
+        animation-delay: -2s;
+      }
+      .ga-star.far {
+        width: 1px;
+        height: 1px;
+        animation: none;
+      }
+      .ga-moon {
+        right: 13%;
+        top: 11%;
+        width: 3.2rem;
+        height: 3.2rem;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 38%, #f6fbff, #d8ebfb 55%, #a9c3dd);
+        box-shadow: 0 0 2rem 0.6rem #d8ebfb40, 0 0 8rem 3rem #8fb6e01c;
+      }
+      .ga-sky {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .ga-clouds {
+        animation: ga-drift 60s linear infinite alternate;
+      }
+      .ga-islets {
+        animation: ga-bob 9s ease-in-out infinite alternate;
+      }
+      /* The frames are 1024 by 784. The lantern hook sits at 50% 21.5%, the middle of the
+         paper at 50% 55.9%. */
+      .ga-art {
+        left: 50%;
+        top: 56%;
+        width: min(38rem, 120vw, 58vh);
+        aspect-ratio: 1024 / 784;
+        transform: translate(-50%, -50%);
+        perspective: 40rem;
+      }
+      .ga-img {
+        position: absolute;
+        inset: 0;
+        background: center / 100% 100% no-repeat;
+      }
+      .ga-branch {
+        background-image: url(/gate/branch-s0.webp);
+      }
+      /* Autumn spreads along the branch from left to right as the load grows. */
+      .ga-autumn {
+        background-image: url(/gate/branch-s1.webp);
+        -webkit-mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
+        mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
+      }
+      .ga-lantern {
+        inset: 0;
+        transform-origin: 50% 21.5%;
+        animation: ga-swing 6s ease-in-out infinite alternate;
+      }
+      .ga-paper {
+        background-image: url(/gate/lantern-s0.webp);
+      }
+      .ga-lit {
+        background-image: url(/gate/lantern-s1.webp);
+        opacity: var(--p);
+      }
+      .ga-glow {
+        left: 50%;
+        top: 55.9%;
+        width: 78%;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        opacity: var(--p);
+      }
+      .ga-glow::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, #ffb04d55, #ff8a3a1f 45%, transparent);
+        animation: ga-flicker 3.1s ease-in-out infinite;
+      }
+      .ga-core {
+        left: 50%;
+        top: 55.9%;
+      }
+      .ga-leaf {
+        left: var(--x);
+        top: var(--y);
+        width: 6.5%;
+        aspect-ratio: 1;
+        background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        opacity: 0;
+      }
+      .is-ready .ga-leaf {
+        animation: ga-fall 3.6s cubic-bezier(0.4, 0, 0.7, 1) var(--d) both;
+      }
+      .is-ready .ga-fades {
+        opacity: 0;
+        transition: opacity 1.2s 0.5s;
+      }
+      @keyframes ga-twinkle {
+        50% { opacity: 0.25; }
+      }
+      @keyframes ga-drift {
+        to { transform: translateX(-4%); }
+      }
+      @keyframes ga-bob {
+        to { transform: translateY(-6px); }
+      }
+      @keyframes ga-flicker {
+        30% { opacity: 0.84; transform: scale(0.985); }
+        55% { opacity: 1; }
+        80% { opacity: 0.9; transform: scale(1.012); }
+      }
+      @keyframes ga-swing {
+        from { transform: rotate(-1.4deg); }
+        to { transform: rotate(1.4deg); }
+      }
+      @keyframes ga-fall {
+        0% { opacity: 1; transform: translate(0, 0) rotate(var(--r)) rotateX(0deg); }
+        40% { transform: translate(1.6rem, 22vh) rotate(calc(var(--r) + 80deg)) rotateX(200deg); }
+        85% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-1.2rem, 70vh) rotate(calc(var(--r) + 200deg)) rotateX(520deg); }
+      }
+      @media (max-aspect-ratio: 1/1) {
+        .ga-moon {
+          right: 10%;
+          top: 9%;
+          width: 2.4rem;
+          height: 2.4rem;
+        }
+        .ga-art {
+          top: 52%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #gate-art * {
+          animation: none !important;
+        }
+        #gate-art *::before {
+          animation: none !important;
+        }
+      }
+      /* The gate dialog from Name.vue: a title screen lit from below by the lantern. */
+      .gate {
+        --p: 0;
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: clamp(2.5rem, 9vh, 5.5rem) 1.5rem clamp(2rem, 7vh, 4rem);
+        text-align: center;
+      }
+      .gate::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(#020812cc, transparent 32% 64%, #020812dd);
+        pointer-events: none;
+      }
+      .gate > * {
+        position: relative;
+      }
+      .gate-title {
+        transform-origin: 50% 0;
+        transition: transform 1.6s cubic-bezier(0.6, 0, 0.3, 1);
+        animation: gate-in 1.2s 0.1s backwards;
+      }
+      .gate-eyebrow,
+      .gate-role {
+        display: block;
+        font-family: var(--font-label);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+      }
+      .gate-eyebrow {
+        padding-left: 0.42em;
+        letter-spacing: 0.42em;
+        color: #e8c089;
+      }
+      .gate-name {
+        display: block;
+        margin-top: 0.5rem;
+        font-family: var(--font-display);
+        font-size: clamp(3.2rem, min(8vw, 11vh), 7rem);
+        font-weight: 400;
+        line-height: 0.9;
+        /* Room for the J tail, which the text clip would cut. */
+        padding: 0 0.15em 0.1em;
+        background: radial-gradient(60% 120% at 50% 130%, #fff3d2 0, #ffd27a calc(18% + 22% * var(--p)), #c98a3e 75%, #7a5a3a);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        filter: drop-shadow(0 0 calc(1.4rem * var(--p)) #ff9f4366);
+      }
+      .gate-role {
+        margin-top: 0.9rem;
+        padding-left: 0.3em;
+        letter-spacing: 0.3em;
+        color: #beb2a1;
+      }
+      .gate-role::after {
+        content: '';
+        display: block;
+        width: 3rem;
+        height: 1px;
+        margin: 1rem auto 0;
+        background: linear-gradient(90deg, transparent, #e8c08999, transparent);
+      }
+      .gate-foot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.1rem;
+      }
+      .gate-readout {
+        max-width: 22rem;
+        min-height: 1.6rem;
+        font-family: var(--font-label);
+        font-size: 0.7rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: #beb2a1;
+      }
+      .gate-readout b {
+        margin-left: 0.5rem;
+        font: italic 400 1.5rem/1 var(--font-display);
+        letter-spacing: 0;
+        vertical-align: -0.2rem;
+        color: #ffd27a;
+      }
+      .gate-enter {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 0.95rem 1.7rem;
+        border: 1px solid #ffd27a55;
+        border-radius: 999px;
+        background: linear-gradient(#ffb54d22, #ff7a3a10);
+        box-shadow: 0 0 2.5rem #ff9f4333, inset 0 1px 0 #fff3d222;
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        font-family: var(--font-label);
+        font-size: 0.78rem;
+        font-weight: 500;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #fff3d2;
+        cursor: pointer;
+      }
+      .gate-enter svg {
+        width: 1rem;
+        animation: gate-nudge 1.6s ease-in-out infinite;
+      }
+      .gate-enter:hover,
+      .gate-enter:focus-visible {
+        border-color: #ffd27aaa;
+        box-shadow: 0 0 3rem #ff9f4355, inset 0 1px 0 #fff3d244;
+      }
+      .gate-enter:focus-visible {
+        outline: 2px solid #14b8a6;
+        outline-offset: 4px;
+      }
+      .gate-enter:disabled,
+      .gate-enter:disabled + .gate-hint {
+        visibility: hidden;
+      }
+      .gate-hint {
+        font-family: var(--font-label);
+        font-size: 0.62rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: #918473;
+      }
+      .gate.is-ready .gate-enter,
+      .gate.is-ready .gate-hint {
+        animation: gate-in 0.9s 0.9s backwards;
+      }
+      @keyframes gate-in {
+        from { opacity: 0; transform: translateY(8px); }
+      }
+      @keyframes gate-nudge {
+        50% { transform: translateY(3px); }
+      }
+      @media (min-aspect-ratio: 1/1) {
+        .gate.is-ready .gate-title {
+          transform: translateY(-1.5rem) scale(0.78);
+        }
+      }
+      @media (pointer: coarse) {
+        .gate-hint {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .gate * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="gate-art" aria-hidden="true">
+      <i class="ga-star far" style="box-shadow: 99.6vw 15.8vh #c9d8ee99,63.2vw 10.4vh #c9d8ee99,45.7vw 42.7vh #c9d8ee99,13.8vw 66.4vh #c9d8ee99,88.5vw 64.1vh #c9d8ee99,88.5vw 65.4vh #c9d8ee99,76.1vw 19.8vh #c9d8ee99,1.0vw 17.9vh #c9d8ee99,7.6vw 0.1vh #c9d8ee99,61.7vw 16.7vh #c9d8ee99,74.1vw 35.2vh #c9d8ee99,68.8vw 17.1vh #c9d8ee99,88.2vw 16.9vh #c9d8ee99,37.4vw 64.4vh #c9d8ee99,11.8vw 35.2vh #c9d8ee99,0.3vw 65.7vh #c9d8ee99,63.7vw 66.4vh #c9d8ee99,2.1vw 64.8vh #c9d8ee99,18.8vw 69.7vh #c9d8ee99,56.5vw 48.9vh #c9d8ee99,26.6vw 16.0vh #c9d8ee99,20.9vw 40.6vh #c9d8ee99,5.2vw 55.4vh #c9d8ee99,70.1vw 51.4vh #c9d8ee99,49.8vw 2.4vh #c9d8ee99,11.0vw 66.2vh #c9d8ee99,13.1vw 49.5vh #c9d8ee99,89.3vw 2.7vh #c9d8ee99,88.3vw 62.0vh #c9d8ee99,99.3vw 68.7vh #c9d8ee99,76.5vw 30.2vh #c9d8ee99,24.8vw 52.4vh #c9d8ee99,88.2vw 28.7vh #c9d8ee99,23.5vw 29.2vh #c9d8ee99,88.7vw 40.2vh #c9d8ee99,35.1vw 44.7vh #c9d8ee99,73.5vw 24.1vh #c9d8ee99,72.5vw 30.4vh #c9d8ee99,19.9vw 22.4vh #c9d8ee99,98.5vw 71.6vh #c9d8ee99,63.2vw 62.8vh #c9d8ee99,91.8vw 14.4vh #c9d8ee99,64.5vw 9.7vh #c9d8ee99,49.7vw 40.1vh #c9d8ee99,77.1vw 68.1vh #c9d8ee99,48.2vw 13.5vh #c9d8ee99,44.7vw 12.0vh #c9d8ee99,66.3vw 37.6vh #c9d8ee99,56.2vw 36.5vh #c9d8ee99,75.7vw 26.1vh #c9d8ee99,75.1vw 1.9vh #c9d8ee99,29.9vw 39.0vh #c9d8ee99,20.3vw 52.1vh #c9d8ee99,29.1vw 17.0vh #c9d8ee99,66.0vw 30.9vh #c9d8ee99,7.5vw 55.6vh #c9d8ee99,82.3vw 65.9vh #c9d8ee99,91.0vw 49.0vh #c9d8ee99,95.9vw 1.8vh #c9d8ee99,76.2vw 43.3vh #c9d8ee99,72.4vw 64.7vh #c9d8ee99,3.7vw 9.8vh #c9d8ee99,8.0vw 7.8vh #c9d8ee99,8.5vw 0.7vh #c9d8ee99,60.5vw 68.1vh #c9d8ee99,19.2vw 9.6vh #c9d8ee99,20.2vw 48.6vh #c9d8ee99,24.3vw 32.9vh #c9d8ee99,99.4vw 30.4vh #c9d8ee99,67.4vw 55.8vh #c9d8ee99,39.7vw 30.0vh #c9d8ee99,6.1vw 16.6vh #c9d8ee99,80.8vw 70.2vh #c9d8ee99,15.2vw 66.6vh #c9d8ee99,50.9vw 8.8vh #c9d8ee99,21.0vw 43.4vh #c9d8ee99,17.1vw 5.6vh #c9d8ee99,27.3vw 46.6vh #c9d8ee99,55.6vw 34.6vh #c9d8ee99,99.4vw 5.4vh #c9d8ee99,41.3vw 22.6vh #c9d8ee99,0.4vw 0.4vh #c9d8ee99,41.3vw 6.6vh #c9d8ee99,23.4vw 66.5vh #c9d8ee99,77.7vw 55.0vh #c9d8ee99,43.7vw 61.6vh #c9d8ee99,96.2vw 57.7vh #c9d8ee99,66.2vw 41.2vh #c9d8ee99,34.8vw 29.3vh #c9d8ee99,49.7vw 35.6vh #c9d8ee99,56.7vw 52.0vh #c9d8ee99,66.5vw 45.6vh #c9d8ee99,72.9vw 63.7vh #c9d8ee99,84.5vw 71.2vh #c9d8ee99,43.8vw 35.1vh #c9d8ee99,95.7vw 70.2vh #c9d8ee99,35.8vw 5.7vh #c9d8ee99,34.3vw 63.6vh #c9d8ee99,70.8vw 53.1vh #c9d8ee99,95.5vw 56.7vh #c9d8ee99,20.7vw 17.1vh #c9d8ee99,79.8vw 7.5vh #c9d8ee99,91.6vw 57.6vh #c9d8ee99,63.5vw 51.2vh #c9d8ee99,53.6vw 31.9vh #c9d8ee99,87.2vw 40.6vh #c9d8ee99,87.4vw 19.5vh #c9d8ee99,68.7vw 31.2vh #c9d8ee99,39.5vw 13.5vh #c9d8ee99,58.9vw 16.7vh #c9d8ee99"></i>
+      <i class="ga-star" style="box-shadow: 0.0vw 66.3vh #e9f3ff,28.9vw 15.2vh #e9f3ff,72.9vw 38.4vh #e9f3ff,32.9vw 54.1vh #e9f3ff,75.5vw 39.1vh #e9f3ff,68.5vw 45.8vh #e9f3ff,81.7vw 17.4vh #e9f3ff,37.4vw 51.0vh #e9f3ff,69.8vw 3.9vh #e9f3ff,68.4vw 33.7vh #e9f3ff,92.2vw 58.1vh #e9f3ff,12.3vw 36.9vh #e9f3ff,92.3vw 49.6vh #e9f3ff,64.4vw 41.6vh #e9f3ff,91.2vw 65.4vh #e9f3ff,37.2vw 24.1vh #e9f3ff,83.7vw 23.9vh #e9f3ff,15.3vw 21.4vh #e9f3ff,42.8vw 21.2vh #e9f3ff,93.7vw 40.1vh #e9f3ff,72.9vw 63.2vh #e9f3ff,5.9vw 19.7vh #e9f3ff"></i>
+      <i class="ga-star b" style="box-shadow: 56.1vw 36.6vh #e9f3ff,42.1vw 13.9vh #e9f3ff,90.9vw 4.0vh #e9f3ff,36.5vw 24.8vh #e9f3ff,66.4vw 66.6vh #e9f3ff,51.5vw 11.9vh #e9f3ff,40.6vw 20.4vh #e9f3ff,36.4vw 30.5vh #e9f3ff,33.3vw 38.3vh #e9f3ff,61.4vw 16.8vh #e9f3ff,90.6vw 33.0vh #e9f3ff,86.3vw 45.7vh #e9f3ff,63.4vw 37.2vh #e9f3ff,50.5vw 49.6vh #e9f3ff,94.0vw 28.6vh #e9f3ff,70.8vw 18.1vh #e9f3ff,58.7vw 25.2vh #e9f3ff,33.1vw 28.2vh #e9f3ff,79.5vw 63.2vh #e9f3ff,11.1vw 59.0vh #e9f3ff,7.8vw 29.3vh #e9f3ff,15.4vw 5.6vh #e9f3ff"></i>
+      <i class="ga-moon"></i>
+      <svg class="ga-sky ga-clouds" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
+        <filter id="ga-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18" /></filter>
+        <g filter="url(#ga-soft)" fill="#2c3466" opacity=".55">
+          <ellipse cx="180" cy="420" rx="260" ry="34" />
+          <ellipse cx="760" cy="380" rx="300" ry="28" />
+          <ellipse cx="520" cy="470" rx="380" ry="40" fill="#3b2f5e" />
+          <ellipse cx="860" cy="150" rx="160" ry="16" fill="#1d2a52" />
+        </g>
+      </svg>
+      <svg class="ga-sky ga-islets" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
+        <filter id="ga-far" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6" /></filter>
+        <g filter="url(#ga-far)" fill="#0e1430">
+          <path d="M84 302q10-10 34-8q20-8 38 4q6 4 2 8q-8 4-14 16q-8 14-18 12q-10 4-16-10q-10-6-22-14q-8-4-4-8z" />
+          <path d="M856 252q8-8 24-6q14-6 28 2q4 3 1 6q-6 3-10 12q-6 10-13 9q-7 3-11-7q-8-5-16-11q-6-3-3-5z" />
+          <path d="M698 332q5-5 15-4q9-4 18 1q3 2 1 4q-4 2-7 8q-4 7-8 6q-5 2-7-5q-5-3-10-7q-4-2-2-3z" opacity=".7" />
+        </g>
+        <g fill="#ffb54d"><circle cx="122" cy="298" r="1.6" /><circle cx="880" cy="248" r="1.3" /><circle cx="716" cy="328" r="1" /></g>
+      </svg>
+      <div class="ga-art">
+        <i class="ga-glow ga-fades"></i>
+        <i class="ga-img ga-branch ga-fades"></i>
+        <i class="ga-img ga-branch ga-autumn ga-fades"></i>
+        <div class="ga-lantern ga-fades">
+          <i class="ga-img ga-paper"></i>
+          <i class="ga-img ga-paper ga-lit"></i>
+        </div>
+        <i class="ga-core"></i>
+        <i class="ga-leaf" style="--x:3.5%;--y:22.9%;--s:0;--r:143deg;--d:0.84s"></i>
+        <i class="ga-leaf" style="--x:10.3%;--y:23.4%;--s:1;--r:-59deg;--d:0.71s"></i>
+        <i class="ga-leaf" style="--x:17.9%;--y:11.9%;--s:2;--r:135deg;--d:0.20s"></i>
+        <i class="ga-leaf" style="--x:31.0%;--y:8.1%;--s:3;--r:-70deg;--d:0.93s"></i>
+        <i class="ga-leaf" style="--x:35.1%;--y:10.8%;--s:0;--r:-180deg;--d:0.22s"></i>
+        <i class="ga-leaf" style="--x:56.1%;--y:9.4%;--s:1;--r:-37deg;--d:0.12s"></i>
+        <i class="ga-leaf" style="--x:67.5%;--y:23.2%;--s:2;--r:69deg;--d:0.91s"></i>
+        <i class="ga-leaf" style="--x:71.2%;--y:22.2%;--s:3;--r:-118deg;--d:0.29s"></i>
+        <i class="ga-leaf" style="--x:85.2%;--y:10.3%;--s:0;--r:161deg;--d:0.73s"></i>
+        <i class="ga-leaf" style="--x:89.7%;--y:13.1%;--s:1;--r:-117deg;--d:0.21s"></i>
+      </div>
+    </div>
+    <!-- The gate shows only on a first visit to the home page. -->
+    <script>
+      location.pathname === '/' || document.getElementById('gate-art').remove()
+    </script>
+
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

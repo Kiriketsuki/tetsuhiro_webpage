@@ -29,6 +29,10 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 // single frames only.
 
 const AMBIENT_FPS = 30
+// The longest the reveal waits for compileAsync, in milliseconds. compileAsync polls each
+// program until the driver reports it ready, and a lost WebGL context never reports, so the
+// gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
+const COMPILE_WAIT_MS = 8000
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
@@ -41,10 +45,15 @@ const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
 // The city haze density: the city loses about a fifth of its colour at the bottom of the
 // overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
-// The faces that corkboard.js and constellation.js draw their canvas text with. A canvas
-// draws with a fallback font while its face is still loading, so each font names the weight
-// the canvas asks for.
-const FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"', '600 30px "JetBrains Mono"']
+// The faces that the corkboard canvas and the skill sky labels use. A canvas draws with a
+// fallback font while its face is still loading, so each font names the weight it asks for.
+const FONTS = [
+    '52px "Instrument Serif"',
+    'italic 42px "Instrument Serif"',
+    '600 22px "JetBrains Mono"',
+    '30px "JetBrains Mono"',
+    '600 30px "JetBrains Mono"',
+]
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer. sky: true when
 // the first view is the skill sky, so `ready` waits for it. Otherwise the sky builds after the
@@ -170,6 +179,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (!reveal || state.reduced) parts.constellation.showAll()
             pipeline.setView(parts.constellation.scene, parts.constellation.camera)
         } else {
+            parts.constellation.close()
             pipeline.setView(scene, camera)
         }
         requestRender()
@@ -326,6 +336,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const carpetBuild = createLeafCarpet({ sliced: true })
     const fonts = Promise.all(FONTS.map((font) => document.fonts.load(font))).catch(() => {})
 
+    // compileAsync with the COMPILE_WAIT_MS cap. A program that is not ready by then
+    // compiles on first use.
+    const compiled = (target, view) =>
+        Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
+
     // The skill sky sits in its own chunk. Its download starts now, beside the island, and it
     // builds and compiles after the first frame of the island, so the first look through the
     // telescope does not stall. The site shows the island first on every route but Skills.
@@ -338,9 +353,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const buildSky = () =>
         (skyBuild ??= Promise.all([skyModule, fonts])
             .then(async ([{ createConstellation }]) => {
-                const built = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
+                const built = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
                 built.resize(camera.aspect)
-                await renderer.compileAsync(built.scene, built.camera)
+                await compiled(built.scene, built.camera)
                 // A resize or a quality step during the compile did not reach the sky yet.
                 built.resize(camera.aspect)
                 built.setPixelRatio(renderer.getPixelRatio())
@@ -413,7 +428,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             rig.setShots(shots)
             resizeSprites()
             // Compile every program before the reveal, so the first moves do not stall.
-            await renderer.compileAsync(scene, camera)
+            await compiled(scene, camera)
             if (sky) await buildSky()
             renderer.shadowMap.needsUpdate = true
             state.ready = true
@@ -463,6 +478,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pan: (dx, dy) => {
             if (view === 'sky') parts.constellation.pan(dx, dy)
             else rig.pan(dx, dy)
+            requestRender()
+        },
+        // x and y are client pixels. A tap on the skill sky flies to the constellation
+        // under it, or back out to the whole sky.
+        tap: (x, y) => {
+            if (view !== 'sky') return
+            parts.constellation.focus((x / window.innerWidth) * 2 - 1, 1 - (y / window.innerHeight) * 2, state.reduced)
             requestRender()
         },
         zoom: (factor) => {

@@ -22,7 +22,7 @@
                     <dd>{{ names(branch.id) }}</dd>
                 </template>
             </dl>
-            <router-link to="/skills" class="action">See how my skills grew</router-link>
+            <router-link to="/skills" class="action">Plot my stellar skills</router-link>
         </article>
     </div>
 </template>

@@ -32,7 +32,8 @@ const routes = [
     {
         path: '/projects/:id',
         name: 'Project',
-        component: () => import('../views/ProjectDetail.vue'),
+        // The same view as Projects: the wall with this pin open, or the project page.
+        component: () => import('../views/Projects.vue'),
         meta: { title: (to) => findProject(to.params.id)?.title },
         beforeEnter: (to) =>
             findProject(to.params.id)

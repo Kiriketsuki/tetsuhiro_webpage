@@ -1,176 +1,159 @@
 <template>
-    <main class="flex min-h-screen w-screen flex-col items-center gap-10 px-5 pt-16 pb-32">
-        <header class="flex w-full max-w-6xl flex-col gap-4">
-            <p class="label text-rose">04 / projects</p>
-            <h1 class="font-slab text-[clamp(2.75rem,8vw,6rem)] leading-none text-text-strong">
-                Things I have made
-            </h1>
-            <p class="max-w-2xl font-body text-[clamp(0.95rem,1.2vw,1.1rem)] text-text-body">
-                Work comes first, then what I have built this year, then school. Each one has its own
-                page with screenshots. Further down are the older and smaller things, and a few that
-                never had a screen.
-            </p>
-        </header>
+    <main v-if="onWall">
+        <!-- Escape closes the sheet first (onKey below), then leaves the wall. -->
+        <ExplorePad :to="id ? null : '/'" back="">
+            <template #top>
+                <header class="wall-head">
+                    <p class="label">
+                        <span class="text-rose">04 / projects</span>
+                        <span class="text-text-muted">&middot; drag, zoom, tap a card</span>
+                    </p>
+                    <h1 class="font-slab text-[clamp(1.9rem,5vw,3.25rem)] leading-none text-text-strong">Things I have made</h1>
+                    <div class="wall-actions">
+                        <router-link to="/" class="action" @pointerdown.stop>back to the aerie</router-link>
+                        <router-link :to="{ path: '/projects', query: { list: null } }" class="action" @pointerdown.stop>list view</router-link>
+                    </div>
+                </header>
+            </template>
+        </ExplorePad>
 
-        <div class="grid w-full max-w-6xl items-start gap-8 lg:grid-cols-[1fr_20rem]">
-            <div class="flex flex-col gap-8">
-                <section
-                    v-for="band in bands"
-                    :key="band.key"
-                    class="frame p-4 pt-7 sm:p-7 sm:pt-9"
-                    :class="band.key === 'work' ? 'frame-rose' : 'frame-line'"
-                >
-                    <span class="frame-legend">{{ band.legend }}</span>
-                    <h2 class="sr-only">{{ band.heading }}</h2>
-                    <ol class="border-t border-line">
-                        <ProjectRow
-                            v-for="{ project, index } in band.rows"
-                            :key="project.id"
-                            :project="project"
-                            :number="index + 1"
-                            detail
-                            @peek="peekedIndex = index"
-                        />
-                    </ol>
-                </section>
-            </div>
+        <!-- The wall is a picture, so the pins are links here too: Tab marks each pin on the
+             wall, and Enter opens it. A link shows on screen only while it has focus. -->
+        <nav class="wall-index" aria-label="Projects on the wall">
+            <ol>
+                <li v-for="pin in ordered" :key="pin.id">
+                    <router-link
+                        :ref="(el) => (links[pin.id] = el?.$el)"
+                        :to="`/projects/${pin.page}`"
+                        @focus="wall.highlight(pin.id)"
+                        @blur="wall.highlight(null)"
+                    >
+                        {{ pin.title }}, {{ pin.year }}
+                    </router-link>
+                </li>
+            </ol>
+        </nav>
 
-            <!-- The hovered row, as a spec sheet. Wide screens only. -->
-            <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 pt-8 lg:flex" aria-hidden="true">
-                <span class="frame-legend">{{ String(peekedIndex + 1).padStart(2, '0') }}</span>
-                <div class="plate">
-                    <img v-if="peeked.image" :src="peeked.image" alt="" decoding="async" />
-                    <span v-else>{{ monogram(peeked.title) }}</span>
-                </div>
-                <p class="font-slab text-3xl leading-tight text-text-strong">{{ peeked.title }}</p>
-                <dl class="rows text-sm">
-                    <template v-for="[key, value] in rows(peeked)" :key="key">
-                        <dt>{{ key }}</dt>
-                        <dd>{{ value }}</dd>
-                    </template>
-                </dl>
-            </aside>
-        </div>
-
-        <div class="grid w-full max-w-6xl items-start gap-8 lg:grid-cols-2">
-            <section class="frame frame-line p-4 pt-7 sm:p-7 sm:pt-9">
-                <span class="frame-legend">archive</span>
-                <h2 class="sr-only">Older and smaller projects</h2>
-                <ul class="lines">
-                    <li v-for="item in archive" :key="item.title">
-                        <router-link v-if="item.to" :to="item.to" class="line-title text-link">{{ item.title }}</router-link>
-                        <a v-else-if="item.href" :href="item.href" target="_blank" rel="noopener" class="line-title text-link">
-                            {{ item.title }} <span aria-hidden="true">↗</span>
-                        </a>
-                        <span v-else class="line-title">{{ item.title }}</span>
-                        <span class="line-year">{{ item.year }}</span>
-                        <span class="line-note">{{ item.note }}</span>
-                    </li>
-                </ul>
-            </section>
-
-            <section class="frame frame-line p-4 pt-7 sm:p-7 sm:pt-9">
-                <span class="frame-legend">other work</span>
-                <h2 class="sr-only">Work that is not a user interface</h2>
-                <ul class="lines">
-                    <li v-for="item in otherWork" :key="item.title">
-                        <span class="line-title">{{ item.title }}</span>
-                        <span class="line-year">{{ item.year }}</span>
-                        <span class="line-note">{{ item.note }}</span>
-                    </li>
-                </ul>
-            </section>
-        </div>
-
-        <router-link to="/" class="action self-center">Back to the aerie</router-link>
+        <ProjectSheet v-if="id" :id="id" @close="close" />
     </main>
+    <ProjectDetail v-else-if="id" />
+    <ProjectList v-else />
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import ProjectRow from '../components/ProjectRow.vue'
-import { monogram, projects } from '../data/projects.js'
-import { GROUPS, archive, otherWork, withPage } from '../data/project-pages.js'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import ExplorePad from '../components/ExplorePad.vue'
+import ProjectList from '../components/ProjectList.vue'
+import ProjectSheet from '../components/ProjectSheet.vue'
+import { PINS } from '../data/wall.js'
+import { useWall } from '../composables/useWall.js'
 
-const all = projects.map(withPage)
+// /projects is the evidence wall in the workshop once it has built, and /projects/<id> is the
+// wall with that pin open in the sheet. Without the wall (no WebGL, a failed load, or ?list),
+// they are the list page and the project page.
+const ProjectDetail = defineAsyncComponent(() => import('./ProjectDetail.vue'))
 
-// The numbers run on across the bands, so each row keeps its place in the whole list.
-const bands = GROUPS.map((group) => ({
-    ...group,
-    rows: all.map((project, index) => ({ project, index })).filter(({ project }) => project.group === group.key),
-}))
+const route = useRoute()
+const router = useRouter()
+const wall = useWall()
+watch(
+    () => 'list' in route.query,
+    (list) => {
+        if (list) wall.listed.value = true
+    },
+    { immediate: true },
+)
+const onWall = computed(() => wall.shown.value && !wall.listed.value)
+const id = computed(() => (route.name === 'Project' ? route.params.id : null))
+const pinOf = (page) => PINS.find((pin) => pin.page === page)?.id ?? null
 
-// Kept as an index: the legend shows the row number.
-const peekedIndex = ref(0)
-const peeked = computed(() => all[peekedIndex.value])
+// Reading order: top row first, left to right within a row.
+const ordered = [...PINS].sort((a, b) => (Math.abs(a.at[1] - b.at[1]) < 0.1 ? a.at[0] - b.at[0] : b.at[1] - a.at[1]))
+const links = {}
 
-const rows = (project) => [
-    ['Stack', project.stack],
-    ['Year', project.year],
-    ['Role', project.role],
-]
+// The open pin moves into the space the sheet leaves free. Closing it moves the wall back and
+// returns keyboard focus to the pin's link.
+watch(
+    [id, onWall],
+    ([next, shown], [previous] = []) => {
+        if (!shown) return
+        if (next) wall.focus(pinOf(next))
+        else if (previous) {
+            wall.unfocus()
+            // A project with no pin (it opened from a link) hands focus to the wall's own links.
+            const target = links[pinOf(previous)] ?? document.querySelector('.wall-actions a')
+            target?.focus({ preventScroll: true })
+        }
+    },
+    { immediate: true },
+)
+
+// A tap on the wall that lands on a pin opens it.
+watch(wall.picked, (pin) => {
+    if (!pin) return
+    wall.picked.value = null
+    const page = PINS.find((p) => p.id === pin)?.page
+    if (page && page !== id.value) router.push(`/projects/${page}`)
+})
+
+// A sheet opened from the wall closes by going back, so Back never reopens it. A sheet from
+// a deep link has no wall entry behind it, so it swaps to the wall.
+const close = () => {
+    if (window.history.state?.back === '/projects') router.back()
+    else router.replace('/projects')
+}
+
+const onKey = (e) => {
+    if (e.key === 'Escape' && id.value && onWall.value) close()
+}
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKey)
+    wall.highlight(null)
+})
 </script>
 
 <style scoped>
-/* The archive and the other work: a title, a year, and one line under them. */
-.lines > li {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.2rem 0.75rem;
-    padding: 0.7rem 0.25rem;
-    border-bottom: 1px solid var(--color-line);
+.wall-head {
+    display: flex;
+    max-width: 26rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+    text-shadow: 0 0 0.75rem var(--color-bg-base), 1px 1px 0 var(--color-bg-base);
 }
 
-.lines > li:first-child {
-    border-top: 1px solid var(--color-line);
+.wall-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    pointer-events: auto;
 }
 
-.line-title {
-    justify-self: start;
+.wall-index ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Off screen until it has focus. Then it shows as a small label above the pad and the navbar. */
+.wall-index a {
+    position: fixed;
+    z-index: 25;
+    bottom: 4.25rem;
+    left: -9999px;
+    padding: 0.4rem 0.7rem;
+    border: 2px solid var(--color-rose);
+    border-radius: 4px;
+    background: var(--color-bg-raised);
     color: var(--color-text-strong);
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    line-height: 1.2;
+    font: 600 0.8rem/1.3 var(--font-label);
+    white-space: nowrap;
 }
 
-.line-title.text-link {
-    color: var(--color-teal-action-hover);
-}
-
-.line-title span {
-    font-family: var(--font-label);
-    font-size: 0.7rem;
-}
-
-.line-year {
-    color: var(--color-text-muted);
-    font-family: var(--font-label);
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-}
-
-.line-note {
-    grid-column: 1 / -1;
-    color: var(--color-text-body);
-    font-size: 0.85rem;
-}
-
-.plate {
-    display: grid;
-    place-items: center;
-    aspect-ratio: 16 / 10;
-    padding: 4px;
-    background: var(--color-bg-base);
-    border: 1px solid var(--color-line);
-    color: var(--color-line);
-    font-family: var(--font-display);
-    font-size: 4rem;
-    line-height: 1;
-}
-
-.plate img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.wall-index a:focus-visible {
+    left: 1rem;
+    outline: none;
 }
 </style>

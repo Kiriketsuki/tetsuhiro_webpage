@@ -13,18 +13,30 @@ import Navbar from './components/Navbar.vue'
 import FocusRing from './components/FocusRing.vue'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { useScene } from './composables/useScene.js'
+import { useWall } from './composables/useWall.js'
 
 const route = useRoute()
 const { ready } = useWaypoints()
+const { shown: wallShown, listed } = useWall()
+// The list mode of Projects ends when the visitor leaves the project pages.
+const PROJECT_ROUTES = ['Projects', 'Project', 'DancingTables', 'Placeholders']
+watch(
+    () => route.name,
+    (name) => {
+        if (name && !PROJECT_ROUTES.includes(name)) listed.value = false
+    },
+)
 useScene()
 
 // The scene shows on every route once it has loaded. A route change moves the camera to
 // that route's room. Pages full of text dim it, so the words stay readable. /skills is the
-// skill sky itself, so it stays at full strength.
+// skill sky itself, so it stays at full strength. Projects is the evidence wall in the same
+// way, unless the visitor asked for the list.
 const PAGE_DIM = 0.32
 const opacity = computed(() => {
     if (!ready.value) return 0
-    return ['Home', 'Skills'].includes(route.name) ? 1 : PAGE_DIM
+    if (['Home', 'Skills'].includes(route.name)) return 1
+    return wallShown.value && !listed.value ? 1 : PAGE_DIM
 })
 
 watch(opacity, (value) => {

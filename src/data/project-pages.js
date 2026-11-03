@@ -124,6 +124,51 @@ const pages = {
             { label: 'View dots', href: 'https://github.com/Kiriketsuki/dots' },
         ],
     },
+    statusline: {
+        blurb: 'Chrysaki in Claude Code: model, usage, context and git on four lines.',
+        body: [
+            'I spend most of the day in Claude Code, so the status bar under the prompt is the screen I read most. Mine shows the model, how much of the five hour and seven day usage is left, how full the context is, and the git branch.',
+            'It started in March as claude-statusKine, two lines in the Chrysaki colours. It grew to four lines in chrysaki-claude, with a gradient that shifts as usage runs out, and it got a port for the Gemini CLI.',
+            'Later the same idea left the terminal and became usaKi, a widget on the desktop.',
+        ],
+        links: [{ label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/chrysaki-claude' }],
+    },
+    tokin: {
+        blurb: 'An incremental game about the first AI company. It also runs inside Claude Code.',
+        body: [
+            'toKin is an incremental game. You start by typing tokens by hand, then train small networks, take gigs and publish papers, until you distil it all into Logits and start again a little stronger.',
+            'One engine runs in two places: in the browser, and as a pane inside Claude Code, so it ticks over beside the work. Its sibling mod, clodeKs, connects Claude Code to the Codex CLI.',
+        ],
+        links: [{ label: 'Play toKin', href: 'https://tokin.tetsuhiro.dev' }],
+    },
+    trkixel: {
+        blurb: 'A pixel art editor where every pixel is a triangle.',
+        body: [
+            'TrKixel draws pixel art on a grid of triangles instead of squares. You can trace over a picture, split a triangle into smaller ones for detail, and export the result.',
+            'It runs in the browser with Vue, and Tauri wraps it as a desktop app.',
+        ],
+        links: [
+            { label: 'Open TrKixel', href: 'https://kiriketsuki.github.io/TrKixel/' },
+            { label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/TrKixel' },
+        ],
+    },
+    island: {
+        blurb: 'This site: a night aerie built in Blender and drawn in Three.js.',
+        coverAlt: 'The aerie at night: a tall house with a steel frame, red autumn trees and lit windows.',
+        body: [
+            'You are standing in it. The aerie is modelled in Blender and drawn in Three.js, with toon shading, a soft ink outline and a split tone, after the cozy look of Leaf it Alone.',
+            'The first version of this site went up in 2022. I rebuilt it in 2025, and again in 2026 around this aerie: a workshop with this corkboard, a telescope that opens onto the skills, and a city of lights below.',
+            'Every frame has a budget. The scene code stays under 200 kB, the extra views load only when you need them, and the aerie renders only when something moves.',
+        ],
+        links: [{ label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/tetsuhiro_webpage' }],
+    },
+    'resonant-respite': {
+        blurb: 'A floating world that moves with the music. The first of its kind here.',
+        body: [
+            'An audio-visual piece from 2024. A song plays, and the scene answers it: the water moves with the bass, the land and the stars with the chords, and the sun with the drums.',
+            'Each part of the music runs its analysis in its own Web Worker, so the scene keeps its frame rate. It was the first floating world I built in Three.js, and this aerie grew out of it.',
+        ],
+    },
     'aetherial-verdancy': {
         blurb: 'Plants for space, raised on music. Each song grows a different plant.',
         coverAlt: 'The installation: the title projected on a wall, with two screens of plants in front.',
@@ -215,12 +260,6 @@ export function withPage(project) {
 // Older and smaller things, newest first. No pictures, one line each. to is a route and
 // href is an outside link.
 export const archive = [
-    {
-        title: 'TrKixel',
-        year: '2025',
-        note: 'Pixel art on a triangle grid. I built the editor for it.',
-        href: 'https://github.com/Kiriketsuki/TrKixel',
-    },
     { title: 'CyberQuarium', year: '2023', note: 'Hatch, breed and trade sea creatures. A prototype web game.', to: '/projects/cyberquarium' },
     { title: 'Wyn Monde', year: '2022', note: 'Under NDA, so this line is all I can say.' },
     { title: 'Dancing Tables', year: '2022', note: 'My first freelance job. A 3D banquet hall for a table lifting robot.', to: '/projects/dancing_tables' },

@@ -100,3 +100,118 @@ degrees a second.
   show a real phone. The governor change matters most there.
 - The probe stepped the rig at a fixed 1/60 s. A real frame of 33 ms moves the camera twice
   as far in one step, on the same smooth path.
+
+## Second pass: frame clock and planned shots (3 November 2026, evening)
+
+After PR #28 the owner still saw jank: "camera is still janky instead of smooth and planned".
+The first pass stepped the rig at a fixed 1/60 s, so it could not see what the real frame loop
+did. This pass measured the real page.
+
+### How it was measured
+
+- A harness drove the dev build with real input: a wheel notch, a touch swipe, keys 1 to 5,
+  a scroll back up during a move, a smooth scroll from the campfire to the top, and the
+  Projects link and the back button. It recorded every rendered frame: the rAF time, the
+  step the rig got, the camera pose and the scroll position.
+- Two sizes: desktop 1440x900, and phone 390x844 with 4x CPU throttle. Headless Chromium on
+  an RTX 4070, at about 180 frames a second.
+- A survey stepped all 30 moves between the six stops (the five story stops and the board)
+  at a fixed 1/120 s. It measured acceleration, turn rate, path corners and mesh crossings.
+  The same survey ran on master (9622367) for the before numbers.
+- The orchestrator's diagnosis report found the same causes on its own probes, plus the
+  crane, door and take-over faults below.
+
+### Where the jank came from
+
+| Cause | Evidence on master |
+|---|---|
+| The rig stepped by `clock.getDelta()`, read late in the frame. GSAP and other rAF callbacks run first for a different time each frame. | The step was up to 8.7 ms off the frame time on the phone. The planned path had 1 speed peak, the screen showed up to 27. Speed changed up to 79 percent from one frame to the next. |
+| The follow frame looked along the walk, so most of the turn waited for the last stretch. | The view turned at 140 degrees a second at the end of the leg from the pad to the workshop. |
+| The crane backed away behind the start and end shots, and the path reversed there. | Corners of 117 to 145 degrees, 2,226 m/s2. |
+| The uniform spline overshot where a short segment met a long one. | Out of the door, the path bulged 1.5 m off the door axis. |
+| The workshop shot stands 1 m inside the outside door point. | The move to the board backed out 1 m and came back in: a 149 degree corner. |
+| The inside door frame looked at the board's subject, past the board view. | The view turned past the end view and back, and the camera surged where the turn stopped. |
+| A scroll back early in a leg kept the follow frame ahead of the camera. | The path ran on and came back through a cusp: the speed fell to 1 m/s and jumped back to 9 m/s. |
+| A take-over started the look path 10 m out, wherever the old look point was. | The turn rate halved in one frame. |
+
+### What changed
+
+1. **Frame clock.** The rig steps by the time between two rAF timestamps
+   (`scene-manager.js`). `THREE.Clock` is gone, and the scene chunk is 0.17 kB smaller.
+2. **Turn limit.** Each move picks the lightest turn weight that keeps its view turn under 60
+   degrees a second. The camera slows where the view turns, as an operator slows the dolly
+   for a pan. The move time stretches with it, up to 4.4 s, so the camera keeps its speed in
+   the open.
+3. **Lead the pan.** A follow frame looks half way from the walk ahead to the end subject,
+   when that turns the view less in all.
+4. **Centripetal spline.** `walk-curve.js` uses a centripetal Catmull-Rom spline. The look
+   path takes the knot gaps of the camera path, so the two keep one parameter.
+5. **Flat-topped arcs and a vertical crane.** An arc has two points at full lift, not one
+   peak. A crane rises straight up from the start and comes straight down onto the end.
+6. **Through the door.** A move skips the door frames behind its start or past its end. The
+   inside frame looks half way from the door axis to the board view. The camera runs three
+   times slower near the porch and eases back to full speed 9 m out, so it brakes over
+   several metres and dollies through the door.
+7. **Reversal.** A take-over drops a follow frame where its path folds back. A new path more
+   than 60 degrees off the camera's motion brakes along smootherstep to rest, then starts.
+   The brake stops in the same distance as before.
+8. **Take-over look.** A move that takes over starts its look path at the look point in use.
+
+A fast scroll still sends one move for each section it crosses. Each take-over now keeps its
+speed, so the smooth scroll from the campfire to the top shows 1 speed peak and no stall.
+The proposal to merge them in `three.js` stays open.
+
+### Measurements with real input
+
+Speed peaks on screen, before and after. The planned path has 1 peak for one move and 2 for a
+move and its reversal.
+
+| Case | Desktop | Phone, 4x CPU |
+|---|---|---|
+| Wheel or swipe, pad to workshop | 3 to 1 | 8 to 1 |
+| Wheel or swipe, workshop to bedroom | 1 to 1 | 19 to 1 |
+| Three quick swipes down | 1 to 1 | 27 to 1 |
+| Scroll down, then back up | 3 to 2 | 17 to 2 |
+| Key 5 from the pad | 3 to 1 | 23 to 1 |
+| Key 3 from the workshop | 2 to 1 | 8 to 1 |
+| Projects link, then back | 4 to 3 | 34 to 3 |
+
+| Worst case over all runs | Desktop | Phone, 4x CPU |
+|---|---|---|
+| Rig step off the frame time, during moves | 2.3 ms to 0 | 8.7 ms to 0 |
+| Speed change from one frame to the next, share of peak | 25 to 4 percent | 79 to 4 percent |
+| Peak turn | 140 to 59 degrees/s | 226 to 58 degrees/s |
+| Stall frames | 0 to 0 | 0 to 0 |
+
+### Measurements of all 30 moves
+
+| Worst case | Desktop | Phone |
+|---|---|---|
+| Peak acceleration | 2,226 to 336 m/s2 | 1,830 to 295 m/s2 |
+| Moves over 150 m/s2 | 12 to 4 | 16 to 12 |
+| Peak turn | 140 to 59 degrees/s | 102 to 60 degrees/s |
+| Moves over 80 degrees/s | 7 to 0 | 7 to 0 |
+| Turn-rate change in one 1/120 s step | 26.6 to 4.4 degrees/s | 21.3 to 4.0 degrees/s |
+| Sharpest corner within 2 m | 149 to 101 degrees | 149 to 105 degrees |
+| Mesh crossings | 0 to 0 | 0 to 0 |
+| Longest move | 3.6 to 4.4 s | 3.6 to 4.4 s |
+
+Selected moves on the phone, acceleration before and after: the pad to the telescope 1,830
+to 164 m/s2, the workshop to the board 588 to 9 m/s2, the workshop to the campfire 755 to
+172 m/s2.
+
+### Left open
+
+- Seven phone moves and four desktop moves stay over 150 m/s2. All are arcs between the
+  workshop or the board and the back of the island (the telescope and the campfire). The
+  worst is the campfire to the board, 295 to 336 m/s2. Each is lower than on master.
+- The long moves take up to 4.4 s, against 3.6 s before. The workshop to the board on a phone
+  takes 3.1 s against 2.1 s: the camera now dollies through the door.
+- The camera starts when the scroll snap passes half way to the next section, 0.3 s to 0.8
+  s after the input. This follows the spec ("Snap, then travel").
+- The back button from `/projects` flies to the pad, not to the Projects section
+  (`Home.vue`). The corkboard work owns that fix.
+- On the phone, the frame that mounts the Projects page takes up to 128 ms. The camera is at
+  rest then, so it does not show as a jump.
+- The numbers come from headless Chromium on a desktop GPU. The throttle slows the CPU, not
+  the GPU, so no real phone GPU was measured.

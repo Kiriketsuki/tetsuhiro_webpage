@@ -22,6 +22,10 @@ const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
 const TAKE_OVER = 0.6
 // The shape of the fading part: it leaves at full speed and comes back to rest at TAKE_OVER.
 const fadeOut = (t) => (t >= TAKE_OVER ? 0 : t * (1 - t / TAKE_OVER) ** 2)
+// The fading part runs on, stops and comes back to the new path. A new path more than 60
+// degrees off the way the camera moves (a share of the speed along it under BRAKE_SHARE)
+// brakes instead, as that part came back so fast that the camera stopped dead and shot off.
+const BRAKE_SHARE = 0.5
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 
@@ -165,7 +169,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         let move = moves.createMove({ position, target: from, shot, leg, duration, blocked, midway, door })
         let v0 = 0
         const along = move.camPath.tangentAt(0, new THREE.Vector3()).dot(velocity)
-        if (coast && along < 0) {
+        if (coast && along < BRAKE_SHARE * velocity.length()) {
             // The coast covers half its start speed times TAKE_OVER before it stops.
             const stop = position.clone().addScaledVector(velocity, TAKE_OVER / 2)
             const stopLook = coast.look.clone().addScaledVector(lookVelocity, TAKE_OVER / 2)
@@ -198,7 +202,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     }
 
     // The old motion of a move that took over, for the first TAKE_OVER seconds. A braking
-    // coast runs on at the old speed and slows evenly to a stop where the new path starts. A
+    // coast runs on at the old speed and slows smoothly to a stop where the new path starts. A
     // coast that goes on the same way adds only the part of the old speed across the new path,
     // and that part fades out to nothing.
     const blendCoast = (coast, age) => {
@@ -207,8 +211,11 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
             baseLook.addScaledVector(coast.lookAcross, fadeOut(age))
             return
         }
-        const t = Math.min(age, TAKE_OVER)
-        const along = t - (t * t) / (2 * TAKE_OVER)
+        // The speed falls along smootherstep, so the brake starts and ends with no step in
+        // acceleration. It stops in the same distance as an even brake: half the start speed
+        // times TAKE_OVER.
+        const x = Math.min(age, TAKE_OVER) / TAKE_OVER
+        const along = TAKE_OVER * (x - x ** 4 * (x * (x - 3) + 2.5))
         base.copy(coast.position).addScaledVector(coast.velocity, along)
         baseLook.copy(coast.look).addScaledVector(coast.lookVelocity, along)
     }

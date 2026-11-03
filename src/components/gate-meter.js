@@ -150,11 +150,17 @@ export function createGateMeter(tracks, probe = null) {
         // second greeting.
         finish({ instant = false } = {}) {
             done = true
-            const time = now()
-            const { value, speed } = sample(plan, time)
-            play({ start: time, ...(instant ? { times: [0], values: [1] } : finishCurve(value, speed)) })
-            const ends = running.map((animation) => animation.finished.catch(() => {}))
-            return Promise.all(ends).then(() => {})
+            const run = () => {
+                const time = now()
+                const { value, speed } = sample(plan, time)
+                play({ start: time, ...(instant ? { times: [0], values: [1] } : finishCurve(value, speed)) })
+                return Promise.all(running.map((animation) => animation.finished.catch(() => {}))).then(() => {})
+            }
+            if (instant) return run()
+            // The run to 1 starts in a task of its own. New animations reach the compositor only
+            // when the task that made them ends, so work that went on in the caller's task kept
+            // the run off the screen until it was over, and the meter jumped to 1.
+            return new Promise((resolve) => setTimeout(() => run().then(resolve), 0))
         },
         stop() {
             done = true

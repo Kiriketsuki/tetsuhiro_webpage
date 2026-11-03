@@ -7,6 +7,25 @@
 // 5 m back and 4 m up unless a leg sets `back` and `up`.
 // Blender empties named `Route_<from>_<to>_NN` replace a leg's points when the GLB has
 // them, so these points are the fallback until the GLB arrives or if it lacks the empties.
+// The workshop doorway. Every move into the board view, the Projects wall in the workshop,
+// comes in through it, and every move out of the board view leaves through it. The doorway
+// is 1.2 m wide (x -5.5 to -4.3) in the front wall at z -0.5, with its sill at y 1.0 and its
+// head frame at y 3.15. The camera passes near its centre line at eye height, about 0.6 m
+// clear of each post and 0.75 m under the head. Three points on that line keep the path straight
+// through the door: one out in front, where an arc from a far stop comes down clear of the
+// house, one on the porch, and one just in the room.
+export const doorway = {
+    outside: [-4.82, 2.4, 4.2],
+    porch: [-4.82, 2.4, 1.0],
+    inside: [-4.82, 2.4, -1.3],
+    // The workshop room and the porch, as the corners of a box. A move that starts in it, such
+    // as one that takes over on the way out, leaves through the doorway too.
+    room: [
+        [-8.6, 0.5, -6.3],
+        [0.1, 3.4, 1.0],
+    ],
+}
+
 export const route = {
     // The ramp, the deck, the bridge, the path and the workshop porch.
     'arrival>workshop': {
@@ -49,7 +68,7 @@ export const route = {
     // camera rides closer and higher than on the other legs.
     'telescope>campfire': {
         back: 2.5,
-        up: 7,
+        up: 8,
         points: [
             [-7.7, 8.6, -4.6],
             [-6.8, 10.4, -8.4],

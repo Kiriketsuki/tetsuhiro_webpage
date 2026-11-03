@@ -1,13 +1,9 @@
 import * as THREE from 'three'
 import { fitFov, MAX_FOV } from './framing.js'
-import { createWalkCurve } from './walk-curve.js'
 
 // Moves the camera between named stops. It owns no loop: the scene manager calls update()
 // each frame and reads `moving` to decide whether the frame needs a render.
 
-// Long moves rise over the island instead of cutting through it.
-const LIFT_PER_METRE = 0.18
-const MAX_LIFT = 40
 // Degrees past MAX_FOV per unit of zoom past 1.
 const ZOOM_HEADROOM = 35
 // Look-around limits, as shares of the distance from the camera to its target.
@@ -18,19 +14,14 @@ const LOOK_RETURN = 0.8
 const PARALLAX = 0.012
 // Wide screens put the text in side panels, the same test as the .stop layout in index.css.
 const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
-// A story leg (src/data/route.js). The camera rides FOLLOW_UP metres above and FOLLOW_BACK
-// metres behind the walk spline, a drone follow, and looks LOOK_AHEAD metres ahead on it.
-const FOLLOW_BACK = 5
-const FOLLOW_UP = 4
-const LOOK_AHEAD = 3
-// The shares of a leg that blend in from the start shot and out into the end shot.
-const LEG_IN = 0.2
-const LEG_OUT = 0.25
-// A leg takes LEG_TIME.base seconds plus LEG_TIME.perMetre for each metre of spline, held
-// between LEG_TIME.min and LEG_TIME.max.
-const LEG_TIME = { base: 1.4, perMetre: 0.06, min: 2.0, max: 3.2 }
-// The most route empties one leg can have in the GLB.
-const MAX_ROUTE_POINTS = 99
+// A move that takes over from another one starts at the speed the camera has along the new
+// path. The rest of the old motion, the part across the new path, fades out over TAKE_OVER
+// seconds, so the camera never jerks. A move that heads back the way the camera came first
+// coasts to a stop over TAKE_OVER seconds, then starts from there, so a scroll back up brakes
+// and turns round in one smooth motion.
+const TAKE_OVER = 0.6
+// The shape of the fading part: it leaves at full speed and comes back to rest at TAKE_OVER.
+const fadeOut = (t) => (t >= TAKE_OVER ? 0 : t * (1 - t / TAKE_OVER) ** 2)
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 
@@ -64,42 +55,10 @@ export function shotsFromStops(stops, cameras = [], anchorAt = () => null) {
     )
 }
 
-// The points of one leg from the GLB empties Route_<from>_<to>_01, _02 and on, or null when
-// the GLB has fewer than two of them.
-function routeEmpties(from, to, anchorAt) {
-    const points = []
-    for (let i = 1; i <= MAX_ROUTE_POINTS; i += 1) {
-        const point = anchorAt(`Route_${from}_${to}_${String(i).padStart(2, '0')}`)
-        if (!point) break
-        points.push(point)
-    }
-    return points.length >= 2 ? points : null
-}
-
-// Builds one leg per direction for each pair of neighbouring stops in `route`, keyed
-// `<from>><to>`. anchorAt(name) returns the world position of a GLB node, or null. The
-// Blender empties of a leg win over its fallback points. The leg the other way plays the
-// same camera path backward, so a scroll up retraces the scroll down. A follow camera that
-// walked the spline backward would sit on the other side of the walker, where the house
-// stands on some legs.
-export function legsFromRoute(route, anchorAt = () => null) {
-    return Object.fromEntries(
-        Object.entries(route).flatMap(([key, leg]) => {
-            const [from, to] = key.split('>')
-            const points = routeEmpties(from, to, anchorAt) ?? leg.points.map((point) => new THREE.Vector3(...point))
-            const curve = createWalkCurve(points)
-            const { length } = curve
-            const duration = THREE.MathUtils.clamp(LEG_TIME.base + LEG_TIME.perMetre * length, LEG_TIME.min, LEG_TIME.max)
-            const forward = { curve, length, duration, back: leg.back ?? FOLLOW_BACK, up: leg.up ?? FOLLOW_UP, reverse: false }
-            return [
-                [key, forward],
-                [`${to}>${from}`, { ...forward, reverse: true }],
-            ]
-        })
-    )
-}
-
-export function createCameraRig({ camera, shots, start = 'overview' }) {
+// blocked(a, b, ends) says if the aerie lies on the straight line from a to b, for a move
+// between the two points `ends`. An arc between two stops rises until it finds nothing
+// (camera-move.js).
+export function createCameraRig({ camera, shots, start = 'overview', blocked = () => false }) {
     let all = shots
     let current = start
     let tween = null
@@ -109,15 +68,22 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
     const focusPoint = new THREE.Vector3()
     const forward = new THREE.Vector3()
     const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1, tzoom: 1, fov: 35 }
-    // Scratch vectors for the follow frame of a leg. heading keeps the last level direction
-    // along the spline, for a point where the spline runs straight up.
-    const legAt = new THREE.Vector3()
-    const legAhead = new THREE.Vector3()
-    const legTangent = new THREE.Vector3()
-    const heading = new THREE.Vector3()
     const look = { x: 0, y: 0, dolly: 0 }
     const pointer = { x: 0, y: 0, sx: 0, sy: 0 }
     const sidePanels = window.matchMedia(SIDE_PANELS)
+    // The camera and look points of the move without the pointer drift, and their speeds in
+    // metres a second. A move that takes over from another one coasts on at these speeds.
+    const base = new THREE.Vector3()
+    const baseLook = new THREE.Vector3()
+    const velocity = new THREE.Vector3()
+    const lookVelocity = new THREE.Vector3()
+    // The pointer drift in force, and the camera distance it scales with.
+    const drift = new THREE.Vector3()
+    let driftDistance = 1
+    const scratch = { right: new THREE.Vector3(), up: new THREE.Vector3(), dir: new THREE.Vector3(), last: new THREE.Vector3(), lastLook: new THREE.Vector3() }
+    // createMove and moveProgress from camera-move.js. The scene manager loads that module as
+    // its own chunk beside the island and hands it over with setMoves. Until then a move cuts.
+    let moves = null
 
     const frameOf = (shot) => ({ sx: shot.shift[0], sy: shot.shift[1], tx: shot.tall[0], ty: shot.tall[1], zoom: shot.zoom, tzoom: shot.tallZoom, fov: shot.fov })
 
@@ -139,13 +105,22 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         return { shot, forward, right, up, distance }
     }
 
+    // The pointer drift for a view along `dir` at `distance` metres, written into drift. The
+    // drift applies during a move too, so the end of a move never snaps to the pointer.
+    const setDrift = (right, up, distance) => {
+        driftDistance = distance
+        drift.copy(right).multiplyScalar(pointer.sx * distance * PARALLAX).addScaledVector(up, -pointer.sy * distance * PARALLAX)
+    }
+
     const place = () => {
-        const { shot, forward, right, up } = axes()
-        const offset = right.clone().multiplyScalar(look.x + pointer.sx * axes().distance * PARALLAX)
-            .add(up.clone().multiplyScalar(look.y - pointer.sy * axes().distance * PARALLAX))
-        target.copy(shot.target).add(offset)
-        camera.position.copy(shot.position).add(offset).addScaledVector(forward, look.dolly)
+        const { shot, forward, right, up, distance } = axes()
+        setDrift(right, up, distance)
+        const offset = right.clone().multiplyScalar(look.x).addScaledVector(up, look.y)
+        target.copy(shot.target).add(offset).add(drift)
+        camera.position.copy(shot.position).add(offset).add(drift).addScaledVector(forward, look.dolly)
         camera.lookAt(target)
+        velocity.set(0, 0, 0)
+        lookVelocity.set(0, 0, 0)
     }
 
     const jump = (id) => {
@@ -158,56 +133,121 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         place()
     }
 
-    // Sets heading to the level direction of the leg at u, if the spline is not vertical there.
-    const steer = (curve, u) => {
-        curve.tangentAt(u, legTangent).setY(0)
-        if (legTangent.lengthSq() > 1e-6) heading.copy(legTangent.normalize())
+    // The speed of a point on `path` at the start of `move` with start speed v0, in metres a
+    // second, from one small step.
+    const startVelocity = (move, v0, path, start) => {
+        const tau = 1e-3
+        const point = path.pointAtParameter(move.parameterAt(moves.moveProgress(tau, v0)), new THREE.Vector3())
+        return point.sub(start).divideScalar(tau * move.duration)
     }
 
-    // Starts a move from wherever the camera is now. A zero duration cuts. The second
-    // argument is the duration in seconds, or { duration, leg }. With a leg (legsFromRoute)
-    // the camera follows the walk spline and takes the leg's duration. Without one it takes
-    // a lifted arc.
-    const goTo = (id, options = 1.6) => {
-        const { duration = 1.6, leg = null } = typeof options === 'number' ? { duration: options } : options
+    // Starts a move from wherever the camera is now, at the speed it moves now. A zero
+    // duration cuts. The second argument is the duration in seconds, or { duration, leg, door }.
+    // door sends the move through a doorway (camera-move.js).
+    // Without a duration the move takes one from its path length (camera-move.js). With a leg
+    // (legsFromRoute) the path runs through the leg's follow frames. Without one it rises in
+    // an arc.
+    const goTo = (id, options = {}) => {
+        const { duration = null, leg = null, door = null } = typeof options === 'number' ? { duration: options } : options
         if (!all[id]) return
-        if (duration <= 0) {
+        if (!moves || (duration !== null && duration <= 0)) {
             jump(id)
             return
         }
         const shot = all[id]
-        if (leg) {
-            heading.subVectors(leg.curve.points.at(-1), leg.curve.points[0]).setY(0).normalize()
-            steer(leg.curve, leg.reverse ? 1 : 0)
+        const position = camera.position.clone().sub(drift)
+        const from = target.clone().sub(drift)
+        // A move that takes over keeps the lens fade where the old one had it, and coasts on
+        // from where the camera is, at the speed it has.
+        const travelFrom = tween ? Math.sin(Math.PI * tween.s) : 0
+        const coast = velocity.lengthSq() + lookVelocity.lengthSq() > 1e-6 ? { position, look: baseLook.clone(), velocity: velocity.clone(), lookVelocity: lookVelocity.clone(), brake: false } : null
+        const midway = Boolean(coast)
+        let move = moves.createMove({ position, target: from, shot, leg, duration, blocked, midway, door })
+        let v0 = 0
+        const along = move.camPath.tangentAt(0, new THREE.Vector3()).dot(velocity)
+        if (coast && along < 0) {
+            // The coast covers half its start speed times TAKE_OVER before it stops.
+            const stop = position.clone().addScaledVector(velocity, TAKE_OVER / 2)
+            const stopLook = coast.look.clone().addScaledVector(lookVelocity, TAKE_OVER / 2)
+            move = moves.createMove({ position: stop, target: stopLook, shot, leg, duration, blocked, midway, door })
+            coast.brake = true
+        } else if (coast) {
+            // The new path takes the speed along it, and the rest of the motion fades out.
+            v0 = move.startFor(along)
+            const lookStart = move.lookPath.pointAtParameter(0, new THREE.Vector3())
+            coast.across = velocity.clone().sub(startVelocity(move, v0, move.camPath, position))
+            coast.lookAcross = lookVelocity.clone().sub(startVelocity(move, v0, move.lookPath, lookStart))
         }
         tween = {
             id,
-            t: 0,
-            duration: leg ? leg.duration : duration,
-            leg,
-            from: { position: camera.position.clone(), target: target.clone(), focus: focusPoint.clone(), frame: { ...frame } },
+            tau: 0,
+            s: 0,
+            age: 0,
+            delay: coast?.brake ? TAKE_OVER : 0,
+            v0,
+            travelFrom,
+            coast,
+            ...move,
+            focus: focusPoint.clone(),
+            frame: { ...frame },
             to: frameOf(shot),
-            lift: leg ? 0 : Math.min(MAX_LIFT, camera.position.distanceTo(shot.position) * LIFT_PER_METRE),
+            distance: { from: driftDistance, to: shot.position.distanceTo(shot.target) },
         }
         current = id
         Object.assign(look, { x: 0, y: 0, dolly: 0 })
     }
 
-    // The drone follow along a leg at eased time t. It blends in from where the move started
-    // over the first LEG_IN of the leg, and out into the end shot over the last LEG_OUT. A
-    // reverse leg runs the spline from its end, with the camera where the forward leg had it.
-    const follow = ({ leg, from }, t, shot) => {
-        const { curve, length, back, up } = leg
-        const u = leg.reverse ? 1 - t : t
-        curve.pointAt(u, legAt)
-        curve.pointAt(Math.min(1, u + LOOK_AHEAD / length), legAhead)
-        steer(curve, u)
-        const into = 1 - THREE.MathUtils.smoothstep(t, 0, LEG_IN)
-        const out = THREE.MathUtils.smoothstep(t, 1 - LEG_OUT, 1)
-        camera.position.copy(legAt).addScaledVector(heading, -back)
-        camera.position.y += up
-        camera.position.lerp(from.position, into).lerp(shot.position, out)
-        target.copy(legAhead).lerp(from.target, into).lerp(shot.target, out)
+    // The old motion of a move that took over, for the first TAKE_OVER seconds. A braking
+    // coast runs on at the old speed and slows evenly to a stop where the new path starts. A
+    // coast that goes on the same way adds only the part of the old speed across the new path,
+    // and that part fades out to nothing.
+    const blendCoast = (coast, age) => {
+        if (!coast.brake) {
+            base.addScaledVector(coast.across, fadeOut(age))
+            baseLook.addScaledVector(coast.lookAcross, fadeOut(age))
+            return
+        }
+        const t = Math.min(age, TAKE_OVER)
+        const along = t - (t * t) / (2 * TAKE_OVER)
+        base.copy(coast.position).addScaledVector(coast.velocity, along)
+        baseLook.copy(coast.look).addScaledVector(coast.lookVelocity, along)
+    }
+
+    // One step of the move: the camera and look points at share s of the paths, then the
+    // pointer drift, then the speeds for a move that may take over.
+    const step = (delta) => {
+        tween.age += delta
+        tween.tau = THREE.MathUtils.clamp((tween.age - tween.delay) / tween.duration, 0, 1)
+        const s = moves.moveProgress(tween.tau, tween.v0)
+        tween.s = s
+        const shot = all[tween.id]
+        Object.keys(frame).forEach((key) => {
+            frame[key] = THREE.MathUtils.lerp(tween.frame[key], tween.to[key], s)
+        })
+        applyLens()
+        const lastBase = scratch.last.copy(base)
+        const lastLook = scratch.lastLook.copy(baseLook)
+        const parameter = tween.parameterAt(s)
+        tween.camPath.pointAtParameter(parameter, base)
+        tween.lookPath.pointAtParameter(parameter, baseLook)
+        if (tween.coast && tween.age < TAKE_OVER) blendCoast(tween.coast, tween.age)
+        if (delta > 0) {
+            velocity.subVectors(base, lastBase).divideScalar(delta)
+            lookVelocity.subVectors(baseLook, lastLook).divideScalar(delta)
+        }
+        const { right, up, dir } = scratch
+        dir.subVectors(baseLook, base).normalize()
+        right.crossVectors(dir, camera.up).normalize()
+        up.crossVectors(right, dir)
+        setDrift(right, up, THREE.MathUtils.lerp(tween.distance.from, tween.distance.to, s))
+        camera.position.copy(base).add(drift)
+        target.copy(baseLook).add(drift)
+        focusPoint.lerpVectors(tween.focus, shot.focus, s)
+        camera.lookAt(target)
+        if (tween.tau >= 1 && (!tween.coast || tween.age >= TAKE_OVER)) {
+            tween = null
+            place()
+        }
     }
 
     const update = (delta) => {
@@ -223,28 +263,11 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         }
         if (!tween) {
             place()
+            base.copy(camera.position).sub(drift)
+            baseLook.copy(target).sub(drift)
             return
         }
-        tween.t = Math.min(1, tween.t + delta / tween.duration)
-        const t = ease(tween.t)
-        const shot = all[tween.id]
-        Object.keys(frame).forEach((key) => {
-            frame[key] = THREE.MathUtils.lerp(tween.from.frame[key], tween.to[key], t)
-        })
-        applyLens()
-        if (tween.leg) {
-            follow(tween, t, shot)
-        } else {
-            camera.position.lerpVectors(tween.from.position, shot.position, t)
-            camera.position.y += Math.sin(Math.PI * t) * tween.lift
-            target.lerpVectors(tween.from.target, shot.target, t)
-        }
-        focusPoint.lerpVectors(tween.from.focus, shot.focus, t)
-        camera.lookAt(target)
-        if (tween.t >= 1) {
-            tween = null
-            place()
-        }
+        step(delta)
     }
 
     // dx and dy are screen pixels. The scene follows the finger.
@@ -288,6 +311,10 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
     }
 
     const resize = () => applyLens()
+    // module: the camera-move.js module.
+    const setMoves = (module) => {
+        moves = module
+    }
     sidePanels.addEventListener('change', applyLens)
     jump(start)
 
@@ -301,13 +328,20 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         setPointer,
         setShots,
         addShot,
+        setMoves,
         resize,
         get current() {
             return current
         },
-        // 0 at rest, rising to 1 in the middle of a move between stops, for the lens fade.
+        // The time from the start of the move that runs now to its end, in seconds, or 0 at
+        // rest. A move that brakes first ends later than its duration.
+        get moveDuration() {
+            return tween ? Math.max(tween.delay + tween.duration, tween.coast ? TAKE_OVER : 0) : 0
+        },
+        // 0 at rest, rising to 1 in the middle of a move between stops, for the lens fade. It
+        // follows the share of the path, so it rises and falls with the speed curve.
         get travel() {
-            return tween ? Math.sin(Math.PI * ease(tween.t)) : 0
+            return tween ? Math.max(Math.sin(Math.PI * tween.s), tween.travelFrom * (1 - tween.s)) : 0
         },
         // The view depth of the stop's focus point, in metres, for the lens.
         get focus() {

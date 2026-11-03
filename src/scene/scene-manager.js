@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
-import { route } from '../data/route.js'
+import { route, doorway } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -17,7 +17,7 @@ import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
-import { createCameraRig, shotsFromStops, legsFromRoute } from './aerie/camera-rig.js'
+import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
@@ -38,14 +38,26 @@ const STEER_MS = 250
 // program until the driver reports it ready, and a lost WebGL context never reports, so the
 // gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
 const COMPILE_WAIT_MS = 8000
+// How far a camera arc keeps clear of the house, in metres.
+const HOUSE_MARGIN = 0.5
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
 // the iris close and open, and how early the iris starts to close before the camera stops.
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
-// The move to the evidence wall, in seconds: the flight from the workshop stop to the board
-// stop, and the dissolve from the room board to the lit wall.
-const WALL = { fly: 1.5, dissolve: 0.55 }
+// The dissolve from the room board to the lit wall, in seconds.
+const WALL = { dissolve: 0.55 }
+// The workshop doorway as THREE vectors, and the side of the door a move between two stops
+// takes: 'in' to the board view, 'out' from it, or none.
+const DOOR = { outside: new THREE.Vector3(...doorway.outside), porch: new THREE.Vector3(...doorway.porch), inside: new THREE.Vector3(...doorway.inside) }
+const ROOM = new THREE.Box3(new THREE.Vector3(...doorway.room[0]), new THREE.Vector3(...doorway.room[1]))
+// position is the camera now. A move that starts in the room heads out, whatever stop the rig
+// was at, so a move that takes over on the way out never cuts through the front wall.
+const doorFor = (from, to, position) => {
+    if (to === 'board' && from !== 'board') return { side: 'in', ...DOOR }
+    if (to !== 'board' && (from === 'board' || ROOM.containsPoint(position))) return { side: 'out', ...DOOR }
+    return null
+}
 // The kit board hangs a little in front of the old board, which stays in the island GLB
 // (corkboard-kit.md, case 1). Offsets along the anchor's right and normal, in metres.
 const BOARD_OFFSET = { right: 0.02, out: 0.073 }
@@ -80,9 +92,24 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The island haze matches the sky haze below the horizon and the city haze.
     scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, ISLAND_HAZE_DENSITY)
     const camera = new THREE.PerspectiveCamera(35, size()[0] / size()[1], 0.1, 12000)
-    const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
-    // The story legs between neighbouring stops. The GLB route empties replace them once it loads.
-    let legs = legsFromRoute(route)
+    // The boxes round the house that a camera arc must not pass through. They fill in once the
+    // GLB loads. A ray test on the house triangles took up to 200 ms at the start of a move, a
+    // visible hitch, and a box test takes microseconds. A box that holds either end of the move
+    // (ends) does not count, so a move to a stop inside the house, such as the eyepiece, still
+    // works.
+    let solids = []
+    const ray = new THREE.Ray()
+    const hit = new THREE.Vector3()
+    const blocked = (a, b, ends = [a, b]) => {
+        const length = a.distanceTo(b)
+        if (length < 1e-3) return false
+        ray.set(a, b.clone().sub(a).divideScalar(length))
+        return solids.some((box) => !ends.some((end) => box.containsPoint(end)) && ray.intersectBox(box, hit) && a.distanceTo(hit) <= length)
+    }
+    const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start, blocked })
+    // The story legs between neighbouring stops (camera-move.js). They build once the move
+    // chunk and the GLB with its route empties are in. Until then every move cuts.
+    let legs = {}
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
     const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, constellation: null, wall: null, roomBoard: null }
@@ -133,11 +160,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // A phone judges its tier on a shorter run of frames, so a slow phone steps down within about
     // a second of a drag, not after three seconds of lag.
+    // A new tier rebuilds the pipeline, and the rebuild stalls a frame or more. A step that the
+    // governor asks for during a camera move waits in pendingTier until the move ends.
+    let pendingTier = null
     const governor = createGovernor({
         budgetMs: small ? BUDGET_MS.mobile : BUDGET_MS.desktop,
         tier: tierIndex,
         window: small ? GOVERNOR_FRAMES.mobile : GOVERNOR_FRAMES.desktop,
-        onStep: (next) => buildPipeline(next),
+        onStep: (next) => {
+            if (rig.moving) pendingTier = next
+            else buildPipeline(next)
+        },
     })
     // The time of the last drag, pinch or tap. A drag moves the camera through look offsets, which
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
@@ -276,7 +309,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         b.t += delta
         while (b.legs.length && b.t >= b.legs[0][0]) {
             const [, id, duration] = b.legs.shift()
-            rig.goTo(id, duration)
+            rig.goTo(id, { duration, door: doorFor(rig.current, id, camera.position) })
+            // The dissolve onto the wall waits for the camera to come to rest on the board.
+            if (b.on && id === 'board') b.swap = b.t + rig.moveDuration
         }
         if (!b.swapped && b.t >= b.swap && (!b.on || parts.wall || wallFailed)) {
             b.swapped = true
@@ -360,6 +395,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             ambient = 0
         }
         const moving = rig.moving || performance.now() - steeredAt < STEER_MS
+        if (pendingTier !== null && !rig.moving) {
+            buildPipeline(pendingTier)
+            pendingTier = null
+        }
         render()
         // Only frames the camera drives count toward the governor: a move between stops, the ease
         // back after a drag, and a drag or pinch itself. They draw on every animation frame, so
@@ -447,6 +486,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const skyFonts = Promise.all(SKY_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
     const skyModule = import('./aerie/constellation.js')
     skyModule.catch(() => {})
+    // The camera moves sit in their own chunk too, so the scene chunk stays in its budget. They
+    // arrive long before the island, and the rig cuts until they do, behind the loading gate.
+    const moveModule = import('./aerie/camera-move.js').then((module) => {
+        rig.setMoves(module)
+        return module
+    })
+    moveModule.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -570,8 +616,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 
+            // Without the move chunk, a failed download, every move cuts.
+            const moves = await moveModule.catch(() => null)
             rig.setShots(shots)
-            legs = legsFromRoute(route, (name) => anchor(root, name))
+            legs = moves ? moves.legsFromRoute(route, (name) => anchor(root, name)) : {}
+            solids = []
+            root.traverse((node) => {
+                if (node.isMesh && /^(House|Glass)/.test(node.name)) solids.push(new THREE.Box3().setFromObject(node).expandByScalar(HOUSE_MARGIN))
+            })
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
@@ -599,15 +651,23 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig,
         parts,
         loaders,
+        // A move into or out of the board view goes through the workshop doorway.
         // A move to a neighbouring story stop follows its leg. Any other move takes the
-        // lifted arc, and a zero duration cuts. A move that starts in the middle of a leg
-        // starts from the camera, and rig.current is already that leg's end stop.
-        goTo: (id, { duration = 1.6 } = {}) => {
-            const leg = state.reduced || duration <= 0 ? null : (legs[`${rig.current}>${id}`] ?? null)
-            const time = state.reduced ? 0 : (leg?.duration ?? duration)
-            fade = id === 'bedroom' && time > 0 && rig.current !== 'bedroom' ? { t: 0, duration: time } : null
+        // lifted arc, and a zero duration cuts. Without a duration the move takes one from its
+        // path length. A move that starts in the middle of a leg starts from the camera at its
+        // speed, and rig.current is already that leg's end stop.
+        goTo: (id, { duration = null } = {}) => {
+            // A move asked for on the way out of the wall replaces the out leg that has not
+            // started yet. The page that comes back can pick a new section after the route
+            // change has picked its stop, and the camera follows the page.
+            if (boardMove && !boardMove.on) boardMove.legs.length = 0
+            const cut = state.reduced || (duration !== null && duration <= 0)
+            const leg = cut ? null : (legs[`${rig.current}>${id}`] ?? null)
+            const from = rig.current
+            rig.goTo(id, { duration: cut ? 0 : duration, leg, door: doorFor(from, id, camera.position) })
+            const time = rig.moveDuration
+            fade = id === 'bedroom' && time > 0 && from !== 'bedroom' ? { t: 0, duration: time } : null
             pipeline.grade.uniforms.uFade.value = 0
-            rig.goTo(id, { duration: time, leg })
             requestRender()
         },
         // 0 stops the ambient clock: frames then draw only for camera moves and requests.
@@ -693,10 +753,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 requestRender()
             },
         },
-        // The move to the evidence wall: the camera flies to the workshop (from any other
-        // stop), on to the board stop in front of the room board, and the room board dissolves
-        // into the lit wall. Off dissolves back and flies on to the stop `back`. Reduced motion
-        // cuts the camera and keeps only the dissolve, which is a fade and not a motion.
+        // The move to the evidence wall: the camera flies in through the workshop doorway to
+        // the board stop in front of the room board, and the room board dissolves into the
+        // lit wall. Off dissolves back and flies out through the doorway to the stop `back`.
+        // Reduced motion cuts the camera and keeps only the dissolve, which is a fade and not a motion.
         enterWall: (on, back = 'workshop') => {
             settle()
             // The room copy shows the overview, so the wall starts there too.
@@ -711,15 +771,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 else showWall(on)
                 return
             }
+            // One move in through the workshop doorway to the board, or out through it from the
+            // board. A null duration takes the duration from the path, and the swap time comes
+            // from the move once it starts (stepBoard).
             if (on) {
-                const lead = ['workshop', 'board'].includes(rig.current) ? 0 : 1.6
-                const legs = [[0, 'workshop', lead], [lead, 'board', WALL.fly]].slice(lead ? 0 : 1)
-                boardMove = { t: 0, on, legs, swap: lead + WALL.fly, swapped: false }
+                boardMove = { t: 0, on, legs: [[0, 'board', null]], swap: Infinity, swapped: false }
             } else {
                 rig.jump('board')
-                const legs = [[0, 'workshop', 1.2]]
-                if (back !== 'workshop') legs.push([1.2, back, 1.6])
-                boardMove = { t: 0, on, legs, swap: 0, swapped: false }
+                boardMove = { t: 0, on, legs: [[0, back, null]], swap: 0, swapped: false }
             }
             requestRender()
         },

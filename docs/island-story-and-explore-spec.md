@@ -62,8 +62,8 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 | `telescope` to `campfire` | back past the tower, down to the lawn, across behind the fire, then a slow turn north over the rim to the city |
 
 - The camera rides behind and above the walk spline (a drone follow, about 4 m up and 5 m back) and looks at a point about 3 m ahead on it.
-- Over the first 20 percent of a leg, the camera blends from the start stop's shot into the follow frame. Over the last 25 percent it blends into the end stop's shot.
-- The leg duration grows with its length, from 2.0 s to a cap of 3.2 s. The ease stays the rig's `ease`.
+- The start shot, the follow frame at the middle of the walk and the end shot are control points of one camera spline and one look spline. The camera runs along both with one speed curve, so a move has no seams (`docs/smooth-camera.md`, 3 November 2026).
+- A move takes 1.8 s to 3.6 s, from its camera distance and its view turn together.
 - A scroll up plays the same leg in reverse.
 - The `workshop` to `bedroom` leg keeps the rain on the glass and the fade (`fade` in `scene-manager.js`). The leg stays outside the tower, so the camera never passes through a wall.
 - The lens fades out during a leg, as `rig.travel` already does for a move. The focus point blends from one stop's focus to the next.
@@ -90,7 +90,7 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 ### Story acceptance checks
 
 1. Scroll from 01 to 05 and back. Each move follows its leg, and no camera passes through geometry.
-2. Click Contact from Welcome. The camera takes the arc, under 2.4 s.
+2. Click Contact from Welcome. The camera takes the arc, in at most 3.6 s. The arc clears the house.
 3. Open `/projects` directly. The scene opens at `workshop` with no move.
 4. With reduced motion, each section change cuts.
 5. The frame time stays under 16.7 ms (desktop) and 22 ms (mid Android) during a leg, measured in the lab.

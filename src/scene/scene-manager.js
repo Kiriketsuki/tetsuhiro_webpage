@@ -5,6 +5,7 @@ import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { applyIslandLook } from './aerie/island-look.js'
 import { createDetailTexture } from './aerie/detail-texture.js'
+import { createLeafCarpet } from './aerie/leaf-carpet.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
 import { createCityBackdrop } from './aerie/city-backdrop.js'
 import { createSky, NIGHT_SKY, ISLAND_HAZE_DENSITY } from './aerie/sky.js'
@@ -306,8 +307,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
 
-    // The painted detail texture builds in small slices while the island downloads.
+    // The painted detail texture and the leaf carpet build in small slices while the island
+    // downloads.
     const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
+    const carpetBuild = createLeafCarpet({ sliced: true })
 
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
@@ -319,7 +322,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             report(0)
         })
         .then(async (gltf) => {
-            const look = applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild })
+            const look = applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild })
             parts.look = look
             lookControl = createLookControl(look.uniforms)
             lookControl.apply(lookSet, pipeline.grade.uniforms)

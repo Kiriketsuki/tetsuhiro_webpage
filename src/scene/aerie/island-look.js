@@ -210,7 +210,7 @@ function adoptAoBake(geometry) {
 
 // sky: { horizon, zenith } for the glass reflection. detail: a detail texture build from
 // createDetailTexture, started early so it overlaps the download. Without one, the build
-// runs here.
+// runs here. carpet: a leaf carpet build from createLeafCarpet, started early in the same way.
 // Window frames, mullions and slim posts. The S2 review measured the workshop mullions at
 // about 18 px and the frame beams at about 30 px wide at 1600 by 900, and asked for thin dark
 // lines of at most 6 px. A straight member is a box part whose longest side passes
@@ -452,7 +452,7 @@ function lightenTelescopeBands(meshes, anchor) {
         })
 }
 
-export function applyIslandLook(gltf, { sky, detail: detailBuild = null, anisotropy = 1 } = {}) {
+export function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1 } = {}) {
     gltf.scene.updateMatrixWorld(true)
     const moon = anchorPosition(gltf, 'Anchor_Moon') ?? new THREE.Vector3(-28, 71, 24)
     const lip = anchorPosition(gltf, 'Anchor_Waterfall_Top')
@@ -463,7 +463,7 @@ export function applyIslandLook(gltf, { sky, detail: detailBuild = null, anisotr
     }).filter(Boolean)
 
     const detail = (detailBuild ?? createDetailTexture({ anisotropy, sliced: false })).finish()
-    const carpet = createLeafCarpet({ anisotropy })
+    const carpet = (carpetBuild ?? createLeafCarpet({ anisotropy })).finish()
     const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail, carpet })
     const opaque = createToonMaterial(uniforms, {}, { key: 'aerie-toon-v3-ao', defines: { AERIE_AO: '' } })
     opaque.name = 'aerie.toon'

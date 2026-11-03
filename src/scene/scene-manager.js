@@ -38,6 +38,10 @@ const STEER_MS = 250
 // program until the driver reports it ready, and a lost WebGL context never reports, so the
 // gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
 const COMPILE_WAIT_MS = 8000
+
+// The share of the scene load that each build step reaches. The download reports the share
+// below `downloaded`. The steps are rough shares of the build time on a phone at 4x CPU.
+const BUILD_SHARE = { downloaded: 0.5, look: 0.64, leaves: 0.68, sky: 0.74, compiled: 0.9, skyCompiled: 0.95 }
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
@@ -547,8 +551,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     }
 
     let shots = null
+    let planner = null
     let islandBytes = 0
-    const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
+    // The download is half of the reported share. The build after it is the other half, in
+    // steps (BUILD_SHARE). On a slow phone the build takes as long as the download, so a share
+    // that reached 1 with the last byte left the gate at 100 percent for seconds.
+    const report = (files) => onProgress(Math.min(1, 0.4 * islandBytes + 0.1 * files))
+    const reached = (step) => onProgress(BUILD_SHARE[step])
     loaders.manager.onProgress = (url, loaded, total) => report(total ? loaded / total : 0)
 
     const ready = loaders.gltf
@@ -557,7 +566,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             report(0)
         })
         .then(async (gltf) => {
+            reached('downloaded')
             const look = await applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild, worker: lookWorker }).finally(() => lookWorker.dispose())
+            reached('look')
             parts.look = look
             lookControl = createLookControl(look.uniforms)
             lookControl.apply(lookSet, pipeline.grade.uniforms)
@@ -578,6 +589,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 maxAnisotropy: small ? 1 : renderer.capabilities.getMaxAnisotropy(),
             })
             scene.add(parts.leaves.group)
+            reached('leaves')
             await nextTask()
 
             const fire = await campfireBuild.catch((error) => {
@@ -615,6 +627,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             eyepieceGlass(scene)
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
+            reached('sky')
 
             // Without the move chunk, a failed download, every move cuts.
             const moves = await moveModule.catch(() => null)
@@ -623,7 +636,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
             await compiled(scene, camera)
+            reached('compiled')
             await compiled(parts.constellation.scene, parts.constellation.camera)
+            reached('skyCompiled')
             if (wall) await buildWall()
             renderer.shadowMap.needsUpdate = true
             state.ready = true
@@ -632,7 +647,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             requestRender()
             // The planner's clearance field builds in short slices behind the gate, then the
             // flights between the stops plan ahead. Until the field is in, a move flies straight.
-            moves?.createClearance(scene).then((field) => {
+            planner = moves?.createClearance(scene).then((field) => {
                 rig.setField(field)
                 return moves.warmPlans(field, [...Object.values(shots).map((shot) => shot.position), DOOR.outside])
             }).catch((error) => console.error('The camera planner did not build.', error))
@@ -641,11 +656,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // A failed island never needs the look worker.
     ready.catch(() => lookWorker.dispose())
+    // Resolves once the camera planner has built and planned ahead, or failed to.
+    const planned = ready.then(() => planner)
     const wallReady = ready.then(buildWall)
     wallReady.catch(() => {})
 
     const api = {
         ready,
+        planned,
         renderer,
         scene,
         camera,

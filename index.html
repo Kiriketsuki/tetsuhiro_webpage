@@ -33,15 +33,16 @@
       the app bundle, so it paints before the JS arrives and costs nothing against the shell
       budgets. The lantern, the branch and the falling leaves are frames from
       lab/gate-lantern.html, drawn with the aerie's own toon material, ink and lens, so they
-      match the aerie. src/components/Name.vue sets --p to the real load share. When the scene
-      is ready the lantern stays lit until the visitor goes in, then its light washes the view
-      into the aerie and Name.vue hides the art. The nav lantern brings it back. Every motion
-      here is a transform or an opacity, so the compositor keeps it smooth while the main
-      thread builds the scene. Colours are hex, because the token CSS loads with the bundle.
+      match the aerie. The lamp lights and autumn spreads along the branch as the load grows:
+      the ga-dawn animations creep from the first paint, then src/components/gate-meter.js
+      plays the load share on the same layers. When the load is done the lantern stays lit
+      until the visitor goes in, then its light washes the view into the aerie and Name.vue
+      hides the art. The nav lantern brings it back. Every motion here, the meter too, is a
+      transform or an opacity, so the compositor keeps it smooth while the main thread builds
+      the scene. Colours are hex, because the token CSS loads with the bundle.
     -->
     <style>
       #gate-art {
-        --p: 0;
         position: fixed;
         inset: 0;
         z-index: 59;
@@ -113,11 +114,27 @@
       .ga-branch {
         background-image: url(/gate/branch-s0.webp);
       }
-      /* Autumn spreads along the branch from left to right as the load grows. */
+      /* Autumn spreads along the branch from left to right as the load grows. A window with a
+         soft right edge slides right over the autumn branch, and the branch slides left inside
+         it by as much, so the branch holds still. At share p the window sits at
+         translateX((p - 1) * 100%) and the branch at translateX((1 - p) * 130%). Both are
+         transforms, so the compositor runs them. The window is 130% wide and its last 30%
+         is the soft edge. */
+      .ga-reveal {
+        inset: 0 auto 0 0;
+        width: 130%;
+        overflow: hidden;
+        -webkit-mask: linear-gradient(90deg, #000 76.92%, transparent);
+        mask: linear-gradient(90deg, #000 76.92%, transparent);
+        transform: translateX(-100%);
+        animation: ga-dawn-reveal 24s linear forwards;
+      }
       .ga-autumn {
+        right: auto;
+        width: 76.92%;
         background-image: url(/gate/branch-s1.webp);
-        -webkit-mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
-        mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
+        transform: translateX(130%);
+        animation: ga-dawn-autumn 24s linear forwards;
       }
       /* Name.vue swings .ga-nudge on a hover or a tap. At rest the lantern and the branch hold
          still: a turned layer is resampled on every frame, and that softens the ribs and the
@@ -141,7 +158,8 @@
       }
       .ga-lit {
         background-image: url(/gate/lantern-s1.webp);
-        opacity: var(--p);
+        opacity: 0;
+        animation: ga-dawn-lit 24s linear forwards;
       }
       .ga-glow {
         left: 50%;
@@ -149,7 +167,8 @@
         width: 78%;
         aspect-ratio: 1;
         transform: translate(-50%, -50%);
-        opacity: var(--p);
+        opacity: 0;
+        animation: ga-dawn-lit 24s linear forwards;
       }
       .ga-glow::before {
         content: '';
@@ -209,6 +228,33 @@
         opacity: 0;
         transition: opacity 1.2s 0.5s;
       }
+      /* The dawn: before the bundle arrives, the lamp warms to share 0.16 on its own, slower
+         and slower. gate-meter.js reads these keyframes and goes on from the value they show,
+         so they stay linear pieces, one set per layer at the same shares. */
+      @keyframes ga-dawn-lit {
+        0% { opacity: 0; }
+        8% { opacity: 0.035; }
+        20% { opacity: 0.07; }
+        40% { opacity: 0.11; }
+        70% { opacity: 0.145; }
+        100% { opacity: 0.16; }
+      }
+      @keyframes ga-dawn-reveal {
+        0% { transform: translateX(-100%); }
+        8% { transform: translateX(-96.5%); }
+        20% { transform: translateX(-93%); }
+        40% { transform: translateX(-89%); }
+        70% { transform: translateX(-85.5%); }
+        100% { transform: translateX(-84%); }
+      }
+      @keyframes ga-dawn-autumn {
+        0% { transform: translateX(130%); }
+        8% { transform: translateX(125.45%); }
+        20% { transform: translateX(120.9%); }
+        40% { transform: translateX(115.7%); }
+        70% { transform: translateX(111.15%); }
+        100% { transform: translateX(109.2%); }
+      }
       @keyframes ga-twinkle {
         50% { opacity: 0.25; }
       }
@@ -263,7 +309,6 @@
       }
       /* The gate dialog from Name.vue: a title screen lit from below by the lantern. */
       .gate {
-        --p: 0;
         position: fixed;
         inset: 0;
         z-index: 60;
@@ -321,11 +366,24 @@
         line-height: 0.9;
         /* Room for the J tail, which the text clip would cut. */
         padding: 0 0.15em 0.1em;
-        background: radial-gradient(60% 120% at 50% 130%, #fff3d2 0, #ffd27a calc(18% + 22% * var(--p)), #c98a3e 75%, #7a5a3a);
+        background: radial-gradient(60% 120% at 50% 130%, #fff3d2 0, #ffd27a 18%, #c98a3e 75%, #7a5a3a);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
-        filter: drop-shadow(0 0 calc(1.4rem * var(--p)) #ff9f4366);
+      }
+      /* The lit name lies over the unlit one, and the gate meter fades it in with the lamp. */
+      #gate-name {
+        position: relative;
+      }
+      .gate-name.is-lit {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        margin: 0;
+        background-image: radial-gradient(60% 120% at 50% 130%, #fff3d2 0, #ffd27a 40%, #c98a3e 75%, #7a5a3a);
+        filter: drop-shadow(0 0 1.4rem #ff9f4366);
+        opacity: 0;
       }
       .gate-role {
         margin-top: 0.9rem;
@@ -362,6 +420,28 @@
         letter-spacing: 0;
         vertical-align: -0.2rem;
         color: #ffd27a;
+      }
+      /* The count is a drum of the numbers 0 to 100 behind a window one number high. The gate
+         meter rolls the drum with a transform, so the count runs on while the main thread is
+         busy. */
+      .gate-count {
+        display: inline-block;
+        width: 1.7em;
+        height: 1em;
+        padding-right: 0.08em;
+        overflow: hidden;
+        text-align: right;
+        vertical-align: top;
+        -webkit-mask: linear-gradient(transparent, #000 16% 84%, transparent);
+        mask: linear-gradient(transparent, #000 16% 84%, transparent);
+      }
+      .gate-drum {
+        display: block;
+      }
+      .gate-count i {
+        display: block;
+        height: 1em;
+        font-style: inherit;
       }
       .gate-enter {
         display: inline-flex;
@@ -460,7 +540,7 @@
       <div class="ga-art">
         <i class="ga-glow ga-fades"></i>
         <i class="ga-img ga-branch ga-fades"></i>
-        <i class="ga-img ga-branch ga-autumn ga-fades"></i>
+        <div class="ga-reveal ga-fades"><i class="ga-img ga-autumn"></i></div>
         <div class="ga-nudge ga-fades">
           <div class="ga-lantern">
             <i class="ga-img ga-paper"></i>

@@ -23,6 +23,14 @@ let inSky = false
 let inWall = false
 let wallBuilt = false
 const wall = useWall()
+// index.html shows the gate art on a first visit to Home only. Behind the gate the visitor
+// waits anyway, so there the gate also waits for the evidence wall and the camera planner.
+// Both built after the gate opened before, and their long tasks stalled the first moves.
+// The scene build is SCENE_SHARE of the gate meter. Past EXTRAS_WAIT_MS the gate opens anyway.
+const gated = Boolean(document.getElementById('gate-art')) && !document.getElementById('gate-art').hidden
+const SCENE_SHARE = 0.8
+const EXTRAS = { wall: 0.12, planner: 0.08 }
+const EXTRAS_WAIT_MS = 20000
 // The routes that show the evidence wall: the board, and the board with one pin open.
 const WALL_ROUTES = ['Projects', 'Project']
 
@@ -132,12 +140,13 @@ function boot() {
         // for it. The two older project pages are text pages.
         wall: /^\/projects(\/(?!dancing_tables$|placeholders$)[^/]+)?$/.test(location.pathname.replace(/\/+$/, '').toLowerCase()),
         onProgress: (value) => {
-            progress.value = Math.max(progress.value, value)
+            progress.value = Math.max(progress.value, gated ? SCENE_SHARE * value : value)
         },
     })
     if (wanted) manager.resume()
 
     manager.ready
+        .then(() => (gated ? extras() : null))
         .then(() => {
             progress.value = 1
             ready.value = true
@@ -214,6 +223,18 @@ function boot() {
 
     // Handy in the console while tuning shots. Not in the build.
     if (import.meta.env.DEV) window.__scene = manager
+}
+
+// Waits for the wall and the planner, each at most until the cap. A failed one does not hold
+// the gate: the wall and the planner log their own errors.
+function extras() {
+    let share = SCENE_SHARE
+    const step = (part) => () => {
+        share += EXTRAS[part]
+        progress.value = Math.max(progress.value, share)
+    }
+    const parts = Promise.all([manager.wall.built().then(step('wall')), manager.planned.then(step('planner'))])
+    return Promise.race([parts, new Promise((resolve) => setTimeout(resolve, EXTRAS_WAIT_MS))])
 }
 
 export function resume() {

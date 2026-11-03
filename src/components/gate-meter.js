@@ -12,14 +12,15 @@
 
 // The most the meter shows before the load is done.
 const CAP = 0.96
-// How far past the real share the goal heads, and the time constant of its creep in seconds.
+// How far past the real share the goal heads, and the time constant of that lead in seconds.
 const LEAD = 0.15
-const CREEP_S = 14
-// The goal heads at least this share of the way from itself to CAP, so a goal ahead of the
-// real share still creeps. With CREEP_S this makes a time constant of about 90 seconds.
-const MIN_CREEP = 0.15
-// The spring stiffness, 1/s. A larger value follows the goal more closely.
-const STIFFNESS = 1.8
+const LEAD_S = 5
+// The time constant, in seconds, of the drift toward CAP that keeps a goal ahead of the real
+// share creeping on.
+const DRIFT_S = 90
+// The spring stiffness, 1/s. A larger value follows the goal more closely. The spring trails a
+// steady goal by 2 / STIFFNESS seconds.
+const STIFFNESS = 2.4
 // One plan covers this long. A new share or the refresh in Name.vue plans again long before.
 const HORIZON_S = 90
 // Keyframes per plan. They crowd at the start, where the speed changes most.
@@ -60,8 +61,7 @@ function follow(from, speed, goalNow, real) {
     let g = start
     for (let i = 1; i < times.length; i++) {
         while (tau < times[i]) {
-            const heading = Math.max(Math.min(CAP, real + LEAD), g + MIN_CREEP * (CAP - g))
-            g += ((heading - g) / CREEP_S) * STEP_S
+            g += Math.max((Math.min(CAP, real + LEAD) - g) / LEAD_S, (CAP - g) / DRIFT_S) * STEP_S
             // The value cannot go back, so the speed stays at zero or above. A value past the
             // goal then waits for the goal, and starts again from rest.
             v = Math.max(0, v + (STIFFNESS * STIFFNESS * (g - x) - 2 * STIFFNESS * v) * STEP_S)

@@ -34,7 +34,7 @@ const label = computed(() => String(props.number).padStart(2, '0'))
             :is="tag"
             v-bind="attrs"
             class="index-row"
-            :class="{ linked: tag !== 'div' }"
+            :class="{ linked: tag !== 'div', detail }"
             @mouseenter="emit('peek')"
             @focus="emit('peek')"
         >
@@ -60,12 +60,19 @@ const label = computed(() => String(props.number).padStart(2, '0'))
     display: grid;
     grid-template-columns: 1.75rem 1fr 1rem;
     align-items: baseline;
-    column-gap: 0.75rem;
-    row-gap: 0.2rem;
-    padding: 0.6rem 0.25rem;
+    column-gap: 1rem;
+    row-gap: 0.25rem;
+    padding: 0.65rem 0.5rem;
     border-bottom: 1px solid var(--color-line);
     color: var(--color-text-body);
     transition: background-color 0.2s, color 0.2s;
+}
+
+/* The list page rows carry a blurb, so they get more air. The home card keeps
+   its rows compact, so it fits above the nav on a short screen. */
+.index-row.detail {
+    row-gap: 0.4rem;
+    padding: 1.2rem 0.5rem;
 }
 
 .index-number,
@@ -86,13 +93,14 @@ const label = computed(() => String(props.number).padStart(2, '0'))
     color: var(--color-text-strong);
     font-family: var(--font-display);
     font-size: clamp(1.2rem, 1.7vw, 1.45rem);
-    line-height: 1.1;
+    line-height: 1.15;
+    text-wrap: balance;
 }
 
 .index-meta {
     display: flex;
     grid-column: 2;
-    gap: 0.75rem;
+    gap: 1rem;
     min-width: 0;
 }
 
@@ -118,16 +126,18 @@ const label = computed(() => String(props.number).padStart(2, '0'))
 }
 
 .index-blurb {
-    grid-column: 2 / -1;
-    margin-top: 0.15rem;
+    grid-column: 2;
+    max-width: 62ch;
+    margin-top: 0.35rem;
     color: var(--color-text-body);
     font-family: var(--font-body);
-    font-size: 0.85rem;
+    font-size: 0.88rem;
+    line-height: 1.6;
 }
 
 .index-role {
     display: block;
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
     color: var(--color-text-faint);
     font-family: var(--font-label);
     font-size: 0.68rem;

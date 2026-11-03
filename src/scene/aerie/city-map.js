@@ -25,9 +25,11 @@ export const GRID_NORMAL = new THREE.Vector2(-GRID.y, GRID.x)
 // through RIVER_ORIGIN, with two slow bends, and it has an island near u -100.
 const RIVER_ORIGIN = [-700, -1000]
 const RIVER_SHIFT = 125
-export const RIVER = 70
+export const RIVER = 85
 const ISLE = { u: -100, length: 260, width: 24 }
-const BRIDGE_STEP = 560
+// The bridges cross the river this far apart, as on the Seine, so the river reads as a dark
+// band crossed by lit lines from far above.
+const BRIDGE_STEP = 300
 
 // Districts as soft round blobs: centre, radius, light density, neon share and neon hue
 // (-1 magenta, 1 cyan). The neon share is the chance that a light in the blob is a neon sign.
@@ -122,8 +124,8 @@ void main() {
     float across = r.y - ( ${f1(RIVER_SHIFT)} + 120.0 * sin( r.x / 700.0 ) + 50.0 * sin( r.x / 260.0 + 1.0 ) );
     float isle = ${f1(ISLE.width)} * smoothstep( ${f1(ISLE.length)}, ${f1(ISLE.length * 0.7)}, abs( r.x - ${f1(ISLE.u)} ) );
     float water = lamp( abs( across ), ${f1(RIVER)} ) * ( 1.0 - lamp( abs( across ), isle ) );
-    float bridge = lamp( repeatDist( r.x, ${f1(BRIDGE_STEP)} ), 7.0 ) * lamp( abs( across ), ${f1(RIVER + 8)} );
-    float quay = lamp( abs( abs( across ) - ${f1(RIVER + 7)} ), 4.0 );
+    float bridge = lamp( repeatDist( r.x, ${f1(BRIDGE_STEP)} ), 12.0 ) * lamp( abs( across ), ${f1(RIVER + 10)} );
+    float quay = lamp( abs( abs( across ) - ${f1(RIVER + 7)} ), 5.0 );
 
     vec2 pk = abs( toGrid( p, ${v2(PARK.at)} ) );
     float park = smoothstep( ${f1(PARK.half[0] + 12)}, ${f1(PARK.half[0] - 12)}, pk.x ) * smoothstep( ${f1(PARK.half[1] + 12)}, ${f1(PARK.half[1] - 12)}, pk.y );
@@ -140,7 +142,8 @@ void main() {
         lines = max( lines, lamp( length( d ) * abs( sin( off ) ), 10.0 ) * smoothstep( ${f1(length)}, ${f1(length * 0.4)}, length( d ) ) );
         lines = max( lines, lamp( abs( length( d ) - 60.0 ), 7.0 ) );
     }`).join('\n    ')}
-    lines = max( lines * ${f1(look.avenue)}, max( quay, bridge ) );
+    // The avenues stop under the bridges, so the bridges read as the brightest lines over the dark river.
+    lines = max( min( lines * ${f1(look.avenue)}, 0.62 ), max( 0.8 * quay, bridge ) );
     density *= ( 1.0 - water * ( 1.0 - bridge ) ) * ( 1.0 - 0.92 * park );
     gl_FragColor = vec4( clamp( density, 0.0, 1.0 ), 0.5 + 0.5 * neon, clamp( lines, 0.0, 1.0 ), water * ( 1.0 - bridge ) );
 }

@@ -171,8 +171,8 @@ void main() {
     col += uRail * shine * ( 2.0 * rail + 3.5 * trains * ( 1.0 - smoothstep( 1500.0, 3500.0, dist ) ) );
 
     // The river: dark water with the soft glow of the quay lamps along its banks.
-    vec3 water = vec3( 0.006, 0.008, 0.02 ) + ( GOLD + pool * share ) * shine * 0.6;
-    col = mix( col, water, map.a * 0.85 );
+    vec3 water = vec3( 0.004, 0.006, 0.018 ) + ( GOLD + pool * share ) * shine * 0.3;
+    col = mix( col, water, map.a * 0.95 );
 
     col = mix( col, hazeAt( normalize( vWorld - cameraPosition ) ), ${CITY_HAZE.toFixed(2)} );
     gl_FragColor = vec4( applyHaze( col, vWorld ), edge );

@@ -15,6 +15,12 @@ const LAYERS = [
     { y: -620, scale: 650, clear: 0.44, fog: 0.35, opacity: 0.85 },
     { y: -340, scale: 1100, clear: 0.52, fog: 0.0, opacity: 0.75 },
 ]
+// The fog of the lowest layer, for the tower parts that rise above it: its height, and the
+// mean alpha of the layer over its fog and its cloud. The towers write depth, so the layer
+// covers only the parts below it, and the parts above it take this fog in their own shader.
+export const FOG_LAYER = { y: LAYERS[0].y, alpha: 0.42 }
+// The colour of thin cloud, in GLSL, from the haze colour along the view.
+export const THIN_CLOUD = 'haze + vec3( 1.0, 0.6, 0.26 ) * 0.05'
 
 // The noise tile: NOISE_TEXELS texels across, NOISE_CELLS value noise cells across. R and G
 // hold one octave each for the warp, B holds four octaves for the cloud.
@@ -99,7 +105,7 @@ void main() {
     vec3 view = normalize( vWorld - cameraPosition );
     vec3 haze = hazeAt( view );
     vec3 top = haze * 1.45 + vec3( 0.03, 0.03, 0.05 );
-    vec3 thin = haze + vec3( 1.0, 0.6, 0.26 ) * 0.05;
+    vec3 thin = ${THIN_CLOUD};
     vec3 col = mix( thin, top, smoothstep( 0.0, 0.6, cloud ) );
     gl_FragColor = vec4( applyHaze( col, vWorld ), edge * mix( uFog, 1.0, cloud ) * uOpacity );
 }

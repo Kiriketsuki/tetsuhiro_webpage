@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { CITY_HAZE, HAZE_GLSL, NOISE_GLSL } from './city-glsl.js'
 import { BOKEH } from './city-map.js'
 import { GROUND, SHAPES, planSkyline } from './city-skyline.js'
+import { FOG_LAYER, THIN_CLOUD } from './city-clouds.js'
 
 // The towers and landmarks of the city (city-skyline.js), as one instanced mesh for each
 // prism shape. From far above a tower shows its roof and its faces. The roof glows softly
@@ -161,7 +162,11 @@ void main() {
         col *= vShade;
     }
     vec3 view = normalize( vWorld - cameraPosition );
-    col = mix( col, hazeAt( view ), ${CITY_HAZE.toFixed(2)} );
+    vec3 haze = hazeAt( view );
+    // A part above the lowest cloud layer misses its fog, so it takes the same fog here,
+    // blended in over 60 m, so no line marks the layer height.
+    col = mix( col, ${THIN_CLOUD}, ${FOG_LAYER.alpha.toFixed(2)} * smoothstep( ${FOG_LAYER.y.toFixed(1)}, ${(FOG_LAYER.y + 60).toFixed(1)}, vWorld.y ) );
+    col = mix( col, haze, ${CITY_HAZE.toFixed(2)} );
     gl_FragColor = vec4( applyHaze( col, vWorld ), alpha );
 }
 `

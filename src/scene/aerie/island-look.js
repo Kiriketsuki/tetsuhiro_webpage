@@ -12,6 +12,7 @@ import { createGlassMaterial, createFrameMaterial } from './glass.js'
 import { prepareWater, createWaterMaterial } from './water.js'
 import { createContactShadows, propSpots } from './contact-shadows.js'
 import { createLookWorker } from './look-client.js'
+import { createDropRay } from './drop-ray.js'
 
 // Puts the cozy night look, after the art style of Leaf it Alone, on a loaded island_b GLB.
 // Opaque parts share one toon material with half-lambert light, warm hue-keeping shadows
@@ -136,19 +137,22 @@ const WALL_DIRECTIONS = [
 ].map((d) => new THREE.Vector3(...d))
 const MIN_GLOW = 0.1
 
+// A Raycaster tested every wall triangle for each of the five rays of each sprite. The drop-ray
+// grid gives the same hits and tests only the triangles under each short ray. It runs after
+// towerRoof and timberWalls, so the walls no longer change.
 function fitGlowsToWalls(spots, meshes) {
     const walls = meshes.filter((mesh) => WALL_FAMILIES.includes(mesh.userData.webMaterial))
-    const raycaster = new THREE.Raycaster()
+    if (!spots.length) return { fitted: [], shrunk: 0 }
+    // The Raycaster computed the missing bounding sphere of every wall on the first ray, and
+    // the page gets the bounds back with the geometry. The grid opens only the walls near each
+    // ray, so the spheres are computed here.
+    walls.forEach((mesh) => {
+        if (mesh.material && mesh.geometry.boundingSphere === null) mesh.geometry.computeBoundingSphere()
+    })
+    const grid = createDropRay(walls)
     let shrunk = 0
     const fitted = spots.map((spot) => {
-        raycaster.far = spot.size
-        const clear = Math.min(
-            spot.size,
-            ...WALL_DIRECTIONS.map((direction) => {
-                raycaster.set(spot.position, direction)
-                return raycaster.intersectObjects(walls, false)[0]?.distance ?? spot.size
-            })
-        )
+        const clear = Math.min(spot.size, ...WALL_DIRECTIONS.map((direction) => grid.cast(spot.position, spot.size, direction)?.distance ?? spot.size))
         if (clear >= spot.size) return spot
         shrunk += 1
         return { ...spot, size: Math.max(MIN_GLOW, clear * 1.1) }

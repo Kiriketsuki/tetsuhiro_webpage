@@ -76,17 +76,17 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
 
 /*
  * The card opens beside its star, or on the far side when the star is near the right edge.
- * It keeps the site's chamfered frame, but the plate is a pane of night glass: a soft nebula
- * in the branch colour, a few fine stars, and the sky blurred behind it.
+ * It keeps the site's night glass frame, with a soft nebula in the branch colour and a few
+ * fine stars in the glass. The drop-shadow glow makes the card its own backdrop root, so the
+ * glass shows the nebula and not a blur of the sky.
  */
 .sky-card {
-    --color-plate: #070a1f;
     position: absolute;
     top: var(--y);
     left: var(--x);
     width: min(23rem, calc(100vw - 2rem));
     transform: translate(1.75rem, -50%);
-    padding: 1.9rem 1.75rem 1.5rem;
+    padding: 1.5rem 1.75rem;
     color: var(--color-text-body);
     font-family: var(--font-body);
     font-size: 0.95rem;
@@ -95,8 +95,12 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
     filter: drop-shadow(0 0 1.5rem color-mix(in oklab, var(--frame) 30%, transparent));
 }
 
-.sky-card.frame::after {
+.sky-card.frame::before {
     background:
+        var(--b) 100% 0 / 14px 2px,
+        var(--b) 100% 0 / 2px 14px,
+        var(--b) 0 100% / 14px 2px,
+        var(--b) 0 100% / 2px 14px,
         radial-gradient(circle at 18% 22%, rgb(255 255 255 / 0.7) 0 0.6px, transparent 1.2px),
         radial-gradient(circle at 72% 14%, rgb(255 255 255 / 0.5) 0 0.5px, transparent 1px),
         radial-gradient(circle at 88% 64%, rgb(255 255 255 / 0.6) 0 0.6px, transparent 1.2px),
@@ -105,8 +109,6 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
         radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, var(--frame) 24%, transparent), transparent 62%),
         radial-gradient(90% 80% at 0% 100%, rgb(88 58 140 / 0.28), transparent 70%),
         rgb(7 10 31 / 0.84);
-    box-shadow: inset 0 0 0 6px transparent, inset 0 0 0 7px color-mix(in oklab, var(--frame) 22%, transparent);
-    backdrop-filter: blur(8px);
 }
 
 .sky-card.flip {
@@ -125,6 +127,7 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
 }
 
 .sky-card .frame-legend {
+    margin-bottom: 1rem;
     letter-spacing: 0.18em;
 }
 
@@ -171,8 +174,9 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
 
 .sky-card-name {
     margin: 0;
-    color: var(--color-text-strong);
+    color: var(--color-gold);
     font-family: var(--font-display);
+    font-style: italic;
     font-size: 2.1rem;
     font-weight: 400;
     line-height: 1;
@@ -230,18 +234,17 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
     text-transform: uppercase;
 }
 
-/* The close control sits in the top rule, across from the legend. */
+/* The close control sits on the legend line, across from the legend. */
 .sky-close {
     position: absolute;
-    top: 0;
+    top: 1.35rem;
     right: 1.1rem;
     padding: 0 0.45rem;
     border: 0;
-    background: var(--color-plate);
+    background: none;
     color: var(--color-text-muted);
     font-size: 1.15rem;
     line-height: 1.2;
-    transform: translateY(-50%);
     cursor: pointer;
 }
 

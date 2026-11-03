@@ -152,12 +152,16 @@ function boot() {
     // The gate lift is a long move. Section and route changes are shorter ones. The nav lantern
     // brings the gate back: the camera cuts to the wide view under the art, and the twinkle stops
     // until the visitor goes in again.
+    // A link back to a home section (useWaypoints.js land) sets the section, and can lift the
+    // gate, before the route changes. The camera then waits for the route change, which makes
+    // the move home from the room the visitor is in.
     watch(entered, (value) => {
         manager.setAmbientFps(ambientFps())
-        manager.goTo(currentStop(), { duration: value ? 2.4 : 0 })
+        if (route === 'Home') manager.goTo(currentStop(), { duration: value ? 2.4 : 0 })
     })
     // During a jump the camera waits for the target section, then takes one move there.
     watch(active, (index) => {
+        if (route !== 'Home') return
         if (jumping.value !== null && index !== jumping.value) return
         jumping.value = null
         manager.goTo(currentStop())

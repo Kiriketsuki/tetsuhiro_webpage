@@ -225,3 +225,8 @@ export const STRINGS = [
 ].map(([from, to, label]) => ({ from, to, label }))
 
 export const findPin = (id) => PINS.find((pin) => pin.id === id) ?? null
+
+// The wall's click targets that are not pins: the tape label of each group, which frames the
+// group, and the post-it at the right edge that opens the list of every project.
+export const LIST_ID = 'list'
+export const labelId = (group) => `group:${group}`

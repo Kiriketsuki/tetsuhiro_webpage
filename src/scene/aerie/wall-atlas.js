@@ -327,3 +327,29 @@ export function drawSharp(canvas, pin, pic, note) {
     }
     return cells
 }
+
+// The rose post-it at the right edge of the board that opens the list of every project. It
+// has its own small texture, so the atlas and the sharp pages stay as they are. The kit note
+// UVs run v from top to bottom, so the texture does not flip on upload.
+export function drawListNote(anisotropy) {
+    const [w, h] = SIZE.note
+    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h })
+    const ctx = canvas.getContext('2d')
+    paper(ctx, w, h, '#f1b9a6')
+    ctx.fillStyle = 'rgba(80,50,20,0.06)'
+    ctx.fillRect(0, 0, w, 110)
+    ctx.fillStyle = INK
+    ctx.font = `400 92px ${SERIF}`
+    ctx.fillText('The whole list', 48, 210)
+    ctx.fillStyle = '#2a2018'
+    ctx.font = `400 36px ${SANS}`
+    wrap(ctx, 'Every project in one column, with the older and smaller things.', w - 100, 4).forEach((line, k) => ctx.fillText(line, 48, 290 + k * 50))
+    ctx.fillStyle = BROWN
+    ctx.font = `500 30px ${MONO}`
+    ctx.fillText('OPEN THE LIST →', 48, h - 52)
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.flipY = false
+    texture.anisotropy = anisotropy
+    return texture
+}

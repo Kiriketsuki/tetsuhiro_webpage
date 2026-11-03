@@ -1,0 +1,33 @@
+{
+  "glb": "src/assets/models/campfire_kit.glb",
+  "bytes": 68756,
+  "budget_tris": 6000,
+  "anchor_blender": [
+    1.75,
+    8.5,
+    0.36500000953674316
+  ],
+  "tris": {
+    "Fire_Stones": 880,
+    "Fire_Ash": 144,
+    "Fire_Wood": 1013,
+    "Fire_Fabric": 352,
+    "Fire_Coals": 365
+  },
+  "total_tris": 2754,
+  "mean_ao": {
+    "Fire_Stones": 0.8,
+    "Fire_Ash": 0.993,
+    "Fire_Wood": 0.63,
+    "Fire_Fabric": 0.726
+  },
+  "renders": [
+    "scenes/urban-aerie-studies/renders/campfire-kit/before-desktop.png",
+    "scenes/urban-aerie-studies/renders/campfire-kit/after-desktop.png",
+    "scenes/urban-aerie-studies/renders/campfire-kit/before-phone.png",
+    "scenes/urban-aerie-studies/renders/campfire-kit/after-phone.png",
+    "scenes/urban-aerie-studies/renders/campfire-kit/before-close.png",
+    "scenes/urban-aerie-studies/renders/campfire-kit/after-close.png"
+  ],
+  "blend": "campfire_kit_r6.blend"
+}

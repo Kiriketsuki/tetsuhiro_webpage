@@ -1,9 +1,9 @@
 <template>
     <div class="stop" :data-side="sideOf('skills')">
-        <article class="frame frame-violet flex w-full max-w-[24rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
+        <article class="frame frame-violet flex w-full max-w-[24rem] flex-col gap-5 p-6 sm:p-8">
             <span class="frame-legend">04 / out to the telescope</span>
             <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
-                Skill tree
+                Star chart
             </h2>
             <p class="hidden font-body text-sm text-text-body sm:block sm:text-[0.95rem]">
                 What I reach for as of November 2026. Mostly web and 3D, with Python and Go
@@ -85,7 +85,7 @@ const names = (id) =>
 }
 
 .stellar-text {
-    background: linear-gradient(100deg, var(--color-teal-action-hover) 0 32%, #fff6d8 46%, #fff 50%, #fff6d8 54%, var(--color-teal-action-hover) 68% 100%);
+    background: linear-gradient(100deg, var(--color-action-text) 0 32%, #fff6d8 46%, #fff 50%, #fff6d8 54%, var(--color-action-text) 68% 100%);
     background-size: 240% 100%;
     background-position: 100% 0;
     background-clip: text;
@@ -198,7 +198,7 @@ const names = (id) =>
 @media (prefers-reduced-motion: reduce) {
     .stellar-text {
         background: none;
-        color: var(--color-teal-action-hover);
+        color: var(--color-action-text);
         filter: none;
         text-shadow: 0 0 0.6rem color-mix(in oklab, var(--color-teal) 55%, transparent);
         animation: none;

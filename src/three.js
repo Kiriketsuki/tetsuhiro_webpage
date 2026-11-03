@@ -5,6 +5,7 @@ import { useExplore } from './composables/useExplore.js'
 import { useWall } from './composables/useWall.js'
 import { createSceneManager } from './scene/scene-manager.js'
 import { stopForRoute } from './data/stops.js'
+import { bedroomDoor } from './data/route.js'
 import { waypoints } from './data/waypoints.js'
 
 // The Vue side of the scene. useScene() in App.vue imports this module on idle, after the
@@ -93,6 +94,25 @@ function leaveViewNow() {
     wall.shown.value = false
 }
 
+// The bedroom, the About room (/about). Its part of the scene (scene/aerie/room.js) loads as its
+// own chunk on the first visit. From a home section the camera walks in through the balcony
+// door, and the move home walks out through it (scene-manager.js doorFor). Any other page swaps
+// in or out at once, under a crossfade, from the bedroom stop outside the door. cut goes
+// straight in, for a direct visit.
+let inRoom = false
+let room = null
+function bedroom(on, other, cut = false) {
+    if (on === inRoom) return
+    inRoom = on
+    if (!cut && other !== 'Home') {
+        if (inSky || inWall) leaveViewNow()
+        else crossfade()
+        manager.rig.jump('bedroom')
+    }
+    room ??= import('./scene/aerie/room.js').then((module) => module.createRoom(manager, bedroomDoor))
+    room.then((r) => r.show(on, { cut })).catch((error) => console.error('The About room did not load.', error))
+}
+
 // No WebGL, or the scene failed to build. The canvas shows a CSS night sky instead, and
 // the gate still opens, so the pages stay usable.
 function fallBack(error) {
@@ -106,7 +126,7 @@ function fallBack(error) {
 // Text pages dim the scene, so its twinkle and water are not worth the frames there. Behind the
 // gate the lantern art covers the scene, so the scene draws only the frames that change it, and
 // the lantern keeps the GPU and the main thread.
-const ambientFps = () => (route === 'Home' && entered.value ? 30 : 0)
+const ambientFps = () => ((route === 'Home' && entered.value) || route === 'About' ? 30 : 0)
 
 // The stop for the current route and section. Home waits on the wide view until the
 // visitor goes through the gate.
@@ -230,6 +250,7 @@ export function pause() {
 // opens at the route's room instead of flying there.
 export function setRoute(name, { cut = false } = {}) {
     if (name === route && !cut) return
+    const previous = route
     route = name
     manager?.setAmbientFps(ambientFps())
     // The skills page sits over the skill sky. A direct visit opens on it with every star lit.
@@ -243,6 +264,7 @@ export function setRoute(name, { cut = false } = {}) {
         inSky = sky
         inWall = onWall
         manager.ready.then(() => manager.showSky(sky, { reveal: false }))
+        if (name === 'About') manager.ready.then(() => bedroom(true, previous, true))
         if (onWall) {
             manager.wall.built().then((ok) => {
                 if (!ok || !inWall) return
@@ -255,6 +277,10 @@ export function setRoute(name, { cut = false } = {}) {
         return
     }
     manager.ready.then(() => {
+        // Into or out of the About room. The room makes the move in, and the move out is the
+        // move to the new route's stop below.
+        bedroom(name === 'About', name === 'About' ? previous : name)
+        if (inRoom) return
         // From the sky to the wall, or back: drop the old view at once, then make the move.
         if ((sky && inWall) || (onWall && inSky)) leaveViewNow()
         if (sky !== inSky) eyepiece(sky, currentStop())

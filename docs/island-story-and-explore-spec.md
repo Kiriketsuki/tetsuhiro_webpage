@@ -158,6 +158,7 @@ The JS sizes are estimates. `Octree.js` and `Capsule.js` from three (r180) come 
 - **Target size:** under 4,000 triangles.
 - **Octree and capsule.** The explore chunk builds an `Octree` from the proxy once, then moves a `Capsule` each frame with gravity and slide, as the three `games_fps` example does.
 - **The interiors stay closed.** Each room is a portal zone at its door. The walker never walks into the workshop, the lounge or the bedroom.
+- **Update, 3 November 2026.** The owner opened the bedroom as the About room (`/about`, `src/views/AboutRoom.vue`, `src/scene/aerie/room.js`). The camera goes in through the balcony door and looks round, the way `/projects` goes into the workshop. The walker still stops at the door, and `Zone_Bedroom` can open `/about`.
 
 ### Zones and portals
 

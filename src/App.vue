@@ -24,10 +24,11 @@ useScene()
 // that route's room. Pages full of text dim it, so the words stay readable. /skills is the
 // skill sky itself, so it stays at full strength. Projects is the evidence wall in the same
 // way. Its list opens as a sheet beside the wall, so the wall stays at full strength too.
+// /about is the bedroom, the About room, so it stays at full strength as well.
 const PAGE_DIM = 0.32
 const opacity = computed(() => {
     if (!ready.value) return 0
-    if (['Home', 'Skills'].includes(route.name)) return 1
+    if (['Home', 'Skills', 'About'].includes(route.name)) return 1
     return wallShown.value ? 1 : PAGE_DIM
 })
 
@@ -95,16 +96,4 @@ watch(opacity, (value) => {
         }
     }
 
-    :root {
-        --gradient: linear-gradient(45deg, var(--color-ruby), var(--color-moss), var(--color-amber), var(--color-teal));
-    }
-
-    @keyframes gradient_animation {
-        0% {
-            background-position: left;
-        }
-        100% {
-            background-position: right;
-        }
-    }
 </style>

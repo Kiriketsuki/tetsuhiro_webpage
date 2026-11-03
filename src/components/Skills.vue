@@ -76,34 +76,15 @@ const names = (id) =>
 
 <style scoped>
 /*
- * The link to the skill sky has a little sparkle: a shimmer runs along the words now and
- * then, three small stars in the constellation colours twinkle around it, and a hover or a
- * focus makes them glint. Reduced motion keeps a calm, still glow.
+ * The link to the skill sky has a little sparkle: small stars in the constellation colours
+ * twinkle around it, and a hover or a focus makes them glint. Reduced motion keeps them still.
  */
 .stellar {
     position: relative;
 }
 
 .stellar-text {
-    background: linear-gradient(100deg, var(--color-action-text) 0 32%, #fff6d8 46%, #fff 50%, #fff6d8 54%, var(--color-action-text) 68% 100%);
-    background-size: 240% 100%;
-    background-position: 100% 0;
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    filter: drop-shadow(0 0 0.35rem color-mix(in oklab, var(--color-teal) 45%, transparent));
-    animation: stellar-shimmer 3.2s ease-in-out infinite;
-}
-
-@keyframes stellar-shimmer {
-    0%,
-    35% {
-        background-position: 100% 0;
-    }
-    80%,
-    100% {
-        background-position: 0 0;
-    }
+    text-shadow: 0 0 0.6rem rgb(251 177 60 / 0.45);
 }
 
 .twinkle {
@@ -166,11 +147,6 @@ const names = (id) =>
     }
 }
 
-.stellar:hover .stellar-text,
-.stellar:focus-visible .stellar-text {
-    animation-duration: 1.4s;
-}
-
 .stellar:hover .twinkle,
 .stellar:focus-visible .twinkle {
     animation-duration: 0.9s;
@@ -196,14 +172,6 @@ const names = (id) =>
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .stellar-text {
-        background: none;
-        color: var(--color-action-text);
-        filter: none;
-        text-shadow: 0 0 0.6rem color-mix(in oklab, var(--color-teal) 55%, transparent);
-        animation: none;
-    }
-
     .twinkle {
         opacity: 0.8;
         animation: none;

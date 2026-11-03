@@ -2,17 +2,17 @@ import * as THREE from 'three'
 import kitUrl from '../../assets/models/campfire_kit.glb?url'
 
 // The campfire at the end of the home walk, with the seats around it. scene-manager.js loads
-// this module in its own chunk while the island loads. The pit, the logs, the coals, a bench
+// this module in its own chunk while the aerie loads. The pit, the logs, the coals, a bench
 // with a blanket, two stumps and a woodpile come from campfire_kit.glb
 // (scenes/urban-aerie-studies/campfire_kit.py), built round Anchor_Campfire and fitted to the
-// lawn there. The kit parts take the island toon material, so they take the moon, the shadow,
-// the ink and the fire spill like the island.
+// lawn there. The kit parts take the aerie toon material, so they take the moon, the shadow,
+// the ink and the fire spill like the aerie.
 //
 // This chunk imports nothing from src/scene/aerie. A shared import makes Rollup merge the scene
 // chunk into a common chunk, so scene-manager.js hands in the toon material, the surface
 // families and softenGeometry instead.
 //
-// The fire has no three.js light: its warmth reaches the toon island through one warm spill
+// The fire has no three.js light: its warmth reaches the toon aerie through one warm spill
 // slot, so no lit material recompiles. The flame is a few camera-facing cards with a toon
 // flame shader, the coals pulse in their own unlit material, and sparks rise as round points.
 
@@ -45,12 +45,12 @@ const FAMILY = {
     kit_fabric: 'fabric',
 }
 // The coal glow over the baked vertex colour. Linear values above 1 stay bright after tone
-// mapping, as the island ember material does.
+// mapping, as the aerie ember material does.
 const EMBER_GAIN = 1.7
 
 const wobble = (t, seed) => Math.sin(t * 7.3 + seed) * 0.5 + Math.sin(t * 13.1 + seed * 2.1) * 0.3 + Math.sin(t * 23.7 + seed * 0.7) * 0.2
 
-// island-look.js tags each mesh with the name of its web material.
+// aerie-look.js tags each mesh with the name of its web material.
 const isGrass = (hit) => hit.object.userData.webMaterial === 'web_grass'
 
 // Finds an open patch of lawn: a downward ray must hit grass first, on a gentle slope, at the
@@ -88,7 +88,7 @@ export function findCampfireSpot(root) {
     return null
 }
 
-// gltf: the scene's GLTFLoader, which shares the Draco decoder with the island.
+// gltf: the scene's GLTFLoader, which shares the Draco decoder with the aerie.
 export function loadCampfireKit(gltf) {
     return gltf.loadAsync(kitUrl)
 }
@@ -112,7 +112,7 @@ void main() {
 // A teardrop flame in the card UV. A value noise that scrolls up bends the flame and breaks
 // up its edge, so the tip tears and licks. The colour steps through three toon bands, a red
 // rim, an orange body and a pale core near the base, with short soft steps between them, so
-// the flame reads as painted, like the island, and not as a smooth gradient.
+// the flame reads as painted, like the aerie, and not as a smooth gradient.
 const flameFragment = /* glsl */ `
 uniform float uTime;
 uniform float uSeed;
@@ -169,7 +169,7 @@ function createFlame() {
 }
 
 // Moves the AO bake, the soft normals and the surface family onto a kit mesh, as
-// island-look.js does for the island, so the mesh can take the island toon material.
+// aerie-look.js does for the aerie, so the mesh can take the aerie toon material.
 function prepareSolid(mesh, family, soften) {
     const geometry = soften(mesh.geometry)
     const count = geometry.attributes.position.count
@@ -201,7 +201,7 @@ function createEmberMaterial(time) {
     return material
 }
 
-// Swaps the kit materials: the lit parts take the island toon material, so they use the island
+// Swaps the kit materials: the lit parts take the aerie toon material, so they use the aerie
 // program as it is. The coals take the ember glow.
 function createHearth(kit, toon, time) {
     const ember = createEmberMaterial(time)
@@ -293,7 +293,7 @@ function createSparks() {
     return { points, update }
 }
 
-// kit: the loaded campfire_kit.glb. toon: { material, surface, soften }, the island opaque toon
+// kit: the loaded campfire_kit.glb. toon: { material, surface, soften }, the aerie opaque toon
 // material, SURFACE and softenGeometry. bounce: a Vector4 from the toon uniforms, where the
 // fire writes its position and reach.
 export function createCampfire({ position, kit, toon, bounce }) {
@@ -321,7 +321,7 @@ export function createCampfire({ position, kit, toon, bounce }) {
         }
         sparks.update(delta, time)
     }
-    // The island look owns the toon material and disposes it.
+    // The aerie look owns the toon material and disposes it.
     const dispose = () => {
         group.traverse((node) => {
             node.geometry?.dispose()

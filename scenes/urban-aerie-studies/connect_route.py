@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the tidy pad revision:
 
 The script saves a new revision, island_b_route_r7.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why:
 - Up to r6 the route read as four parts dropped on the lawn: a small diagonal grid of dark

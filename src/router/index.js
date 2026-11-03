@@ -54,6 +54,8 @@ const routes = [
         component: () => import('../views/projects/Placeholders.vue'),
         meta: { title: 'Find My HDB' },
     },
+    // The page for this site was /projects/island before the rename to aerie. Old links land here.
+    { path: '/projects/island', redirect: '/projects/aerie' },
     // One page for every featured project. An unknown id goes to the wall, so a link to a
     // project that left the site still lands somewhere useful.
     {

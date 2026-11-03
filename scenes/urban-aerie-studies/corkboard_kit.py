@@ -5,7 +5,7 @@ Run it from this folder with background Blender on an empty file:
 
 The script builds the kit in a new scene, Corkboard_Kit, and writes one Draco GLB,
 src/assets/models/corkboard_kit.glb, plus corkboard_kit_report.json beside this script.
-It saves no .blend and never touches island_b.glb or island_b_lod1.glb. --preview also builds
+It saves no .blend and never touches aerie.glb or aerie_lod1.glb. --preview also builds
 Corkboard_Kit_Preview: linked copies laid out on the board, red strings, a camera and two lights.
 
 The detail level follows the round 21 telescope: round parts have 10 to 14 segments, the frame

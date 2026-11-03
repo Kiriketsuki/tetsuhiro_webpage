@@ -1,4 +1,4 @@
-// The camera stops on the urban aerie island, keyed by id. Each stop names its Blender
+// The camera stops on the urban aerie, keyed by id. Each stop names its Blender
 // camera (matched by name, never by index) and the anchor of its room. `fallback` is the
 // shot until the GLB arrives, or if the GLB lacks that camera. Positions are metres in the
 // GLB frame (Y up).
@@ -165,8 +165,8 @@ export const stops = {
         tall: [0, 0.36],
     },
     // Round 8 drops Cam_05_Pad for a higher view from the south-east, down across the pad,
-    // the ramp, the deck and the path toward the house, so the island fills most of the frame.
-    // From the Blender camera the pad sat at the island edge, and 60 to 70 percent of the
+    // the ramp, the deck and the path toward the house, so the aerie fills most of the frame.
+    // From the Blender camera the pad sat at the aerie edge, and 60 to 70 percent of the
     // frame was empty sky. Here about a quarter of the frame is sky.
     pad: {
         camera: null,

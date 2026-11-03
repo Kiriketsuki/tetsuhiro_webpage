@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 // Look-around mode. The Skills card turns it on at the telescope, the pad in
-// ExplorePad.vue turns gestures into pan and zoom, and the scene manager moves the
+// ExplorePad.vue turns gestures into pan, zoom and tap, and the scene manager moves the
 // camera or the skill sky. three.js connects them.
 const exploring = ref(false)
 let rig = null
@@ -16,6 +16,7 @@ export function useExplore() {
 
     const pan = (dx, dy) => rig?.pan(dx, dy)
     const zoom = (factor) => rig?.zoom(factor)
+    const tap = (x, y) => rig?.tap?.(x, y)
 
-    return { exploring, connect, pan, zoom }
+    return { exploring, connect, pan, zoom, tap }
 }

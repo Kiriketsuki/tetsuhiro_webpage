@@ -40,18 +40,29 @@ export function unpack(value) {
     return out
 }
 
-// An interleaved attribute turns plain first. Its values stay the same.
+// An interleaved attribute turns plain first. Its values stay the same, only the layout of the
+// buffer changes.
 const plainAttribute = (attribute) => (attribute.isInterleavedBufferAttribute ? attribute.clone() : attribute)
 
+const packAttribute = (key, attribute) => {
+    const plain = plainAttribute(attribute)
+    return { key, name: plain.name, array: plain.array, itemSize: plain.itemSize, normalized: plain.normalized, usage: plain.usage }
+}
+
+const unpackAttribute = ({ name, array, itemSize, normalized, usage }) => {
+    const attribute = new THREE.BufferAttribute(array, itemSize, normalized)
+    attribute.name = name
+    attribute.setUsage(usage)
+    return attribute
+}
+
 export function packGeometry(geometry) {
-    const attributes = Object.entries(geometry.attributes).map(([name, attribute]) => {
-        const plain = plainAttribute(attribute)
-        return { name, array: plain.array, itemSize: plain.itemSize, normalized: plain.normalized }
-    })
     return {
         name: geometry.name,
-        attributes,
-        index: geometry.index ? geometry.index.array : null,
+        attributes: Object.entries(geometry.attributes).map(([key, attribute]) => packAttribute(key, attribute)),
+        morphAttributes: Object.entries(geometry.morphAttributes).map(([key, list]) => ({ key, list: list.map((attribute) => packAttribute(key, attribute)) })),
+        morphTargetsRelative: geometry.morphTargetsRelative,
+        index: geometry.index ? packAttribute('index', geometry.index) : null,
         groups: geometry.groups.map((group) => ({ ...group })),
         drawRange: { ...geometry.drawRange },
         boundingBox: pack(geometry.boundingBox),
@@ -63,8 +74,12 @@ export function packGeometry(geometry) {
 export function unpackGeometry(packed) {
     const geometry = new THREE.BufferGeometry()
     geometry.name = packed.name
-    packed.attributes.forEach(({ name, array, itemSize, normalized }) => geometry.setAttribute(name, new THREE.BufferAttribute(array, itemSize, normalized)))
-    if (packed.index) geometry.setIndex(new THREE.BufferAttribute(packed.index, 1))
+    packed.attributes.forEach((attribute) => geometry.setAttribute(attribute.key, unpackAttribute(attribute)))
+    packed.morphAttributes.forEach(({ key, list }) => {
+        geometry.morphAttributes[key] = list.map(unpackAttribute)
+    })
+    geometry.morphTargetsRelative = packed.morphTargetsRelative
+    if (packed.index) geometry.setIndex(unpackAttribute(packed.index))
     packed.groups.forEach(({ start, count, materialIndex }) => geometry.addGroup(start, count, materialIndex))
     geometry.setDrawRange(packed.drawRange.start, packed.drawRange.count)
     geometry.boundingBox = unpack(packed.boundingBox)

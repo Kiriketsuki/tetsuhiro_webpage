@@ -95,16 +95,4 @@ watch(opacity, (value) => {
         }
     }
 
-    :root {
-        --gradient: linear-gradient(45deg, var(--color-ruby), var(--color-moss), var(--color-amber), var(--color-teal));
-    }
-
-    @keyframes gradient_animation {
-        0% {
-            background-position: left;
-        }
-        100% {
-            background-position: right;
-        }
-    }
 </style>

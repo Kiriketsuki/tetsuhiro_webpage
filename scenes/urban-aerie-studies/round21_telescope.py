@@ -6,7 +6,7 @@ Run it from this folder with background Blender on the round 20 revision:
 --dry builds the telescope in memory and prints the report, but saves no .blend and no report.
 The script saves a new revision, island_b_route_r35.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why: the site flies the camera to the eyepiece and looks through it at the
 skill sky. The round 7 telescope had a star diagonal whose eyepiece pointed straight up, and the
@@ -20,7 +20,7 @@ user asked for a finer telescope under 5,000 triangles, aligned so the view look
   So the camera can end on the optical axis, behind the eye lens.
 - SS_TL_Scope_Lod1 is a slim copy of about 1,200 triangles for the mobile GLB. It drops the small
   knobs, screws and tray holes and uses fewer segments, but keeps a rounder eyepiece, because a
-  phone sees the eyepiece fill the frame under the iris. export_island_b.py puts it in the mobile
+  phone sees the eyepiece fill the frame under the iris. export_aerie.py puts it in the mobile
   GLB only, and drops SS_TL_Telescope from that GLB.
 - The report gives the eye lens centre and the optical axis in the glTF frame, for stops.js.
 Nothing else moves.
@@ -45,7 +45,7 @@ SLIM_BUDGET = 1600
 SLIM_SEGMENTS = 8
 SLIM_FINE = 12
 # Material slots. The site paints every bright metal in one brass, and paints the dark metal
-# inside the tube box as a light brass bevel (island-look.js), so the bands read as lit rings.
+# inside the tube box as a light brass bevel (aerie-look.js), so the bands read as lit rings.
 # A_screen is a faint warm emitter on the site, so the lenses read as lit glass.
 MATERIALS = ['LP_SS_A_metal', 'SS_TL_Brushed_Steel', 'SS_TL_Aged_Brass', 'LP_SS_A_wood_light', 'SS_TL_Charcoal', 'PT_LP_SS_A_screen']
 BAND, STEEL, BRASS, WOOD, RUBBER, GLASS = range(6)

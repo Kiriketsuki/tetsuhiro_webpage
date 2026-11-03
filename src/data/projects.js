@@ -100,7 +100,7 @@ export const projects = [
         group: 'recent',
     },
     {
-        id: 'island',
+        id: 'aerie',
         title: 'This aerie',
         stack: 'Three.js, GLSL, Blender, Vue',
         year: '2022 to 2026',

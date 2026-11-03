@@ -3,9 +3,9 @@ import { createToonMaterial, createToonUniforms, SURFACE } from '../scene/aerie/
 import { createPipeline, TIERS } from '../scene/aerie/quality.js'
 import { createLookControl, SITE_LOOK } from '../scene/aerie/look-options.js'
 
-// Dev-only lab that renders the gate lantern with the island look: the toon material, the ink,
+// Dev-only lab that renders the gate lantern with the aerie look: the toon material, the ink,
 // the lens and the glow of the site pipeline. The gate in index.html shows the frames as
-// images, so the lantern matches the island without three.js in the shell.
+// images, so the lantern matches the aerie without three.js in the shell.
 //
 // Query options:
 //   layer=branch|lantern|sprites|empty   what to draw
@@ -265,7 +265,7 @@ function buildLantern(toon, litPaper, paperToon) {
     return group
 }
 
-// Single autumn leaves in a row, for the leaves that fall when the island is ready.
+// Single autumn leaves in a row, for the leaves that fall when the aerie is ready.
 function buildSprites(material) {
     const group = new THREE.Group()
     AUTUMN.forEach((tone, i) => {
@@ -303,7 +303,7 @@ createLookControl(uniforms).apply(SITE_LOOK, pipeline.grade.uniforms)
 // The gate sky has no vignette, and a vignette would break the matte.
 pipeline.grade.uniforms.uVignette.value = 0
 pipeline.grade.uniforms.uFocus.value = camera.position.distanceTo(LANTERN)
-// A deeper sharp slab than the island stops use, so the whole lantern, front to back, stays in
+// A deeper sharp slab than the aerie stops use, so the whole lantern, front to back, stays in
 // focus. The branch ends still soften.
 pipeline.grade.uniforms.uLensBand.value = 0.22
 

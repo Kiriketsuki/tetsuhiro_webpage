@@ -62,7 +62,7 @@ watch(opacity, (value) => {
     }
 
     /* src/three.js adds this when WebGL fails. A moonlit night sky in CSS
-       stands in for the island. */
+       stands in for the aerie. */
     canvas.scene-fallback {
         background:
             radial-gradient(circle at 72% 18%, oklch(0.931 0.03 243.4 / 0.35) 0, transparent 9rem),

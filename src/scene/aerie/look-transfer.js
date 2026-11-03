@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-// Moves island meshes between the page and the look worker (look-worker.js). A message keeps
+// Moves aerie meshes between the page and the look worker (look-worker.js). A message keeps
 // plain data only, so each three.js value goes out as a tagged list of its numbers and comes
 // back as the same class with the same numbers. The typed arrays of the geometry move as
 // transferred buffers, so no copy is made.

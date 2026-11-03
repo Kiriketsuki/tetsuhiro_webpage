@@ -5,10 +5,10 @@ Run it from this folder with background Blender on an empty file:
 
 The script builds the kit in a new scene, Campfire_Kit, and writes one Draco GLB,
 src/assets/models/campfire_kit.glb, plus campfire_kit_report.json beside this script. It never
-touches island_b.glb or island_b_lod1.glb, and it only reads island_b.glb, to fit the kit to the
+touches aerie.glb or aerie_lod1.glb, and it only reads aerie.glb, to fit the kit to the
 lawn and to bake the ambient occlusion against it.
 
---preview also imports island_b.glb into Campfire_Preview, renders the old hearth and the new kit
+--preview also imports aerie.glb into Campfire_Preview, renders the old hearth and the new kit
 from the desktop and the phone campfire shot (stops.js), and saves campfire_kit_rN.blend with the
 next free N, so no earlier .blend is overwritten. Renders go to renders/campfire-kit/, which git
 ignores with the other renders.
@@ -38,7 +38,7 @@ from mathutils.bvhtree import BVHTree
 
 ROOT = Path(__file__).resolve().parent
 SITE = ROOT.parent.parent
-ISLAND = SITE / 'src' / 'assets' / 'models' / 'island_b.glb'
+ISLAND = SITE / 'src' / 'assets' / 'models' / 'aerie.glb'
 OUT = SITE / 'src' / 'assets' / 'models' / 'campfire_kit.glb'
 REPORT = ROOT / 'campfire_kit_report.json'
 RENDERS = ROOT / 'renders' / 'campfire-kit'
@@ -50,7 +50,7 @@ SEED = 20261103
 
 # Anchor_Campfire in Blender axes. The glTF node sits at (1.75, 0.365, -8.5).
 ANCHOR = Vector((1.75, 8.5, 0.365))
-# The lawn meshes of island_b.glb. Tree crowns and flowers stand above the lawn, so the drop
+# The lawn meshes of aerie.glb. Tree crowns and flowers stand above the lawn, so the drop
 # rays skip them.
 GROUND = ('Island', 'Turf', 'Paths', 'Rock', 'Pad')
 
@@ -555,7 +555,7 @@ def build_mesh(collection, name, part):
 
 
 def import_island():
-    """Imports island_b.glb into the active scene and returns the new objects."""
+    """Imports aerie.glb into the active scene and returns the new objects."""
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(ISLAND))
     return [o for o in bpy.data.objects if o not in before]

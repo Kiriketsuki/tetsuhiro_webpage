@@ -6,7 +6,7 @@ Run it from this folder with background Blender on the round 19 revision:
 --dry builds the changes in memory and prints the report, but saves no .blend and no report.
 The script saves a new revision, island_b_route_r34.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why: the user asked to restore the glass stairs. Rounds 14 and 15 took the
 accepted tower apart. Round 14 dropped five slim steel posts, chamfered the frame boxes, cut the

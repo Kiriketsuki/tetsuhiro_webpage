@@ -34,7 +34,10 @@ const step = (now) => {
     last = now
     shown.x += (pointer.x - shown.x) * k
     shown.y += (pointer.y - shown.y) * k
-    if (ring.value) ring.value.style.transform = `translate3d(${shown.x}px, ${shown.y}px, 0)`
+    // The translate property, not transform: CSS applies the scale property after translate but
+    // before transform, so a transform translation took the 0.72 rest scale and pulled the ring
+    // toward the top left of the page.
+    if (ring.value) ring.value.style.translate = `${shown.x}px ${shown.y}px`
     const settled = Math.abs(pointer.x - shown.x) + Math.abs(pointer.y - shown.y) < 0.3
     frame = settled ? 0 : requestAnimationFrame(step)
 }
@@ -82,7 +85,7 @@ onBeforeUnmount(() => {
     opacity: calc(0.5 * var(--aerie-lens, 0));
     scale: 1;
     transition: scale 300ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 300ms ease-out;
-    will-change: transform;
+    will-change: translate;
 }
 
 .focus-ring.rest {

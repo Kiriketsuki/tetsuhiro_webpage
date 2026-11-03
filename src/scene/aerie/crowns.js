@@ -78,31 +78,95 @@ function find(parent, i) {
 
 // Returns the connected parts, each with its triangles, bounding box and centre.
 // palette.js also reads it, to find each laid stone.
+//
+// This runs in the look worker on every mesh, so it avoids per-vertex allocation. A position
+// that is not interleaved, not normalized and has three components reads straight from its
+// array. Any other layout copies through getX, getY and getZ first, so both paths see the
+// same numbers. The corner keys sit in three Float64 arrays and an open-addressing table
+// finds the first corner at the same key. The table compares the Float64 keys, not the
+// hash, so a hash clash never merges two parts. A key with a NaN coordinate merges with
+// nothing. The old string key merged NaN keys, but the GLB has no NaN coordinate.
 export function connectedParts(position) {
-    const triangles = position.count / 3
-    const parent = Int32Array.from({ length: triangles }, (_, i) => i)
-    const owner = new Map()
-    for (let v = 0; v < position.count; v += 1) {
-        const key = `${Math.round(position.getX(v) * KEY_SCALE)},${Math.round(position.getY(v) * KEY_SCALE)},${Math.round(position.getZ(v) * KEY_SCALE)}`
-        const t = Math.floor(v / 3)
-        const other = owner.get(key)
-        if (other === undefined) owner.set(key, t)
-        else parent[find(parent, t)] = find(parent, other)
+    const count = position.count
+    const triangles = count / 3
+    const src = readPositions(position)
+    const parent = new Int32Array(triangles)
+    for (let t = 0; t < triangles; t += 1) parent[t] = t
+    const kx = new Float64Array(count)
+    const ky = new Float64Array(count)
+    const kz = new Float64Array(count)
+    let size = 2
+    while (size < count * 2) size *= 2
+    const mask = size - 1
+    const slots = new Int32Array(size).fill(-1)
+    for (let v = 0; v < count; v += 1) {
+        const x = Math.round(src[v * 3] * KEY_SCALE)
+        const y = Math.round(src[v * 3 + 1] * KEY_SCALE)
+        const z = Math.round(src[v * 3 + 2] * KEY_SCALE)
+        kx[v] = x
+        ky[v] = y
+        kz[v] = z
+        let h = Math.imul(x | 0, 73856093) ^ Math.imul(y | 0, 19349663) ^ Math.imul(z | 0, 83492791)
+        h = (h ^ (h >>> 15)) & mask
+        for (;;) {
+            const other = slots[h]
+            if (other < 0) {
+                slots[h] = v
+                break
+            }
+            if (kx[other] === x && ky[other] === y && kz[other] === z) {
+                parent[find(parent, (v / 3) | 0)] = find(parent, (other / 3) | 0)
+                break
+            }
+            h = (h + 1) & mask
+        }
     }
-    const groups = new Map()
-    const p = new THREE.Vector3()
+    // A group takes its number in first-seen triangle order, as the old Map took its insertion order.
+    const groupOf = new Int32Array(triangles).fill(-1)
+    const groups = []
     for (let t = 0; t < triangles; t += 1) {
-        const id = find(parent, t)
-        const group = groups.get(id) ?? { box: new THREE.Box3(), triangles: [] }
-        for (let k = 0; k < 3; k += 1) group.box.expandByPoint(p.fromBufferAttribute(position, t * 3 + k))
+        const root = find(parent, t)
+        let g = groupOf[root]
+        if (g < 0) {
+            g = groups.length
+            groupOf[root] = g
+            groups.push({ triangles: [], min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] })
+        }
+        const group = groups[g]
         group.triangles.push(t)
-        groups.set(id, group)
+        for (let k = 0; k < 3; k += 1) {
+            const i = (t * 3 + k) * 3
+            // Math.min and Math.max, as Box3 uses, are required here. A < or > test keeps the
+            // first zero it meets, and the sign of that zero flows on into the crown centres.
+            for (let a = 0; a < 3; a += 1) {
+                group.min[a] = Math.min(group.min[a], src[i + a])
+                group.max[a] = Math.max(group.max[a], src[i + a])
+            }
+        }
     }
-    return [...groups.values()].map((group) => ({
-        ...group,
-        centre: group.box.getCenter(new THREE.Vector3()),
-        radius: group.box.getSize(new THREE.Vector3()).length() * 0.5,
-    }))
+    // Each part gets its own Box3 and Vector3 objects, because callers move the centre.
+    return groups.map(({ triangles: members, min, max }) => {
+        const box = new THREE.Box3(new THREE.Vector3(min[0], min[1], min[2]), new THREE.Vector3(max[0], max[1], max[2]))
+        return {
+            box,
+            triangles: members,
+            centre: box.getCenter(new THREE.Vector3()),
+            radius: box.getSize(new THREE.Vector3()).length() * 0.5,
+        }
+    })
+}
+
+// The position values as one flat x, y, z array. A plain three-component attribute gives its
+// own array, which this module only reads. Another layout copies through the getters.
+function readPositions(position) {
+    if (!position.isInterleavedBufferAttribute && !position.normalized && position.itemSize === 3) return position.array
+    const out = new Float64Array(position.count * 3)
+    for (let v = 0; v < position.count; v += 1) {
+        out[v * 3] = position.getX(v)
+        out[v * 3 + 1] = position.getY(v)
+        out[v * 3 + 2] = position.getZ(v)
+    }
+    return out
 }
 
 // Joins lumps that touch or overlap into trees. Returns one tree id per lump.
@@ -118,15 +182,22 @@ function linkLumps(lumps) {
 }
 
 function nearestLump(lumps, point) {
+    const { x, y, z } = point
     let best = 0
     let bestDistance = Infinity
-    lumps.forEach((lump, i) => {
-        const d = lump.centre.distanceToSquared(point)
+    for (let i = 0; i < lumps.length; i += 1) {
+        const centre = lumps[i].centre
+        const dx = centre.x - x
+        const dy = centre.y - y
+        const dz = centre.z - z
+        // The lump centre is the minuend and the sum keeps its order, so each distance equals
+        // Vector3.distanceToSquared. The strict test keeps the first lump on a tie.
+        const d = dx * dx + dy * dy + dz * dz
         if (d < bestDistance) {
             bestDistance = d
             best = i
         }
-    })
+    }
     return best
 }
 

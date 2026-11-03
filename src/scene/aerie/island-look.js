@@ -10,8 +10,9 @@ import { createLeafPiles } from './leaf-piles.js'
 import { litterBlocked } from './leaf-cards.js'
 import { createGlassMaterial, createFrameMaterial } from './glass.js'
 import { prepareWater, createWaterMaterial } from './water.js'
-import { createContactShadows } from './contact-shadows.js'
-import { nextTask } from '../next-task.js'
+import { createContactShadows, propSpots } from './contact-shadows.js'
+import { createLookWorker } from './look-client.js'
+import { createDropRay } from './drop-ray.js'
 
 // Puts the cozy night look, after the art style of Leaf it Alone, on a loaded island_b GLB.
 // Opaque parts share one toon material with half-lambert light, warm hue-keeping shadows
@@ -136,19 +137,22 @@ const WALL_DIRECTIONS = [
 ].map((d) => new THREE.Vector3(...d))
 const MIN_GLOW = 0.1
 
+// A Raycaster tested every wall triangle for each of the five rays of each sprite. The drop-ray
+// grid gives the same hits and tests only the triangles under each short ray. It runs after
+// towerRoof and timberWalls, so the walls no longer change.
 function fitGlowsToWalls(spots, meshes) {
     const walls = meshes.filter((mesh) => WALL_FAMILIES.includes(mesh.userData.webMaterial))
-    const raycaster = new THREE.Raycaster()
+    if (!spots.length) return { fitted: [], shrunk: 0 }
+    // The Raycaster computed the missing bounding sphere of every wall on the first ray, and
+    // the page gets the bounds back with the geometry. The grid opens only the walls near each
+    // ray, so the spheres are computed here.
+    walls.forEach((mesh) => {
+        if (mesh.material && mesh.geometry.boundingSphere === null) mesh.geometry.computeBoundingSphere()
+    })
+    const grid = createDropRay(walls)
     let shrunk = 0
     const fitted = spots.map((spot) => {
-        raycaster.far = spot.size
-        const clear = Math.min(
-            spot.size,
-            ...WALL_DIRECTIONS.map((direction) => {
-                raycaster.set(spot.position, direction)
-                return raycaster.intersectObjects(walls, false)[0]?.distance ?? spot.size
-            })
-        )
+        const clear = Math.min(spot.size, ...WALL_DIRECTIONS.map((direction) => grid.cast(spot.position, spot.size, direction)?.distance ?? spot.size))
         if (clear >= spot.size) return spot
         shrunk += 1
         return { ...spot, size: Math.max(MIN_GLOW, clear * 1.1) }
@@ -209,9 +213,6 @@ function adoptAoBake(geometry) {
     return false
 }
 
-// sky: { horizon, zenith } for the glass reflection. detail: a detail texture build from
-// createDetailTexture, started early so it overlaps the download. Without one, the build
-// runs here. carpet: a leaf carpet build from createLeafCarpet, started early in the same way.
 // Window frames, mullions and slim posts. The S2 review measured the workshop mullions at
 // about 18 px and the frame beams at about 30 px wide at 1600 by 900, and asked for thin dark
 // lines of at most 6 px. A straight member is a box part whose longest side passes
@@ -453,9 +454,107 @@ function lightenTelescopeBands(meshes, anchor) {
         })
 }
 
-// It runs as a few long steps and yields to the browser between them (nextTask), so the
-// loading screen keeps drawing. The steps run in the same order, so the look is the same.
-export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1 } = {}) {
+// The crown and plant families, with the options shapeCrowns takes for each. crowns.js writes
+// both normal attributes of every vertex these meshes keep: the trees set new attributes
+// (crowns.js:254-255) and the planting writes every shrub and tuft vertex (crowns.js:354 and
+// :373-378). So the creased normals of softenGeometry never reach the screen on these meshes,
+// and the skip saves their cost. In Node on a desktop, these meshes take 9 ms in place of 29 ms
+// on LOD0, and 3 ms in place of 9 ms on LOD1.
+const CROWN_SHAPES = new Map([
+    ['web_crown', { bend: true }],
+    ['web_plants', { bend: false }],
+])
+
+// The attribute layout that softenGeometry makes, without its creased normals. flatNormal is
+// the same copy of the exported normal, and normal holds zeros until crowns.js writes it. The
+// attributes keep the same order, types and sizes.
+function keepNormalLayout(geometry) {
+    if (geometry.attributes.flatNormal) return geometry
+    const flat = geometry.index ? geometry.toNonIndexed() : geometry
+    if (!flat.attributes.normal) flat.computeVertexNormals()
+    const flatNormal = flat.attributes.normal.clone()
+    flat.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(flat.attributes.position.count * 3), 3, false))
+    flat.setAttribute('flatNormal', flatNormal)
+    return flat
+}
+
+// shapeTreeCrowns returns early on a crown with no lumps, and leaves the zero normals of
+// keepNormalLayout on it. The dev build stops on such a mesh, so the shading never goes flat
+// without a warning.
+function assertCrownNormals(meshes) {
+    meshes.forEach((mesh) => {
+        if (!CROWN_SHAPES.has(mesh.userData.webMaterial)) return
+        const normal = mesh.geometry.attributes.normal
+        if (normal && normal.count > 0 && normal.array.every((value) => value === 0)) {
+            throw new Error(`island-look: ${mesh.name} kept the zero normals of the crown skip`)
+        }
+    })
+}
+
+// The geometry half of the look: the soft normals, the surface tags, the water flow, the crown
+// and plant shapes, the palette and the autumn paint, the leaf piles, the shrub shadows and the
+// fitted glow sprites. It reads and writes geometry, userData and plain numbers only, so
+// look-worker.js runs it off the page. It runs the same steps in the same order as the page
+// ran them before, so the look is the same.
+// meshes: every island mesh, in scene order, with world matrices set and the materials
+// swapped. opaque: the material of the toon meshes. water: the stream meshes. lip, telescope:
+// anchor positions or null. bounces: the window spill rooms. spots: the glow sprites.
+export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, spots }) {
+    let aoMeshes = 0
+    meshes.forEach((child) => {
+        if (child.material !== opaque) return
+        const metal = FAMILY[child.userData.webMaterial] === SURFACE.metal
+        // The rename comes first. softenGeometry and crowns.js copy every attribute, so aoBake rides along.
+        if (adoptAoBake(child.geometry)) aoMeshes += 1
+        const crease = metal ? METAL_CREASE : child.userData.webMaterial === 'web_rock' && !isLaidRock(child) || child.name.startsWith('Pad') ? ROCK_CREASE : undefined
+        const soft = CROWN_SHAPES.has(child.userData.webMaterial) ? keepNormalLayout(child.geometry) : softenGeometry(child.geometry, crease)
+        if (soft !== child.geometry) child.geometry.dispose()
+        child.geometry = soft
+        tagSurface(soft, surfaceOf(child), child)
+    })
+
+    // The waterfall starts on the stream mouth edge, so scene-manager.js reads it from the look.
+    let pond = 0
+    let waterMouth = null
+    if (water.length) {
+        // The grass and soil decide how much of the mouth is open water.
+        const ground = meshes.filter((child) => WATER_BANKS.includes(child.userData.webMaterial))
+        const prepared = water.map((mesh) => prepareWater(mesh, lip, ground))
+        pond = Math.max(...prepared.map((result) => result.pond))
+        waterMouth = prepared.find((result) => result.mouth)?.mouth ?? null
+    }
+
+    meshes.forEach((mesh) => {
+        const family = mesh.userData.webMaterial
+        const crown = CROWN_SHAPES.get(family)
+        if (crown) shapeCrowns(mesh, crown)
+        else if (THIN_FAMILIES.includes(family)) thinMembers(mesh)
+    })
+    applyPalette(meshes)
+    towerRoof(meshes)
+    timberWalls(meshes)
+    lightenTelescopeBands(meshes, telescope)
+    // Round 13 drops the sprites of the lamps inside the lit rooms (within INDOOR_GLOW of a room
+    // anchor). The desk lamp sprite drew a round halo over the monitor in S2, and the room light
+    // already reads through the window spill.
+    const outdoor = spots.filter((spot) => !bounces.some((room) => spot.position.distanceTo(room) < INDOOR_GLOW))
+    const glows = fitGlowsToWalls(outdoor.slice(0, MAX_GLOWS), meshes)
+    const litterAt = applyAutumn(meshes)
+    // The leaf piles join the island meshes after the paint, so the litter cards fall on them.
+    const blocked = litterBlocked(meshes)
+    const piles = createLeafPiles({ meshes, material: opaque, litterAt, blocked })
+    if (piles) meshes.push(piles)
+    const shrubShadows = propSpots(meshes, isLaidRock, blocked)
+    // Node imports this module with no import.meta.env, so the check reads it with care.
+    if (import.meta.env?.DEV) assertCrownNormals(meshes)
+    return { aoMeshes, pond, waterMouth, glows, litterAt, piles, shrubShadows }
+}
+
+// sky: { horizon, zenith } for the glass reflection. detail, carpet: the texture builds that
+// scene-manager.js started early. worker: a look worker from createLookWorker, started early
+// too. The page swaps the materials and builds the glow spots, the worker runs shapeIsland,
+// and the page puts the shaped geometry back on its meshes.
+export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1, worker = null } = {}) {
     gltf.scene.updateMatrixWorld(true)
     const moon = anchorPosition(gltf, 'Anchor_Moon') ?? new THREE.Vector3(-28, 71, 24)
     const lip = anchorPosition(gltf, 'Anchor_Waterfall_Top')
@@ -465,12 +564,14 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
         return p ? { x: p.x, y: p.y, z: p.z, radius } : null
     }).filter(Boolean)
 
-    const detail = (detailBuild ?? createDetailTexture({ anisotropy, sliced: false })).finish()
-    const carpet = (carpetBuild ?? createLeafCarpet({ anisotropy })).finish()
-    const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail, carpet })
+    // The two texture builds keep their slices running while the worker shapes the island, and
+    // finish only after its reply. The uniforms hold the texture objects, so they need no
+    // finished data yet, and nothing renders or compiles before the finish below.
+    const detail = detailBuild ?? createDetailTexture({ anisotropy, sliced: false })
+    const carpet = carpetBuild ?? createLeafCarpet({ anisotropy })
+    const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail: detail.texture, carpet })
     const opaque = createToonMaterial(uniforms, {}, { key: 'aerie-toon-v3-ao', defines: { AERIE_AO: '' } })
     opaque.name = 'aerie.toon'
-    let aoMeshes = 0
     const time = { value: 0 }
     const replaced = new Map()
     const spots = []
@@ -509,35 +610,30 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
         return opaque
     }
 
+    const meshes = []
     gltf.scene.traverse((child) => {
         if (!child.isMesh) return
         child.material = Array.isArray(child.material)
             ? child.material.map((m) => swap(child, m))
             : swap(child, child.material)
-        if (child.material === opaque) {
-            const metal = FAMILY[child.userData.webMaterial] === SURFACE.metal
-            // The rename comes first. softenGeometry and crowns.js copy every attribute, so aoBake rides along.
-            if (adoptAoBake(child.geometry)) aoMeshes += 1
-            const crease = metal ? METAL_CREASE : child.userData.webMaterial === 'web_rock' && !isLaidRock(child) || child.name.startsWith('Pad') ? ROCK_CREASE : undefined
-            const soft = softenGeometry(child.geometry, crease)
-            if (soft !== child.geometry) child.geometry.dispose()
-            child.geometry = soft
-            tagSurface(soft, surfaceOf(child), child)
-        }
+        meshes.push(child)
     })
 
-    // The waterfall starts on the stream mouth edge, so scene-manager.js reads it from the look.
-    let waterMouth = null
+    const own = worker ? null : createLookWorker()
+    let shaped
+    try {
+        shaped = await (worker ?? own)
+            .shape({ meshes, opaque, water, lip, telescope: anchorPosition(gltf, TELESCOPE.anchor), bounces, spots })
+            .finally(() => own?.dispose())
+    } finally {
+        // Both finish calls run once the reply or the failure arrives. On a failure they also
+        // stop the slice timers. Each call builds the same bytes as an early finish.
+        detail.finish()
+        carpet.finish()
+    }
+
     if (water.length) {
-        // The grass and soil decide how much of the mouth is open water.
-        const ground = []
-        gltf.scene.traverse((child) => {
-            if (child.isMesh && WATER_BANKS.includes(child.userData.webMaterial)) ground.push(child)
-        })
-        const prepared = water.map((mesh) => prepareWater(mesh, lip, ground))
-        const pond = Math.max(...prepared.map((result) => result.pond))
-        waterMouth = prepared.find((result) => result.mouth)?.mouth ?? null
-        const material = createWaterMaterial({ pond, time, mouth: waterMouth })
+        const material = createWaterMaterial({ pond: shaped.pond, time, mouth: shaped.waterMouth })
         water.forEach((mesh) => {
             mesh.material = material
         })
@@ -547,39 +643,11 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
         if (!water.some((mesh) => mesh.material === material)) material.dispose()
     })
 
-    const meshes = []
-    gltf.scene.traverse((child) => {
-        if (child.isMesh) meshes.push(child)
-    })
-    await nextTask()
-    meshes.forEach((mesh) => {
-        const family = mesh.userData.webMaterial
-        if (family === 'web_crown') shapeCrowns(mesh, { bend: true })
-        else if (family === 'web_plants') shapeCrowns(mesh)
-        else if (THIN_FAMILIES.includes(family)) thinMembers(mesh)
-    })
-    await nextTask()
-    applyPalette(meshes)
-    towerRoof(meshes)
-    timberWalls(meshes)
-    lightenTelescopeBands(meshes, anchorPosition(gltf, TELESCOPE.anchor))
-    // Round 13 drops the sprites of the lamps inside the lit rooms (within INDOOR_GLOW of a room
-    // anchor). The desk lamp sprite drew a round halo over the monitor in S2, and the room light
-    // already reads through the window spill.
-    const outdoor = spots.filter((spot) => !bounces.some((room) => spot.position.distanceTo(room) < INDOOR_GLOW))
-    const glows = fitGlowsToWalls(outdoor.slice(0, MAX_GLOWS), meshes)
-    await nextTask()
-    const litterAt = applyAutumn(meshes)
-    await nextTask()
-    // The leaf piles join the island meshes after the paint, so the litter cards fall on them.
-    const blocked = litterBlocked(meshes)
-    const piles = createLeafPiles({ meshes, material: opaque, litterAt, blocked })
-    if (piles) {
-        gltf.scene.add(piles)
-        meshes.push(piles)
+    if (shaped.piles) {
+        gltf.scene.add(shaped.piles)
+        meshes.push(shaped.piles)
     }
-    await nextTask()
-    const shadows = createContactShadows(gltf.scene, meshes, isLaidRock, blocked)
+    const shadows = createContactShadows(gltf.scene, shaped.shrubShadows)
     if (shadows) gltf.scene.add(shadows)
 
     const materials = [opaque, ...replaced.values()]
@@ -588,9 +656,10 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
     }
     const dispose = () => {
         materials.forEach((material) => material.dispose())
-        detail.dispose()
+        detail.texture.dispose()
         carpet.dispose()
         shadows?.userData.dispose()
     }
+    const { litterAt, glows, aoMeshes, waterMouth } = shaped
     return { uniforms, materials, meshes, litterAt, glowSpots: glows.fitted, glowsShrunk: glows.shrunk, aoMeshes, waterMouth, update, dispose }
 }

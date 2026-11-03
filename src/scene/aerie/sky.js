@@ -87,6 +87,14 @@ uniform vec3 uCityDirection;
 varying vec3 vDirection;
 void main() {
     vec3 d = normalize( vDirection );
+    vec3 h = hazeAt( d );
+    // The blend weight of the final mix is exactly zero at and below -0.06, so the colour is
+    // the haze alone. This skips the sky math for the lower part of the dome. Keep the edge
+    // equal to the first smoothstep edge below.
+    if ( d.y <= -0.06 ) {
+        gl_FragColor = vec4( h, 1.0 );
+        return;
+    }
     float up = max( d.y, 0.0 );
     // Round 10 runs the sky from the indigo zenith down to the warm mauve haze at the horizon,
     // so the haze below and the sky above meet in one colour with no edge.
@@ -99,7 +107,7 @@ void main() {
     sky = mix( sky, uCityGlow, exp( -up * 7.0 ) * ( 0.08 + 0.2 * towardCity ) );
     sky = mix( sky, uHazeBand, hazeGlow( d.y ) );
     // Below the horizon the dome blends into the haze over a few degrees.
-    vec3 color = mix( hazeAt( d ), sky, smoothstep( -0.06, 0.06, d.y ) );
+    vec3 color = mix( h, sky, smoothstep( -0.06, 0.06, d.y ) );
     gl_FragColor = vec4( color, 1.0 );
 }
 `
@@ -121,7 +129,11 @@ export function createSky({ cityDirection = new THREE.Vector3(0, 0, -1) } = {}) 
     })
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(RADIUS, 32, 16), material)
     mesh.name = 'Sky'
-    mesh.renderOrder = -10
+    // The dome draws after every opaque object. Their depth test then rejects the sky fragments
+    // behind them, so the sky shader runs only where the sky shows. Every other opaque object
+    // must keep renderOrder 0 and depthTest true. An opaque object with depthTest false would
+    // now lose to the sky wherever the depth is 1.0.
+    mesh.renderOrder = 1000
     mesh.frustumCulled = false
     // The dome follows the camera, so it never clips at the far plane.
     mesh.onBeforeRender = (renderer, scene, camera) => {

@@ -68,8 +68,8 @@ function boot() {
         canvas,
         reducedMotion: reducedMotion.value,
         start: currentStop(),
-        // A direct visit to /skills opens on the skill sky, so the reveal waits for it.
-        sky: location.pathname.replace(/\/+$/, '').toLowerCase() === '/skills',
+        // Only the focus ring reads the lens strength, so only the ring restyles when it moves.
+        lensTarget: () => document.querySelector('.focus-ring'),
         onProgress: (value) => {
             progress.value = Math.max(progress.value, value)
         },

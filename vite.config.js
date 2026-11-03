@@ -7,14 +7,8 @@ const page = (file) => fileURLToPath(new URL(file, import.meta.url))
 
 // Splits the vendors out of the entry, so a site change does not bust their
 // cache. three only loads with the scene, from the Home route.
-// The skill sky (constellation.js) is a lazy chunk of its own, and it shares the sky, the
-// stars and the framing with the scene. In the scene chunk they made the sky chunk import
-// from the scene chunk, and Rollup then dropped src/three.js as the facade of the scene
-// chunk. They sit with three instead: they import nothing but three, and the scene loads
-// the three chunk anyway.
-const SKY_SHARED = /src\/scene\/aerie\/(sky|stars|framing)\.js$/
 const manualChunks = (id) => {
-    if (id.includes('node_modules/three/') || SKY_SHARED.test(id.replaceAll('\\', '/'))) return 'three'
+    if (id.includes('node_modules/three/')) return 'three'
     if (id.includes('node_modules/gsap/')) return 'gsap'
     if (/node_modules\/(@vue|vue|vue-router)\//.test(id)) return 'vue'
     return undefined
@@ -48,6 +42,8 @@ const stripShaderComments = () => ({
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [vue(), tailwindcss(), stripShaderComments()],
+    // The look worker is its own bundle, so it needs the shader comment strip of its own.
+    worker: { plugins: () => [stripShaderComments()] },
     build: {
         // scripts/size-budget.mjs reads the manifest to tell the shell from the lazy chunks.
         manifest: true,

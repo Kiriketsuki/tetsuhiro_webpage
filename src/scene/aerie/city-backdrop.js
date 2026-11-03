@@ -60,6 +60,12 @@ vec3 applyHaze( vec3 color, vec3 world ) {
 // streets far away melt into a soft glow and never alias into a moire.
 // lineAt() repeats the band at each integer of x. Past one cell a pixel the cover becomes
 // the mean of the pattern.
+// segment() gives each side street between two crossings its own brightness, and leaves about
+// one in five dark, so the streets never read as an even grid. Where a pixel covers a block or
+// more ('far'), each random value takes its mean, so the far city does not shimmer as the
+// camera moves. avenue() does the same for each avenue along its whole length, and the
+// avenues dim in the distance ('dim'), so they never draw an even grid toward the horizon.
+// lights() widens a light smaller than a pixel and dims it by the same area.
 // towers() tests the view ray back from the ground point against each tower prism (a slab
 // test) and keeps the hit nearest the camera, which is the largest ray parameter.
 const fragmentShader = /* glsl */ `
@@ -91,13 +97,22 @@ float band( float d, float w, float f ) {
 float lineAt( float x, float w, float f ) {
     return mix( band( abs( fract( x + 0.5 ) - 0.5 ), w, f ), 2.0 * w, smoothstep( 0.3, 1.0, f ) );
 }
+float avenue( float id, float f ) {
+    float h = hash12( vec2( id, 3.3 ) );
+    return mix( step( 0.3, h ) * ( 0.25 + 0.75 * h ), 0.5, smoothstep( 0.3, 1.0, f ) );
+}
+float segment( vec2 id, float far ) {
+    float h = hash12( id );
+    return mix( step( 0.22, h ) * ( 0.35 + 0.65 * h ), 0.58, far );
+}
 // A field of round lights, one jittered light to a cell in a share 'on' of the cells.
 float lights( vec2 c, float on, float pixel, float seed ) {
     vec2 id = floor( c );
     float h = hash12( id + seed );
     float r = 0.18;
+    float re = max( r, 0.5 * pixel );
     vec2 o = fract( c ) - 0.5 - ( vec2( hash12( id + 4.1 ), hash12( id + 9.7 ) ) - 0.5 ) * 0.5;
-    float lit = step( h, on ) * smoothstep( r + 0.5 * pixel, r - 0.5 * pixel, length( o ) ) * ( 0.6 + 0.4 * sin( uTime * ( 0.3 + h ) + h * 50.0 ) );
+    float lit = step( h, on ) * smoothstep( re + 0.5 * pixel, re - 0.5 * pixel, length( o ) ) * r * r / ( re * re ) * ( 0.6 + 0.4 * sin( uTime * ( 0.3 + h ) + h * 50.0 ) );
     return mix( lit, on * 3.1416 * r * r * 0.8, smoothstep( 0.4, 1.4, pixel ) );
 }
 
@@ -153,17 +168,22 @@ void main() {
     vec2 m = turn( ${GRID.toFixed(2)} + alt * 0.6 ) * pw;
     vec2 q = m / vec2( ${BLOCK[0].toFixed(1)}, ${BLOCK[1].toFixed(1)} );
     vec2 f = min( fwidth( q ), vec2( 2.0 ) );
-    float minor = max( lineAt( q.x, 0.06, f.x ), lineAt( q.y, 0.08, f.y ) );
+    float far = smoothstep( 0.3, 1.0, max( f.x, f.y ) );
+    float minor = max( lineAt( q.x, 0.06, f.x ) * segment( vec2( floor( q.x + 0.5 ), floor( q.y ) ) + alt * 13.0, far ),
+        lineAt( q.y, 0.08, f.y ) * segment( vec2( floor( q.x ), floor( q.y + 0.5 ) ) + 57.0 + alt * 13.0, far ) );
+    minor *= 1.0 - 0.9 * smoothstep( 0.08, 0.45, max( f.x, f.y ) );
     vec2 qa = q / vec2( 4.0, 3.0 );
     vec2 fa = f / vec2( 4.0, 3.0 );
-    float major = max( lineAt( qa.x, 0.03, fa.x ), lineAt( qa.y, 0.035, fa.y ) );
+    float major = max( lineAt( qa.x, 0.03, fa.x ) * avenue( floor( qa.x + 0.5 ) + alt * 5.0, fa.x ),
+        lineAt( qa.y, 0.035, fa.y ) * avenue( floor( qa.y + 0.5 ) + 40.0 + alt * 5.0, fa.y ) );
+    float dim = 1.0 - 0.7 * smoothstep( 0.08, 0.4, max( fa.x, fa.y ) );
     float spill = max( lineAt( qa.x, 0.08, fa.x ), lineAt( qa.y, 0.1, fa.y ) );
 
     // Blocks: parks, dark lots and lit lots, with window lights on a 7 m cell.
     vec2 cell = floor( q ) + alt * 31.0;
     float kind = hash12( cell );
-    float park = step( kind, 0.08 );
-    float lot = hash12( floor( q * vec2( 3.0, 2.0 ) ) + 11.3 + alt * 7.0 );
+    float park = mix( step( kind, 0.08 ), 0.08, far );
+    float lot = mix( hash12( floor( q * vec2( 3.0, 2.0 ) ) + 11.3 + alt * 7.0 ), 0.5, smoothstep( 0.1, 0.35, max( f.x, f.y ) ) );
     float lit = dens * ( 0.35 + 0.65 * lot ) * ( 1.0 - park ) * ( 1.0 - minor );
     vec2 wc = m / 7.0;
     float pixel = max( fwidth( wc.x ), fwidth( wc.y ) );
@@ -175,14 +195,14 @@ void main() {
     col += vec3( 0.16, 0.09, 0.06 ) * lit * lot;
     col += mix( vec3( 0.7, 0.82, 1.0 ), vec3( 1.0, 0.78, 0.48 ), warm ) * glints * 1.6;
     float streets = mix( 0.35, 1.0, core );
-    col += sodium * ( minor * ( 1.0 - park * 0.7 ) * 0.12 + major * 0.4 + spill * 0.04 ) * streets;
+    col += sodium * ( minor * ( 1.0 - park * 0.7 ) * 0.12 + ( major * 0.4 + spill * 0.04 ) * dim ) * streets;
 
     // The river: a dark winding band with lit banks. Only the avenues cross it, as bridges.
     vec2 rq = turn( -0.5 ) * p;
     float rx = rq.x - 250.0 * sin( rq.y / 800.0 ) - 100.0 * sin( rq.y / 310.0 + 1.0 ) + 700.0;
     float fr = fwidth( rx );
     float river = band( abs( rx ), 75.0, fr );
-    vec3 water = vec3( 0.004, 0.006, 0.016 ) + sodium * 0.03 * smoothstep( 0.55, 0.9, noise( vec2( rx / 5.0, rq.y / 60.0 + uTime * 0.05 ) ) );
+    vec3 water = vec3( 0.004, 0.006, 0.016 ) + sodium * 0.03 * smoothstep( 0.55, 0.9, noise( vec2( rx / 5.0, rq.y / 60.0 + uTime * 0.05 ) ) ) * ( 1.0 - smoothstep( 1.0, 4.0, fr ) );
     col = mix( col, water, river );
     col += sodium * major * river * streets * 1.4;
     col += vec3( 1.0, 0.7, 0.4 ) * band( abs( abs( rx ) - 79.0 ), 2.5, fr ) * 1.2 * streets;

@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import { CARPET_TILE } from './leaf-carpet.js'
 
-// One soft shading model for the whole urban aerie island, after the art style of Leaf it
-// Alone, translated to a cozy night. Every opaque part shares one material, so the island
+// One soft shading model for the whole urban aerie, after the art style of Leaf it
+// Alone, translated to a cozy night. Every opaque part shares one material, so the aerie
 // compiles one program. The baked vertex colours carry the colour as smooth, large fields
 // (palette.js and autumn.js), so no per-face jitter enters here.
 //
@@ -21,14 +21,14 @@ import { CARPET_TILE } from './leaf-carpet.js'
 // so the low-poly facets still read while the tones ease across gentle bends.
 //
 // The patch replaces the light loop of MeshLambertMaterial with a fixed rig in uniforms.
-// The scene needs no three.js lights, so a late light can never recompile the island.
+// The scene needs no three.js lights, so a late light can never recompile the aerie.
 
 const CACHE_KEY = 'aerie-toon-v3'
 // The warm spill slots: the workshop window, the bedroom window and the campfire.
 export const TOON_BOUNCES = 3
 export const CAMPFIRE_BOUNCE = TOON_BOUNCES - 1
 
-// The surface families. island-look.js writes one per mesh into the aSurface attribute.
+// The surface families. aerie-look.js writes one per mesh into the aSurface attribute.
 export const SURFACE = {
     plain: 0,
     wood: 1,
@@ -42,10 +42,10 @@ export const SURFACE = {
     soil: 9,
     bark: 10,
     // Laid stones: the flagstone path, the steps and the stepping stones. The cliff under
-    // the island stays in the stone family.
+    // the aerie stays in the stone family.
     paving: 11,
     // The outer plaster walls of the house: plaster panels in a dark timber frame over a stone
-    // base, as on the cottages of Leaf it Alone (island-look.js tags them).
+    // base, as on the cottages of Leaf it Alone (aerie-look.js tags them).
     timbered: 12,
 }
 
@@ -53,17 +53,17 @@ export const SURFACE = {
 // silver, so the warm saturated albedo keeps its hue at night: honey wood reads honey and
 // amber leaves read amber. A purple or deep blue fill would drown that colour. The sky
 // side is a soft blue and the ground side a neutral mauve grey. A red-brown ground fill
-// pushed every shaded face toward one orange-brown cast, turned the island underside
+// pushed every shaded face toward one orange-brown cast, turned the aerie underside
 // maroon and gave the crown hollows a magenta tint. The lamps are a warm cream at about
 // 3000 K. A deep orange lamp light turned every lit board, wall and floor the same orange.
 // Round 6 drops the moon and the fill by about a third. At the round 5 level the lawn, the
-// plaster and the decks read at almost daylight value, so the island read as a day scene
+// plaster and the decks read at almost daylight value, so the aerie read as a day scene
 // under a night sky. The lamps keep their strength, so only lamps, windows and flames read
 // bright.
 const NIGHT = {
     sky: new THREE.Color(0xa3acc4),
     // Round 8 turns the ground fill from a mauve (#7d747c) to a near neutral warm grey. Under
-    // the mauve fill the tan cliff of the island underside sampled hue 354, a maroon.
+    // the mauve fill the tan cliff of the aerie underside sampled hue 354, a maroon.
     ground: new THREE.Color(0x7a7774),
     moon: new THREE.Color(0xe8e4e4),
     warm: new THREE.Color(0xffc088),
@@ -288,7 +288,7 @@ toonSmooth = toonSmoothLength > 1e-4 ? toonSmooth / toonSmoothLength : ( toonFla
 toonFlat = toonFlatLength > 0.5 ? toonFlat / toonFlatLength : toonSmooth;
 int toonSurface = int( vToonSurface + 0.5 );
 // The ink mask for the outline in grade-pass.js. The house, the trees, the bridge, the pad and
-// the props take full ink. The ground takes a silhouette line only (0.5), so the island edge
+// the props take full ink. The ground takes a silhouette line only (0.5), so the aerie edge
 // reads against the void but the lawn, the paths and the cliff faces draw no crease lines. The scene target alpha holds 1 - toonInk, so a
 // blended layer such as the waterfall can only raise the alpha and turn ink off, never on.
 // The leaf cards keep their own alpha, because alpha to coverage turns it into the MSAA
@@ -309,7 +309,7 @@ if ( toonCrownSide ) {
 }
 toonFlat *= sign( dot( toonFlat, toonSmooth ) + 1e-4 );
 // Round 9 shades the cliff on the smooth normal alone. Its flat facets alternated light and
-// dark from one face to the next under the island (S7, S9), and read as flat plastic.
+// dark from one face to the next under the aerie (S7, S9), and read as flat plastic.
 // Round 17 shades the lawn, the soil and the outer walls on the smooth normal alone too. The
 // large lawn-edge triangles (S7, S9) and the lap boards of the tower wall (S4) drew hard light
 // steps from one flat face to the next.
@@ -329,7 +329,7 @@ if ( toonSurface == ${SURFACE.lawn} && toonN.y < 0.0 ) {
     toonSmooth = -toonSmooth;
 }
 // Round 20: below the lawn lip, a cliff ledge that faces up shades as the cliff side round it.
-// The rock cleft between the island and the pad lobe caught the moon and the sky as a pale
+// The rock cleft between the aerie and the pad lobe caught the moon and the sky as a pale
 // lilac shard (S5, S6) and a purple smear (S9).
 if ( toonSurface == ${SURFACE.stone} ) {
     toonSmooth.y = mix( toonSmooth.y, min( toonSmooth.y, -0.6 ), smoothstep( -0.2, -0.7, vToonWorld.y ) );
@@ -633,7 +633,7 @@ if ( toonSurface == ${SURFACE.paving} ) {
 // lighter and warmer in one band, cooler in the next.
 if ( toonSurface == ${SURFACE.stone} ) {
     // A second, finer mottle, so a boulder of a metre or two shows painted variation too.
-    // The 3 m mottle alone left the boulders on top of the island as flat fills.
+    // The 3 m mottle alone left the boulders on top of the aerie as flat fills.
     float toonFine = texture2D( uToonDetail, toonPlane / 0.9 + 0.37 ).g;
     // Round 18 strengthens it, so the large cliff faces show painted rock at a 300 px crop (S5).
     toonAlbedo *= mix( 1.0, toonFine * 2.0, 0.5 );
@@ -741,7 +741,7 @@ float toonCatch = smoothstep( 0.02, 0.12, 1.0 - dot( toonFlat, toonSmooth ) ) * 
 toonAlbedo += toonCatch * 0.1 * mix( toonAlbedo, vec3( 0.86, 0.74, 0.55 ), 0.5 );
 
 #ifdef AERIE_AO
-// Baked crease darkening from the _AO bake in export_island_b.py. The albedo takes
+// Baked crease darkening from the _AO bake in export_aerie.py. The albedo takes
 // mix( 1, aoBake, 0.4 ), and the occluded part goes a soft warm umber (#423328) instead of
 // grey. A redder brown (#3a2620) pulled the honey wood toward red-brown in every crease.
 // The crown lumps skip it: the bake darkened every seam where two lumps meet, and those
@@ -811,7 +811,7 @@ if ( toonSurface == ${SURFACE.paving} ) toonLight *= vec3( 1.1, 1.0, 0.84 );
 // as dark charcoal metal and not as a cool blue-grey sheet (S1, S7). The top takes the sky fill,
 // so it takes the strongest warm cut. The soffit takes the near neutral ground fill.
 if ( toonSurface == ${SURFACE.roof} ) toonLight *= toonFlat.y > 0.5 ? vec3( 1.58, 1.36, 0.98 ) : toonFlat.y < -0.5 ? vec3( 1.3, 1.22, 1.12 ) : vec3( 1.42, 1.28, 1.08 );
-// The city lights glow up from below onto the cliff under the island, a dim warm mauve,
+// The city lights glow up from below onto the cliff under the aerie, a dim warm mauve,
 // so the underside shows its moss and its strata instead of one dark brown mass.
 // Round 8 turns this glow from a mauve to a warm tan, because the mauve turned the tan cliff
 // maroon.
@@ -882,7 +882,7 @@ vec3 toonView = normalize( cameraPosition - vToonWorld );
 // A faint cool rim, only on the side the moon leaves in shade.
 float toonRim = pow( 1.0 - clamp( dot( toonSmooth, toonView ), 0.0, 1.0 ), 3.0 ) * mix( smoothstep( 0.5, 0.7, 1.0 - toonWrap ), 1.0, toonSurface == ${SURFACE.stone} || toonCrownSide ? 0.0 : uToonRimSpread );
 // The cliff takes a third of the rim. At full strength its broad down faces read as pale blue
-// holes into the void under the island edge.
+// holes into the void under the aerie edge.
 // The crowns take a sixth. At half strength the crown edge still read as a pale lilac glass dome.
 if ( toonSurface == ${SURFACE.stone} ) toonRim *= 0.35;
 if ( toonCrownSide ) toonRim *= 0.16;
@@ -950,7 +950,7 @@ function patch(uniforms) {
     }
 }
 
-// Builds a toon material. All opaque island parts share one, so they share one program.
+// Builds a toon material. All opaque aerie parts share one, so they share one program.
 // `defines` turns on the AO bake (AERIE_AO) or the leaf-card variant (AERIE_CARD).
 export function createToonMaterial(uniforms, options = {}, { key = CACHE_KEY, defines = {} } = {}) {
     const material = new THREE.MeshLambertMaterial({

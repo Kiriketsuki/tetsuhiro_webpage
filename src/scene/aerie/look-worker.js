@@ -1,9 +1,9 @@
 import * as THREE from 'three'
-import { shapeIsland } from './island-look.js'
+import { shapeAerie } from './aerie-look.js'
 import { pack, unpack, packGeometry, unpackGeometry, buffersOf } from './look-transfer.js'
 
-// The look worker. It takes the island meshes from look-client.js, runs shapeIsland on them
-// and sends the shaped geometry back. shapeIsland only reads a material to tell the toon
+// The look worker. It takes the aerie meshes from look-client.js, runs shapeAerie on them
+// and sends the shaped geometry back. shapeAerie only reads a material to tell the toon
 // meshes apart and to read its side for the ray tests, so each mesh gets a stand-in material
 // with that side. The world matrix comes from the page and must not change here, so the
 // meshes keep it as it is. Meshes that share a geometry on the page share it here too, and
@@ -41,7 +41,7 @@ self.onmessage = ({ data }) => {
         })
         const water = meshes.filter((_, i) => data.meshes[i].kind === 'water')
         const count = meshes.length
-        const shaped = shapeIsland({
+        const shaped = shapeAerie({
             meshes,
             opaque,
             water,
@@ -50,10 +50,10 @@ self.onmessage = ({ data }) => {
             bounces: data.bounces,
             spots: unpack(data.spots),
         })
-        const island = packMeshes(meshes.slice(0, count))
+        const aerie = packMeshes(meshes.slice(0, count))
         const reply = {
-            meshes: island.packed,
-            geometries: island.geometries,
+            meshes: aerie.packed,
+            geometries: aerie.geometries,
             piles: shaped.piles ? { name: shaped.piles.name, userData: pack(shaped.piles.userData), geometry: packGeometry(shaped.piles.geometry) } : null,
             aoMeshes: shaped.aoMeshes,
             pond: shaped.pond,

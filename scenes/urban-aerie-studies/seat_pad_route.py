@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the route revision:
 
 The script saves a new revision, island_b_route_r10.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why (the round 7 review of the r8 route and pad):
 - The stone footing under the pad curb read as a separate drum, a tank that juts out of the

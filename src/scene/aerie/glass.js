@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-// Clear window glass for the night island. It is unlit. It adds a faint cool tint and a
+// Clear window glass for the night aerie. It is unlit. It adds a faint cool tint and a
 // fresnel reflection of the sky gradient toward the edges of view on top of what lies
 // behind, and it dims that only a little. It takes no warm lamp term. Four panes stack in
 // most views of the tower, and a normal blend toward a tint colour turned that stack into

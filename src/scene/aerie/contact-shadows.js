@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { connectedParts } from './crowns.js'
+import { createDropRay } from './drop-ray.js'
 
 // Soft contact shadows under the props: the telescope tripod, the stool and the side table on
 // the terrace, the bench on the deck and the path lanterns. round9_route.py places one empty
@@ -38,17 +39,25 @@ const RIM_POINTS = [
 
 function createFalloff() {
     const data = new Uint8Array(SIZE * SIZE * 4)
-    for (let y = 0; y < SIZE; y += 1) {
-        for (let x = 0; x < SIZE; x += 1) {
+    // The falloff is round, so one quadrant gives all four. The mirrored distances are exact in
+    // double precision and Math.hypot ignores signs, so each mirrored cell holds the same byte
+    // as a direct calculation. Each cell is four equal bytes, so one 32-bit store writes it.
+    const cells = new Uint32Array(data.buffer)
+    const half = SIZE / 2
+    for (let y = 0; y < half; y += 1) {
+        for (let x = 0; x < half; x += 1) {
             const r = Math.hypot(x - SIZE / 2 + 0.5, y - SIZE / 2 + 0.5) / (SIZE / 2)
-            const i = (y * SIZE + x) * 4
             // A smooth falloff that reaches zero before the square edge, so no edge shows. The
             // alpha map reads the green channel, so every channel holds the falloff. Round 9
             // wrote it to alpha alone, and each disc drew as a full dark square.
             // Round 14 keeps the core dark out to a quarter of the radius, so the shadow hugs
             // the foot of a prop. The round 13 falloff faded from the very centre, and most of
             // its dark part hid under the prop itself.
-            data.fill(Math.round(255 * Math.pow(1 - THREE.MathUtils.smoothstep(r, 0.25, 1), 1.2)), i, i + 4)
+            const cell = Math.round(255 * Math.pow(1 - THREE.MathUtils.smoothstep(r, 0.25, 1), 1.2)) * 0x01010101
+            cells[y * SIZE + x] = cell
+            cells[y * SIZE + (SIZE - 1 - x)] = cell
+            cells[(SIZE - 1 - y) * SIZE + x] = cell
+            cells[(SIZE - 1 - y) * SIZE + (SIZE - 1 - x)] = cell
         }
     }
     const texture = new THREE.DataTexture(data, SIZE, SIZE, THREE.RGBAFormat)
@@ -62,13 +71,12 @@ function createFalloff() {
 // lawn under its centre and turned to the lawn slope. A level disc on a slope met the lawn
 // along a hard straight line. blocked(x, z) is true on the path, the water and the pad, where
 // no disc goes, and a part with no lawn under it gets no disc.
-function propSpots(meshes, isBoulder, blocked) {
+export function propSpots(meshes, isBoulder, blocked) {
     const box = new THREE.Box3()
     const size = new THREE.Vector3()
     const centre = new THREE.Vector3()
     const lawn = meshes.filter((mesh) => mesh.userData.webMaterial === 'web_grass')
-    const ray = new THREE.Raycaster()
-    const down = new THREE.Vector3(0, -1, 0)
+    const drop = createDropRay(lawn)
     const up = new THREE.Vector3(0, 1, 0)
     const normal = new THREE.Vector3()
     return meshes
@@ -82,14 +90,12 @@ function propSpots(meshes, isBoulder, blocked) {
                 if (span < PROP_SPAN[0] || span > PROP_SPAN[1] || (shrub && size.y < SHRUB_HEIGHT)) return []
                 if (blocked(centre.x, centre.z)) return []
                 const r = span * 0.65 + 0.15
-                ray.set(centre.setY(box.max.y + 0.5), down)
-                ray.far = size.y + 1.5
-                const hit = ray.intersectObjects(lawn, false)[0]
+                const far = size.y + 1.5
+                const hit = drop.cast(centre.setY(box.max.y + 0.5), far)
                 if (!hit?.face) return []
                 const level = hit.point.y
                 const onLawn = RIM_POINTS.every((offset) => {
-                    ray.set(new THREE.Vector3(centre.x + offset.x * r, box.max.y + 0.5, centre.z + offset.z * r), down)
-                    const rim = ray.intersectObjects(lawn, false)[0]
+                    const rim = drop.cast(new THREE.Vector3(centre.x + offset.x * r, box.max.y + 0.5, centre.z + offset.z * r), far)
                     return rim && Math.abs(rim.point.y - level) < RIM_DROP
                 })
                 if (!onLawn) return []
@@ -101,10 +107,11 @@ function propSpots(meshes, isBoulder, blocked) {
         })
 }
 
-// root: the loaded island scene, with world matrices up to date. meshes, isBoulder and blocked
-// find the shrubs and boulders. Returns the shadow mesh, or null when it holds no shadow.
-export function createContactShadows(root, meshes = [], isBoulder = () => false, blocked = () => false) {
-    const spots = propSpots(meshes, isBoulder, blocked)
+// root: the loaded island scene, with world matrices up to date. shrubSpots: the shadows under
+// the shrubs and boulders, from propSpots. The look worker runs propSpots, so the page gets
+// them as a list. Returns the shadow mesh, or null when it holds no shadow.
+export function createContactShadows(root, shrubSpots = []) {
+    const spots = [...shrubSpots]
     root.traverse((node) => {
         if (node.name.startsWith('Shadow_')) spots.push(new THREE.Matrix4().makeTranslation(0, LIFT, 0).multiply(node.matrixWorld).multiply(PROP_GROW))
     })

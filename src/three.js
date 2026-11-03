@@ -75,6 +75,8 @@ function boot() {
         canvas,
         reducedMotion: reducedMotion.value,
         start: currentStop(),
+        // Only the focus ring reads the lens strength, so only the ring restyles when it moves.
+        lensTarget: () => document.querySelector('.focus-ring'),
         onProgress: (value) => {
             progress.value = Math.max(progress.value, value)
         },

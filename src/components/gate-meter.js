@@ -90,15 +90,17 @@ function finishCurve(from, speed) {
 }
 
 // Reads the plan that the art's own CSS animation runs before this bundle loads, from its
-// keyframes. Those keyframes are linear, as a plan's are.
+// keyframes. Those keyframes are linear, as a plan's are. A busy main thread on a slow phone
+// can leave the dawn waiting to start when the meter takes over. The plan then starts now, so
+// the meter still sets off at the dawn's speed and not from rest.
 function cssPlan(probe) {
     const css = probe?.getAnimations().find((a) => a.animationName === 'ga-dawn-lit')
     const timing = css?.effect?.getTiming()
-    if (!css || css.startTime === null || !timing?.duration) return null
+    if (!css || !timing?.duration) return null
     const seconds = timing.duration / 1000
     const frames = css.effect.getKeyframes()
     return {
-        start: css.startTime + (timing.delay ?? 0),
+        start: css.startTime === null ? performance.now() : css.startTime + (timing.delay ?? 0),
         times: frames.map((f) => f.computedOffset * seconds),
         values: frames.map((f) => Number(f.opacity)),
     }

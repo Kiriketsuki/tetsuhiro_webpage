@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { noise3 } from './field-noise.js'
 import { SURFACE } from './toon-material.js'
+import { createDropRay } from './drop-ray.js'
 
 // Leaf piles round the foot of each tree, after the raked heaps of Leaf it Alone. A pile is
 // a low soft mound in the lawn family with a full litter amount, so the toon shader paints
@@ -113,9 +114,8 @@ function geometryOf(triangles) {
 export function createLeafPiles({ meshes, material, litterAt, blocked, seed = 2207 }) {
     const random = mulberry32(seed)
     const trees = meshes.flatMap((mesh) => mesh.userData.crownTrees ?? [])
-    const solid = meshes.filter((mesh) => mesh.material === material)
-    const raycaster = new THREE.Raycaster()
-    const down = new THREE.Vector3(0, -1, 0)
+    // The rays pass through the crowns, so the crowns stay out of the drop test.
+    const drop = createDropRay(meshes.filter((mesh) => mesh.material === material && mesh.userData.webMaterial !== 'web_crown'))
     const placed = []
     const triangles = []
     trees.forEach((tree) => {
@@ -127,8 +127,7 @@ export function createLeafPiles({ meshes, material, litterAt, blocked, seed = 22
             const z = tree.centre.z + Math.sin(angle) * reach
             if (blocked(x, z) || litterAt(x, z) < UNDER) continue
             if (placed.some((p) => Math.hypot(p.x - x, p.z - z) < SPACING)) continue
-            raycaster.set(new THREE.Vector3(x, tree.centre.y + 2, z), down)
-            const hit = raycaster.intersectObjects(solid, false).find((h) => h.object.userData.webMaterial !== 'web_crown')
+            const hit = drop.cast(new THREE.Vector3(x, tree.centre.y + 2, z))
             // The first surface under the crown must be the lawn itself, near flat, and not a
             // trunk, a deck or a roof.
             if (!hit || hit.object.userData.webMaterial !== 'web_grass') continue

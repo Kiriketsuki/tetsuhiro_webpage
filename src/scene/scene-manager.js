@@ -46,6 +46,9 @@ const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
 // The city haze density: the city loses about a fifth of its colour at the bottom of the
 // overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
+// The faces that corkboard.js draws its card text with. A canvas draws with a fallback font
+// while its face is still loading, so each font names the weight the canvas asks for.
+const FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer.
 export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
@@ -312,9 +315,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     buildPipeline(tierIndex)
 
     // The painted detail texture and the leaf carpet build in small slices while the island
-    // downloads.
+    // downloads. The card atlas fonts load at the same time.
     const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
     const carpetBuild = createLeafCarpet({ sliced: true })
+    const fonts = Promise.all(FONTS.map((font) => document.fonts.load(font))).catch(() => {})
 
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
@@ -369,7 +373,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const board = boardFrom(root, gltf.cameras)
             if (board) {
                 // The card atlas uses the site fonts, so it waits for them.
-                await Promise.all([document.fonts.load('52px "Instrument Serif"'), document.fonts.load('22px "JetBrains Mono"')]).catch(() => {})
+                await fonts
                 parts.cards = createCorkboard({ board, projects })
                 scene.add(parts.cards.mesh)
             }

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { fitFov, MAX_FOV } from './framing.js'
+import { createWalkCurve } from './walk-curve.js'
 
 // Moves the camera between named stops. It owns no loop: the scene manager calls update()
 // each frame and reads `moving` to decide whether the frame needs a render.
@@ -86,8 +87,8 @@ export function legsFromRoute(route, anchorAt = () => null) {
         Object.entries(route).flatMap(([key, leg]) => {
             const [from, to] = key.split('>')
             const points = routeEmpties(from, to, anchorAt) ?? leg.points.map((point) => new THREE.Vector3(...point))
-            const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal')
-            const length = curve.getLength()
+            const curve = createWalkCurve(points)
+            const { length } = curve
             const duration = THREE.MathUtils.clamp(LEG_TIME.base + LEG_TIME.perMetre * length, LEG_TIME.min, LEG_TIME.max)
             const forward = { curve, length, duration, back: leg.back ?? FOLLOW_BACK, up: leg.up ?? FOLLOW_UP, reverse: false }
             return [
@@ -159,7 +160,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
 
     // Sets heading to the level direction of the leg at u, if the spline is not vertical there.
     const steer = (curve, u) => {
-        curve.getTangentAt(u, legTangent).setY(0)
+        curve.tangentAt(u, legTangent).setY(0)
         if (legTangent.lengthSq() > 1e-6) heading.copy(legTangent.normalize())
     }
 
@@ -198,8 +199,8 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
     const follow = ({ leg, from }, t, shot) => {
         const { curve, length, back, up } = leg
         const u = leg.reverse ? 1 - t : t
-        curve.getPointAt(u, legAt)
-        curve.getPointAt(Math.min(1, u + LOOK_AHEAD / length), legAhead)
+        curve.pointAt(u, legAt)
+        curve.pointAt(Math.min(1, u + LOOK_AHEAD / length), legAhead)
         steer(curve, u)
         const into = 1 - THREE.MathUtils.smoothstep(t, 0, LEG_IN)
         const out = THREE.MathUtils.smoothstep(t, 1 - LEG_OUT, 1)

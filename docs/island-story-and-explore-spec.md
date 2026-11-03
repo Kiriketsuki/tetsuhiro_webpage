@@ -1,6 +1,6 @@
 # Island story path and free exploration: spec (November 2026)
 
-Status: draft for approval, 2 November 2026. Nothing in this spec is built yet.
+Status: approved 2 November 2026. Revised 3 November 2026: the story now ends at the campfire on the north rim, looking out over the city and the night sky. Nothing in this spec is built yet.
 
 This spec covers two linked features of the urban aerie island:
 
@@ -14,6 +14,7 @@ It extends `docs/site-rewrite-plan.md`. The budgets, the no-bloom rule, the smoo
 | Question | Decision |
 |---|---|
 | Story order | The island route: pad, workshop, bedroom, telescope, campfire |
+| Ending (3 November) | The story ends at the campfire on the north rim. The camera looks out past the fire, over the rim, to the city far below and the night sky. It is the closing shot and the most composed frame on the site |
 | Scroll feel | Snap, then travel. Scroll snaps to a section, then the camera follows the route to the next stop |
 | Explore mode | Option B: walk the island with a kinematic capsule and a follow camera. No physics engine |
 | Walker | A stylised animal, a mix of a cat and a fox. It need not be true to life. The model comes later, so a placeholder walks first |
@@ -30,13 +31,19 @@ It extends `docs/site-rewrite-plan.md`. The budgets, the no-bloom rule, the smoo
 | 02 | Over the bridge to the workshop | `projects` | `workshop` | left | `Anchor_Corkboard` |
 | 03 | Up the glass stair tower to the bedroom | `about` | `bedroom` | left | `Anchor_Bedroom` |
 | 04 | Out onto the terrace and the telescope | `skills` | `telescope` | right | `Anchor_Telescope` |
-| 05 | Down to the campfire | `contact` | `campfire` (new) | right | `Anchor_Campfire` |
+| 05 | Down to the fire on the rim, over the city | `contact` | `campfire` (new) | right | `Anchor_Campfire` |
 
 - `src/data/waypoints.js` takes this order. `sections`, the keys 1 to 5 and the snap points follow from it, as they do now.
 - The nav (`src/components/Navbar.vue`) lists Welcome, Projects, About, Skills, Contact. The middle item, under the mark, becomes About, the bedroom, which is the highest room of the house.
 - `arrival` is a new stop. It looks west from beyond the pad along the walkway: the pad in front, then the ramp, the deck, the bridge and the house. The portrait `tallView` of `pad` already frames this view, so `arrival` starts from it on both orientations and gets its own landscape shot.
 - `hero` and `pad` stay in `stops.js`, because the lab and the round notes use them. Delete them only when nothing reads them.
-- `campfire` is a new stop. It looks across the lawn fire toward the house, with the crowns and the night sky behind. The shot is tuned in the lab.
+- `campfire` is a new stop and the closing shot. The fire (`Anchor_Campfire`) already sits about 2.4 m from the north rim, and the city lies north and far below (`Anchor_City`), so the fire stays where it is. The camera stands about 6 m above the lawn south of the fire and looks north-north-east, about 20 degrees down, past the fire and over the rim. The owner picked this framing ("above the fire") from three on 3 November 2026:
+  - the fire, its logs and its glow in the foreground, sharp under the lens.
+  - the rim of the aerie in the middle ground, where the grass ends.
+  - the bokeh city far below, which fills the middle band of the frame, and the night sky with its stars above it.
+  - a rust crown at the right edge, and the leaf carpet in the lower right.
+  - the house and the glass stair tower stay out of the frame, so nothing pulls the eye back. The fire sits in the lower left, away from the Contact card.
+- A portrait phone takes its own `tallView` of the same composition, with the fire, the rim and the city in the top of the screen above the card. Its fov widens to 50 degrees and the view aims a little west, so the fire stays on screen.
 - The focus column fills the `focus` key that commit 816a791 added. Each value is a first guess, and the owner tunes it in the lab with the shots.
 
 ### The gate and the first move
@@ -52,7 +59,7 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 | `arrival` to `workshop` | the ramp, the deck, the bridge, the path, the workshop porch |
 | `workshop` to `bedroom` | the porch, then up and round the outside of the stair tower to the top floor |
 | `bedroom` to `telescope` | out through the balcony door onto the L-shaped terrace |
-| `telescope` to `campfire` | back past the tower, down to the lawn, across to the fire |
+| `telescope` to `campfire` | back past the tower, down to the lawn, across behind the fire, then a slow turn north over the rim to the city |
 
 - The camera rides behind and above the walk spline (a drone follow, about 4 m up and 5 m back) and looks at a point about 3 m ahead on it.
 - Over the first 20 percent of a leg, the camera blends from the start stop's shot into the follow frame. Over the last 25 percent it blends into the end stop's shot.
@@ -77,7 +84,8 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 ### Story text
 
 - Each section heading carries its chapter number and a short line, for example "02, over the bridge". The DOM stays the accessible version of the story, as the plan requires.
-- The Contact card at the campfire ends the story. It carries the second explore button: "wander the island".
+- The Contact card at the campfire ends the story. The last line looks out with the visitor, over the city and the sky. The card carries the second explore button: "wander the aerie".
+- The chapter lines: "01, arrival", "02, over the bridge", "03, up the tower", "04, out to the telescope", "05, by the fire". Visitor-facing text says "aerie", never "island".
 
 ### Story acceptance checks
 
@@ -86,6 +94,8 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 3. Open `/projects` directly. The scene opens at `workshop` with no move.
 4. With reduced motion, each section change cuts.
 5. The frame time stays under 16.7 ms (desktop) and 22 ms (mid Android) during a leg, measured in the lab.
+6. At 05 the frame holds the fire in the foreground, the rim, the city far below and the night sky, at desktop size and at 412 by 915. The fire stays clear of the Contact card, and the house stays out of the frame.
+7. On desktop, the lens keeps the fire sharp at 05. The city and the sky stay soft behind it.
 
 ## Part 2: explore on foot
 
@@ -210,7 +220,7 @@ Blender empties named `Zone_<name>` mark each zone. Their scale gives the zone s
 
 ### Entry and exit
 
-- **Entry.** The Welcome button "just the island" becomes "explore on foot". The Contact card at the campfire gets "wander the island".
+- **Entry.** The Welcome button "just the aerie" becomes "explore on foot". The Contact card at the campfire gets "wander the aerie".
 - **The move in.** The words fade as they do for `sceneOnly`. The explore chunk and the collision GLB load, and the camera moves from the current stop down to the walker in about 1.2 s. The walker appears at `Zone_Pad` from the Welcome button, and at the fire from the Contact card. The cutaway programs compile during this move.
 - **Exit.** Escape, the leave button or `Zone_Pad` returns to the story. The camera moves back to the stop the visitor left from, and the words fade in.
 - **No URL.** Exploring is a state of Home, as `sceneOnly` is now. A route change ends the walk.

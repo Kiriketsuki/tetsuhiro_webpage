@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
+import { route } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -18,7 +19,7 @@ import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
 import { homeProjects } from '../data/projects.js'
-import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
+import { createCameraRig, shotsFromStops, legsFromRoute } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
@@ -78,6 +79,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, ISLAND_HAZE_DENSITY)
     const camera = new THREE.PerspectiveCamera(35, size()[0] / size()[1], 0.1, 12000)
     const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
+    // The story legs between neighbouring stops. The GLB route empties replace them once it loads.
+    let legs = legsFromRoute(route)
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
     const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, cards: null, constellation: null }
@@ -415,6 +418,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.constellation.resize(camera.aspect)
 
             rig.setShots(shots)
+            legs = legsFromRoute(route, (name) => anchor(root, name))
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
@@ -440,11 +444,15 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig,
         parts,
         loaders,
+        // A move to a neighbouring story stop follows its leg. Any other move takes the
+        // lifted arc, and a zero duration cuts. A move that starts in the middle of a leg
+        // starts from the camera, and rig.current is already that leg's end stop.
         goTo: (id, { duration = 1.6 } = {}) => {
-            const time = state.reduced ? 0 : duration
+            const leg = state.reduced || duration <= 0 ? null : (legs[`${rig.current}>${id}`] ?? null)
+            const time = state.reduced ? 0 : (leg?.duration ?? duration)
             fade = id === 'bedroom' && time > 0 && rig.current !== 'bedroom' ? { t: 0, duration: time } : null
             pipeline.grade.uniforms.uFade.value = 0
-            rig.goTo(id, time)
+            rig.goTo(id, { duration: time, leg })
             requestRender()
         },
         // 0 stops the ambient clock: frames then draw only for camera moves and requests.

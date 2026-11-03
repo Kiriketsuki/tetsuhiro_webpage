@@ -91,7 +91,9 @@ export function createView(reducedMotion) {
         // A wide screen fits the frame and the picture light above it, with a small margin.
         const k = small() ? 1.6 / (0.96 * W) : Math.max(1.74 / W, 1.3 / H)
         const d = (k * H) / (2 * T)
-        home = { x: 0, y: small() ? -0.22 * H * k : 0.06, d }
+        // On a phone the board centre sits at 34 percent of the height, so the picture light
+        // above the board clears the page header (about 140 px).
+        home = { x: 0, y: small() ? -0.16 * H * k : 0.06, d }
         const near = W >= H ? CARD[1] / 0.6 / H : CARD[0] / 0.6 / W
         limits = [(near * H) / (2 * T), d * 1.08]
         Object.assign(state, atHome ? home : clamped(state))

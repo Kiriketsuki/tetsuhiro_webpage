@@ -52,8 +52,10 @@ const CITY_HAZE_DENSITY = 1 / 2400
 const CARD_FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
 const SKY_FONTS = ['30px "JetBrains Mono"', 'italic 42px "Instrument Serif"']
 
-// hooks.before and hooks.after run around each render, for the lab's GPU timer.
-export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
+// hooks.before and hooks.after run around each render, for the lab's GPU timer. lensTarget: an
+// optional function that returns the element that reads --aerie-lens. Without it, or while it
+// returns null, the value goes on the root element.
+export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {}, lensTarget = null }) {
     const small = isSmallScreen()
     const useLod = lod ?? islandLod()
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
@@ -125,6 +127,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
     // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
     // lens is, so the ring fades with it.
+    // A custom property on the root restyles every element of the page, so the shell names the
+    // ring through lensTarget, and only the ring restyles. The ring is looked up again when it
+    // leaves the document.
+    let lensRing = null
+    const lensElement = () => {
+        if (!lensRing?.isConnected) lensRing = lensTarget?.() ?? null
+        return lensRing ?? document.documentElement
+    }
     const updateLens = () => {
         const now = performance.now()
         const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
@@ -142,7 +152,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const shown = Math.round(dof * 20) / 20
         if (shown !== lensCursor.shown) {
             lensCursor.shown = shown
-            document.documentElement.style.setProperty('--aerie-lens', String(shown))
+            lensElement().style.setProperty('--aerie-lens', String(shown))
         }
     }
 

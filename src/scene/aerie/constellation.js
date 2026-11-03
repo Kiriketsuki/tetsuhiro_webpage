@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { skills, branches, branchOf, PALETTE } from '../../data/skills.js'
 import { createNebula } from './skill-nebula.js'
-import { figures } from './constellation-figures.js'
+import { figures, smooth } from './constellation-figures.js'
 import { createSkyOverlay } from './sky-overlay.js'
 
 // The skill sky that the telescope shows. Each skill branch is a named constellation from
@@ -25,6 +25,8 @@ const BACKDROP = 0.3
 // The lines stop this far short of each star, so the star glow stays round.
 const GAP = 1.2
 const STAR_SIZE = { bright: 46, skill: 30, figure: 14 }
+// The pieces a curved line between two stars is drawn in.
+const CURVE_STEPS = 8
 // Lantern fills in each branch colour with the gold of an old star chart for the grid
 // and the names, over a dark plum and teal sky that stays behind the figures.
 const LOOK = {
@@ -138,16 +140,39 @@ function layout(tall) {
                 labels.push({ position: position(key), order: orders[key] + 0.3, figure: k, id: key })
             }
         })
-        links.forEach(([a, b, kind]) => {
-            const [from, to] = orders[a] <= orders[b] ? [a, b] : [b, a]
-            lines.push({ from: position(from), to: position(to), color, order: orders[from] + 0.2, kind, figure: k })
+        // A figure's curve chain draws as short pieces along one smooth curve, so its stars
+        // trace the body. The pieces only stop short of a star at the chain's stars.
+        const chain = figure.curve ?? []
+        const onCurve = (a, b) => chain.some((key, i) => i > 0 && [a, b].includes(key) && [a, b].includes(chain[i - 1]))
+        links
+            .filter(([a, b]) => !onCurve(a, b))
+            .forEach(([a, b, kind]) => {
+                const [from, to] = orders[a] <= orders[b] ? [a, b] : [b, a]
+                lines.push({ from: position(from), to: position(to), color, order: orders[from] + 0.2, kind, figure: k })
+            })
+        const path = chain.length > 1 ? smooth(chain.flatMap((key) => points[key]), CURVE_STEPS) : []
+        chain.slice(1).forEach((key, i) => {
+            const from = chain[i]
+            const kind = member(key)?.parent === from || member(from)?.parent === key ? 0 : 1
+            for (let s = 0; s < CURVE_STEPS; s += 1) {
+                const j = (i * CURVE_STEPS + s) * 2
+                lines.push({
+                    from: toSky(at, path[j], path[j + 1]),
+                    to: toSky(at, path[j + 2], path[j + 3]),
+                    color,
+                    order: THREE.MathUtils.lerp(orders[from], orders[key], s / CURVE_STEPS) + 0.2,
+                    kind,
+                    figure: k,
+                    trim: [s === 0 ? GAP : 0, s === CURVE_STEPS - 1 ? GAP : 0],
+                })
+            }
         })
         arts.push({
             corners: [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => toSky(at, box.cx + x * box.half, box.cy + y * box.half)),
             order: start,
             figure: k,
         })
-        const title = figure.title ?? [box.cx, box.low - 3]
+        const title = (tall && figure.tallTitle) || figure.title || [box.cx, box.low - 3]
         labels.push({ position: toSky(at, ...title), order: start + 1.2, figure: k, title: k })
         targets.push({ centre: toSky(at, box.cx, box.cy).normalize(), half: rad(box.half * at[2]) })
     })
@@ -350,10 +375,10 @@ function starsGeometry(stars) {
 
 function linesGeometry(lines) {
     const values = { position: [], aEnd: [], aLine: [], aColor: [], aOrder: [], aKind: [], aFigure: [] }
-    lines.forEach(({ from, to, color, order, kind, figure }) => {
+    lines.forEach(({ from, to, color, order, kind, figure, trim = [GAP, GAP] }) => {
         const direction = to.clone().sub(from).normalize()
-        const a = from.clone().addScaledVector(direction, GAP)
-        const b = to.clone().addScaledVector(direction, -GAP)
+        const a = from.clone().addScaledVector(direction, trim[0])
+        const b = to.clone().addScaledVector(direction, -trim[1])
         QUAD.forEach(([side, end]) => {
             const t = (side + 1) / 2
             values.position.push(...a.toArray())

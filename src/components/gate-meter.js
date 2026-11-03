@@ -3,22 +3,23 @@
 // so the meter keeps moving while the main thread downloads, parses, builds or compiles.
 //
 // Each plan replaces the running animations with one long animation that starts at the value
-// and the speed shown now. The value follows the real share like a critically damped spring,
-// so a new share changes the speed and never the value. While work is pending the spring's
-// goal creeps a little past the real share, toward CAP and no further, so the lamp keeps
-// brightening through a long compile. The value never moves backwards. Only finish() takes
-// it to 1.
+// and the speed shown now. The value follows a goal like a critically damped spring, so a new
+// share changes the speed and never the value. The goal never falls below the real share, and
+// while work is pending it creeps on past it, toward CAP and no further, so the lamp keeps
+// brightening through a long download or compile. The goal carries over from plan to plan:
+// a plan that started the creep again from the value made a meter that planned often crawl.
+// The value never moves backwards. Only finish() takes it to 1.
 
 // The most the meter shows before the load is done.
 const CAP = 0.96
-// How far past the real share the creep may run, and its time constant in seconds.
-const LEAD = 0.22
+// How far past the real share the goal heads, and the time constant of its creep in seconds.
+const LEAD = 0.15
 const CREEP_S = 14
-// The least share of the way to CAP that a plan creeps, so a meter ahead of the real share
-// still moves.
+// The goal heads at least this share of the way from itself to CAP, so a goal ahead of the
+// real share still creeps. With CREEP_S this makes a time constant of about 90 seconds.
 const MIN_CREEP = 0.15
-// The spring stiffness, 1/s. A larger value follows the real share more closely.
-const STIFFNESS = 2.2
+// The spring stiffness, 1/s. A larger value follows the goal more closely.
+const STIFFNESS = 1.8
 // One plan covers this long. A new share or the refresh in Name.vue plans again long before.
 const HORIZON_S = 90
 // Keyframes per plan. They crowd at the start, where the speed changes most.
@@ -27,33 +28,38 @@ const STEP_S = 1 / 240
 // The final run to 1, in milliseconds, longer from further back.
 const FINISH_MS = { base: 450, range: 900 }
 
-// The value and the speed, per second, of a plan at a time on the document timeline.
+// The value, its speed per second and the goal of a plan at a time on the document timeline.
 const sample = (plan, time) => {
     const tau = Math.max(0, (time - plan.start) / 1000)
-    const { times, values } = plan
-    if (tau >= times[times.length - 1]) return { value: values[values.length - 1], speed: 0 }
+    const { times, values, goals = values } = plan
+    const last = times.length - 1
+    if (tau >= times[last]) return { value: values[last], speed: 0, goal: goals[last] }
     let i = 1
     while (times[i] < tau) i++
-    const span = times[i] - times[i - 1]
-    const speed = (values[i] - values[i - 1]) / span
-    return { value: values[i - 1] + speed * (tau - times[i - 1]), speed }
+    const k = (tau - times[i - 1]) / (times[i] - times[i - 1])
+    const speed = (values[i] - values[i - 1]) / (times[i] - times[i - 1])
+    return { value: values[i - 1] + k * (values[i] - values[i - 1]), speed, goal: goals[i - 1] + k * (goals[i] - goals[i - 1]) }
 }
 
 // Key times from 0 to the horizon, close together at the start.
 const keyTimes = (horizon) => Array.from({ length: KEYS + 1 }, (_, i) => horizon * (i / KEYS) ** 2)
 
-// Integrates the spring toward the creeping goal, and keeps the value monotonic and under CAP.
-function follow(from, speed, real) {
-    const start = Math.max(from, Math.min(real, CAP))
-    const goal = Math.max(Math.min(CAP, real + LEAD), from + MIN_CREEP * (CAP - from))
+// Integrates the creeping goal and the spring that follows it, and keeps the value monotonic
+// and under CAP. The goal moves by its own rule at each step, so how often the meter plans
+// does not change how fast it creeps.
+function follow(from, speed, goalNow, real) {
+    const start = Math.max(from, goalNow, Math.min(real, CAP))
     const times = keyTimes(HORIZON_S)
     const values = [from]
+    const goals = [start]
     let x = from
     let v = Math.max(0, speed)
     let tau = 0
+    let g = start
     for (let i = 1; i < times.length; i++) {
         while (tau < times[i]) {
-            const g = start + (goal - start) * (1 - Math.exp(-tau / CREEP_S))
+            const heading = Math.max(Math.min(CAP, real + LEAD), g + MIN_CREEP * (CAP - g))
+            g += ((heading - g) / CREEP_S) * STEP_S
             // The value cannot go back, so the speed stays at zero or above. A value past the
             // goal then waits for the goal, and starts again from rest.
             v = Math.max(0, v + (STIFFNESS * STIFFNESS * (g - x) - 2 * STIFFNESS * v) * STEP_S)
@@ -61,8 +67,9 @@ function follow(from, speed, real) {
             tau += STEP_S
         }
         values.push(x)
+        goals.push(g)
     }
-    return { times, values }
+    return { times, values, goals }
 }
 
 // A cubic from the value and speed now to 1 at rest.
@@ -136,8 +143,8 @@ export function createGateMeter(tracks, probe = null) {
         update(real) {
             if (done) return
             const time = now()
-            const { value, speed } = sample(plan, time)
-            play({ start: time, ...follow(value, speed, real) })
+            const { value, speed, goal } = sample(plan, time)
+            play({ start: time, ...follow(value, speed, goal, real) })
         },
         // Runs to 1 and resolves when the meter shows it. Instant when nothing shows yet, as on a
         // second greeting.

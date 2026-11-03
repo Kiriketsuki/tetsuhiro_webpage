@@ -10,7 +10,7 @@
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
                         <button type="button" class="action hero-scene" @click="sceneOnly = true">
-                            just the island
+                            just the aerie
                         </button>
                     </div>
                     <div class="flex flex-row-reverse">
@@ -65,9 +65,10 @@ const touch = window.matchMedia('(pointer: coarse)').matches
 const { active, reducedMotion, entered, setActive, goTo } = useWaypoints()
 const { scramble } = useScramble()
 const sceneOnly = ref(false)
-const { exploring } = useExplore()
-// Both modes hide the words and leave the island on its own.
-const wordsHidden = computed(() => sceneOnly.value || exploring.value)
+const { exploring, looking } = useExplore()
+// Both modes hide the words and leave the aerie on its own. The words also wait while the
+// iris of the telescope move runs.
+const wordsHidden = computed(() => sceneOnly.value || exploring.value || looking.value)
 // The gate only shows on the first visit. Coming back from /projects skips it.
 const showGate = ref(!entered.value)
 

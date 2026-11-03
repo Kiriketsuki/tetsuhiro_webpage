@@ -68,6 +68,24 @@ const HIGH_RISES = [
 
 const glslVec2 = ([x, y]) => `vec2( ${x.toFixed(2)}, ${y.toFixed(2)} )`
 const TOWER = toWorld([TOWER_U, TOWER_N])
+// Bounds that let landmarks() skip a landmark the view ray cannot reach. Each one is a circle on
+// the map and a top height. The circle
+// holds the widest square of the landmark, with a 2 m margin. The tower comes from LATTICE.
+const TOWER_BOUND = {
+    radius: Math.max(...LATTICE.flatMap(([, , s0, s1]) => [s0, s1])) * Math.SQRT2 + 2,
+    height: Math.max(...LATTICE.map(([, y1]) => y1)),
+}
+// The cluster circle is centred on the mean of the high-rise footprints. It reaches the far corner
+// of the block that extends furthest from the centre.
+const HIGH_RISE_FOOTPRINTS = HIGH_RISES.map(([u, n]) => toWorld([u, n]))
+const CLUSTER = [
+    HIGH_RISE_FOOTPRINTS.reduce((sum, [x]) => sum + x, 0) / HIGH_RISES.length,
+    HIGH_RISE_FOOTPRINTS.reduce((sum, [, z]) => sum + z, 0) / HIGH_RISES.length,
+]
+const CLUSTER_BOUND = {
+    radius: Math.max(...HIGH_RISES.map(([, , half], i) => Math.hypot(HIGH_RISE_FOOTPRINTS[i][0] - CLUSTER[0], HIGH_RISE_FOOTPRINTS[i][1] - CLUSTER[1]) + half * Math.SQRT2)) + 2,
+    height: Math.max(...HIGH_RISES.map(([, , , height]) => height)),
+}
 
 // band() is the exact cover of a lit band of half width w, at distance d from its centre,
 // over a soft edge of width f. A band thinner than f keeps its energy and spreads, so the
@@ -77,10 +95,17 @@ const TOWER = toWorld([TOWER_U, TOWER_N])
 // Each light is a disc of discPx screen pixels, measured through toPx, the map to screen
 // Jacobian inverse, so the disc stays round on screen at any view angle. The main pass blends
 // two levels whose cells are a few discs wide, so the discs keep their screen size at any
-// distance, and it scales each level so the mean light per area stays the same.
+// distance, and it scales each level so the mean light per area stays the same. A light whose
+// disc edge lies beyond the pixel adds exactly zero, so field() tests the distance first and skips
+// the street, weight and tint work for it.
 // frustum() clips the view ray, back from the ground point, against a square frustum and
 // returns the ray parameter where the ray from the camera enters it, or -1. The hit nearest
 // the camera has the largest ray parameter.
+// within() tells landmarks() when the view ray can reach a landmark. The ray rises at most
+// `height` metres above the ground point, so it moves at most length( toCam.xz ) * height / toCam.y
+// across the map. The 1.02 factor and the margin in the radius cover the 1e-4 nudge of b and
+// the float error. When the camera is less than 1 m above the ground point, the ray is too flat
+// for the bound, so within() returns true and the full test runs.
 const fragmentShader = /* glsl */ `
 uniform float uTime;
 uniform float uDpr;
@@ -119,10 +144,11 @@ vec3 field( vec2 m, float s, vec2 dir, float seed ) {
         for ( int i = -1; i <= 1; i ++ ) {
             vec2 id = c + vec2( float( i ), float( j ) );
             vec2 q = ( id + 0.15 + 0.7 * vec2( hash12( id + seed ), hash12( id + seed + 4.1 ) ) ) * s;
+            float d = length( toPx * ( q - m ) );
+            if ( d >= discPx + 0.8 ) continue;
             vec2 e = ( 0.5 - abs( fract( vec2( dot( q, dir ) / ${BLOCK[0].toFixed(1)}, dot( q, perp ) / ${BLOCK[1].toFixed(1)} ) ) - 0.5 ) ) * vec2( ${BLOCK[0].toFixed(1)}, ${BLOCK[1].toFixed(1)} );
             float street = smoothstep( 9.0, 2.0, min( e.x, e.y ) );
             float w = mix( 0.48, mix( 0.3, 1.0, street ), resolve ) * ground( q ) * exp2( 3.2 * hash12( id + seed + 9.7 ) - 1.6 );
-            float d = length( toPx * ( q - m ) );
             float disc = smoothstep( discPx + 0.8, discPx - 0.8, d ) * ( 0.85 + 0.3 * smoothstep( 0.55 * discPx, discPx, d ) );
             sum += tint( hash12( id + seed + 2.3 ) ) * w * disc;
         }
@@ -148,6 +174,12 @@ float frustum( vec2 a, vec2 b, float dy, float y0, float y1, float s0, float s1 
 vec2 toMap( vec2 d ) {
     return vec2( dot( d, ALONG ), dot( d, ACROSS ) );
 }
+bool within( vec3 P, vec3 toCam, vec2 centre, float radius, float height ) {
+    if ( toCam.y < 1.0 ) return true;
+    vec2 off = P.xz - centre;
+    float reach = radius + 1.02 * length( toCam.xz ) * height / toCam.y;
+    return dot( off, off ) <= reach * reach;
+}
 
 // The lattice tower and the far high-rises, as seen along the view ray through P.
 vec4 landmarks( vec3 P, float pixelAngle ) {
@@ -155,7 +187,10 @@ vec4 landmarks( vec3 P, float pixelAngle ) {
     float dy = toCam.y;
     vec2 b = toMap( toCam.xz ) + 1e-4;
     vec2 a = toMap( P.xz - ${glslVec2(TOWER)} );
-    float t = ${LATTICE.map(([y0, y1, s0, s1]) => `frustum( a, b, dy, ${y0.toFixed(1)}, ${y1.toFixed(1)}, ${s0.toFixed(1)}, ${s1.toFixed(1)} )`).reduce((all, next) => `max( ${all}, ${next} )`)};
+    float t = -1.0;
+    if ( within( P, toCam, ${glslVec2(TOWER)}, ${TOWER_BOUND.radius.toFixed(2)}, ${TOWER_BOUND.height.toFixed(1)} ) ) {
+        t = ${LATTICE.map(([y0, y1, s0, s1]) => `frustum( a, b, dy, ${y0.toFixed(1)}, ${y1.toFixed(1)}, ${s0.toFixed(1)}, ${s1.toFixed(1)} )`).reduce((all, next) => `max( ${all}, ${next} )`)};
+    }
     vec3 colour = vec3( 0.0 );
     float best = -1.0;
     if ( t > 0.0 ) {
@@ -176,17 +211,19 @@ vec4 landmarks( vec3 P, float pixelAngle ) {
         colour = ( GOLD * ( 1.7 * lattice * ( xFace ? 1.0 : 0.75 ) + 1.4 * deck ) + vec3( 1.6 ) * sparkle ) * ( 1.0 - 0.85 * arch )
             + vec3( 1.0, 0.85, 0.6 ) * 2.5 * step( 156.0, y );
     }
-    ${HIGH_RISES.map(([u, n, half, height]) => {
-        const [x, z] = toWorld([u, n])
-        return `t = frustum( toMap( P.xz - ${glslVec2([x, z])} ), b, dy, 0.0, ${height.toFixed(1)}, ${half.toFixed(1)}, ${half.toFixed(1)} );
-    if ( t > best ) {
-        best = t;
-        vec2 s = toMap( P.xz - ${glslVec2([x, z])} ) + b * t;
-        vec2 w = vec2( ( abs( s.x ) > abs( s.y ) ? s.y : s.x ) / 3.2, dy * t / 3.8 );
-        float on = step( hash12( floor( w ) + ${u.toFixed(1)} ), 0.3 );
-        colour = vec3( 0.01, 0.012, 0.022 ) + vec3( 0.75, 0.82, 1.0 ) * mix( on, 0.3, 0.6 ) * 0.9;
-    }`
-    }).join('\n    ')}
+    if ( within( P, toCam, ${glslVec2(CLUSTER)}, ${CLUSTER_BOUND.radius.toFixed(2)}, ${CLUSTER_BOUND.height.toFixed(1)} ) ) {
+        ${HIGH_RISES.map(([u, n, half, height]) => {
+            const [x, z] = toWorld([u, n])
+            return `t = frustum( toMap( P.xz - ${glslVec2([x, z])} ), b, dy, 0.0, ${height.toFixed(1)}, ${half.toFixed(1)}, ${half.toFixed(1)} );
+        if ( t > best ) {
+            best = t;
+            vec2 s = toMap( P.xz - ${glslVec2([x, z])} ) + b * t;
+            vec2 w = vec2( ( abs( s.x ) > abs( s.y ) ? s.y : s.x ) / 3.2, dy * t / 3.8 );
+            float on = step( hash12( floor( w ) + ${u.toFixed(1)} ), 0.3 );
+            colour = vec3( 0.01, 0.012, 0.022 ) + vec3( 0.75, 0.82, 1.0 ) * mix( on, 0.3, 0.6 ) * 0.9;
+        }`
+        }).join('\n        ')}
+    }
     return vec4( colour, step( 0.0, best ) );
 }
 

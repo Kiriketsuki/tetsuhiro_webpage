@@ -1,16 +1,18 @@
 import * as THREE from 'three'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { GradePass } from './grade-pass.js'
 import { GlowPass } from './glow-pass.js'
 
 // The quality ladder. The soft glow runs on the desktop only, and the ladder drops it
-// first, then MSAA, then the ink and the lens (depth), then the pixel ratio. Reduced motion is
-// not a tier: it renders one frame.
+// first, then MSAA, then the pixel ratio to 1.5, then the ink and the lens (depth), then the
+// pixel ratio to 1. Reduced motion is not a tier: it renders one frame.
+// A phone starts at no-msaa at its full pixel ratio. ink-dpr-1.5 cuts the pixels by about 44
+// percent and keeps the ink, whose offsets follow the pixel ratio, so the lines keep their
+// width. Before, the first step down on a phone dropped the ink and the pixels at once.
 export const TIERS = [
     { name: 'glow-msaa4', samples: 4, maxPixelRatio: 2, glow: true, depth: true },
     { name: 'msaa4', samples: 4, maxPixelRatio: 2, glow: false, depth: true },
     { name: 'no-msaa', samples: 0, maxPixelRatio: 2, glow: false, depth: true },
+    { name: 'ink-dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false, depth: true },
     { name: 'dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false, depth: false },
     { name: 'dpr-1', samples: 0, maxPixelRatio: 1, glow: false, depth: false },
 ]
@@ -20,6 +22,52 @@ export const BUDGET_MS = { desktop: 16.7, mobile: 22 }
 
 // A phone already draws at 2x or 3x, so it starts without MSAA, and it never gets the glow.
 export const startTier = (mobile) => (mobile ? 2 : 0)
+
+// The pass chain, in place of EffectComposer. EffectComposer kept a clone of the scene
+// target, with its own MSAA buffer and depth texture, and swapped the two after the grade
+// pass, so each frame drew into the other one. No pass here writes the scene target after
+// the render pass: the glow draws into its own targets and the grade pass draws to the
+// screen. So one target serves the whole chain, and the frame is the same. This frees one
+// full screen target, about 200 MB of GPU memory at a desktop pixel ratio of 2 with MSAA,
+// and keeps ShaderPass, MaskPass and CopyShader out of the scene chunk.
+function createComposer(renderer, target, passes) {
+    let pixelRatio = renderer.getPixelRatio()
+    const setSize = (width, height) => {
+        target.setSize(width * pixelRatio, height * pixelRatio)
+        passes.forEach((pass) => pass.setSize(width * pixelRatio, height * pixelRatio))
+    }
+    const render = () => {
+        const current = renderer.getRenderTarget()
+        passes.forEach((pass, i) => {
+            pass.renderToScreen = i === passes.length - 1
+            pass.render(renderer, target, target, 0, false)
+        })
+        renderer.setRenderTarget(current)
+    }
+    const setPixelRatio = (ratio) => {
+        pixelRatio = ratio
+    }
+    return { setSize, setPixelRatio, render, dispose: () => target.dispose() }
+}
+
+// The scene pass: the steps RenderPass takes with its defaults (clear on, no clear colour,
+// no override material), without the RenderPass module. autoClear stays off during the
+// render, so the clear here is the only one.
+function createScenePass(scene, camera) {
+    return {
+        scene,
+        camera,
+        setSize() {},
+        render(renderer, writeBuffer, readBuffer) {
+            const autoClear = renderer.autoClear
+            renderer.autoClear = false
+            renderer.setRenderTarget(this.renderToScreen ? null : readBuffer)
+            renderer.clear(renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil)
+            renderer.render(this.scene, this.camera)
+            renderer.autoClear = autoClear
+        },
+    }
+}
 
 // Builds the composer for one tier: the scene into a half-float target, the glow on the
 // desktop tier, then the grade pass to the screen.
@@ -36,13 +84,10 @@ export function createPipeline({ renderer, scene, camera, tier, small = false })
     })
     target.texture.name = `aerie.main.${tier.name}`
     if (depth) target.depthTexture = new THREE.DepthTexture(size.x * pixelRatio, size.y * pixelRatio)
-    const composer = new EffectComposer(renderer, target)
-    const renderPass = new RenderPass(scene, camera)
+    const renderPass = createScenePass(scene, camera)
     const grade = new GradePass()
     const glow = tier.glow && !small ? new GlowPass() : null
-    composer.addPass(renderPass)
-    if (glow) composer.addPass(glow)
-    composer.addPass(grade)
+    const composer = createComposer(renderer, target, glow ? [renderPass, glow, grade] : [renderPass, grade])
     grade.setGlow(glow?.texture ?? null)
     grade.setCamera(depth ? camera : null, pixelRatio)
 

@@ -2,14 +2,14 @@
 // the skill sky and for the screen-reader list on /skills. Every claim comes from the
 // evidence audit of 3 November 2026: a repo, a pull request or a job. Keep it to shipped work.
 export const notes = {
-    javascript: 'I use JavaScript for the Auto-Connect Vue dashboards at Aurrigo, and for this island you are flying over.',
+    javascript: 'I use JavaScript for the Auto-Connect Vue dashboards at Aurrigo, and for this aerie you are flying over.',
     typescript: 'Kinopy, my daily word puzzle, is about 71,000 lines of TypeScript. At that size I rely on the type checker to catch mistakes before a player does.',
     vue: 'At Aurrigo I built four Auto-Connect operator dashboards in Vue 3, for fleet, stand, baggage handling and remote supervision. This site runs on Vue too.',
     svelte: 'Kinopy is a Svelte 5 app, live at kinopy.day since October 2026. A Web Worker handles puzzle generation off the main thread, and seeKi’s interface is Svelte too.',
     tailwind: 'Tailwind 4 styles this site and trKip-planner. The styles live right in the markup, so I do not name CSS classes by hand.',
     maplibre: 'Airport operators need to see their driverless vehicles on a map. The vehicle maps in my Auto-Connect dashboards at Aurrigo run on MapLibre.',
-    blender: 'This island started in Blender. My bpy scripts build and refine the scene, then export it for the web.',
-    threejs: 'Three.js draws the island and the sky you are looking at now. The island model is Draco compressed, and the scene loads when the browser is idle.',
+    blender: 'This aerie started in Blender. My bpy scripts build and refine the scene, then export it for the web.',
+    threejs: 'Three.js draws the aerie and the sky you are looking at now. The aerie model is Draco compressed, and the scene loads when the browser is idle.',
     gsap: 'On desktop, GSAP snaps the scroll from section to section and fades the sections in and out. It also runs the scrambled text effects on this site.',
     python: 'Python runs the Auto-Connect backend at Aurrigo. I also built AutoMinutes, which turns meeting recordings into minutes with Whisper and Qwen.',
     fastapi: 'The first Auto-Connect backend was Flask. I rebuilt it in FastAPI with async SQLAlchemy, and it now runs on Postgres.',

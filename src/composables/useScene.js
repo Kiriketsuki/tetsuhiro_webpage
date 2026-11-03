@@ -1,6 +1,7 @@
 import { onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWaypoints } from './useWaypoints.js'
+import { preloadScene } from '../scene/assets.js'
 
 // One import for the whole visit. The module builds the scene when it first
 // runs, and the canvas stays mounted in App.vue across every route.
@@ -21,6 +22,9 @@ const whenIdle = (callback) =>
 export function useScene() {
     const route = useRoute()
     onMounted(() => {
+        // The island and its decoder start to download now, beside the scene chunk. Before,
+        // they waited for the scene chunk to arrive and run.
+        preloadScene()
         whenIdle(() => {
             loadScene()
                 .then((module) => {
@@ -34,7 +38,7 @@ export function useScene() {
                     // the pages without the island.
                     console.error('The scene module did not load.', error)
                     const { ready, progress, loadError } = useWaypoints()
-                    loadError.value = 'The island did not load. A reload usually sorts it out.'
+                    loadError.value = 'The aerie did not load. A reload usually sorts it out.'
                     progress.value = 1
                     ready.value = true
                 })

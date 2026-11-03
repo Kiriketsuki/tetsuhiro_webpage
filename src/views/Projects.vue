@@ -72,7 +72,7 @@
             </section>
         </div>
 
-        <router-link to="/" class="action self-center">Back to the island</router-link>
+        <router-link to="/" class="action self-center">Back to the aerie</router-link>
     </main>
 </template>
 

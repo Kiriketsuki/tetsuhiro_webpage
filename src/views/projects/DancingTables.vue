@@ -5,8 +5,9 @@
         </h1>
 
         <div class="case-hero frame frame-line">
-            <embed src="https://dancing-tables.web.app/" type="" class="w-full h-full">
+            <img src="../../assets/project_gallery/dancing/live.webp" width="1584" height="900" decoding="async" fetchpriority="high" alt="The start screen of the Dancing Tables site, in its 3D banquet hall.">
         </div>
+        <a href="https://dancing-tables.web.app/" class="action" target="_blank" rel="noopener">Visit the live site</a>
 
         <div class="text_center section">
             <div class="text" style="width: 100%;">
@@ -27,7 +28,7 @@
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_0.png" alt="The banquet hall scene from the Dancing Tables site.">
+                <img src="../../assets/project_gallery/dancing/dancing_0.webp" width="2500" height="1282" decoding="async" alt="The banquet hall scene from the Dancing Tables site.">
             </div>
 
             <div class="text">
@@ -70,13 +71,13 @@
             </div>
 
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_1.png" alt="A furnished table in the banquet hall.">
+                <img src="../../assets/project_gallery/dancing/dancing_1.webp" width="2535" height="1330" loading="lazy" decoding="async" alt="A furnished table in the banquet hall.">
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_2.png" alt="The table lifting robot in the banquet hall.">
+                <img src="../../assets/project_gallery/dancing/dancing_2.webp" width="2532" height="1292" loading="lazy" decoding="async" alt="The table lifting robot in the banquet hall.">
             </div>
             <div class="text">
                 <h5>
@@ -108,8 +109,9 @@
 <style scoped>
 /*
  * The 2022 write-ups, reset into the frame style: a serif title over a rose
- * rule, the demo in a solid frame, then text and pictures in two columns on
- * wide screens and one on phones. No tilt and no gradient headings.
+ * rule, then text and pictures in two columns on wide screens and one on
+ * phones. No tilt and no gradient headings. The pages embed nothing: the
+ * hero is a screenshot of the live site, with a plain link out under it.
  */
 .case {
     display: flex;
@@ -132,13 +134,8 @@
 
 .case-hero {
     width: min(70rem, 100%);
-    height: min(80vh, 44rem);
+    aspect-ratio: 1584 / 900;
     padding: 6px;
-}
-
-.case-hero > * {
-    width: 100%;
-    height: 100%;
 }
 
 .section {

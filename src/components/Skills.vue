@@ -11,8 +11,8 @@
             </p>
             <!-- A phone keeps the card short, so the telescope above it stays in view. -->
             <p class="font-body text-sm text-text-body sm:hidden">
-                {{ skills.length }} skills in {{ branches.length }} groups, from the web to the agents.
-                Look through the telescope to see them as stars.
+                {{ skills.length }} skills in {{ branches.length }} groups, from the web to the agents,
+                each one a star in the sky.
             </p>
             <dl class="rows hidden text-sm sm:grid">
                 <template v-for="branch in branches" :key="branch.id">
@@ -22,10 +22,7 @@
                     <dd>{{ names(branch.id) }}</dd>
                 </template>
             </dl>
-            <div class="flex flex-wrap gap-x-6 gap-y-2">
-                <button type="button" class="action" @click="exploring = true">Look through the telescope</button>
-                <router-link to="/skills" class="action">See the whole tree</router-link>
-            </div>
+            <router-link to="/skills" class="action">See how my skills grew</router-link>
         </article>
     </div>
 </template>
@@ -33,9 +30,6 @@
 <script setup>
 import { branches, skills } from '../data/skills.js'
 import { sideOf } from '../composables/useWaypoints.js'
-import { useExplore } from '../composables/useExplore.js'
-
-const { exploring } = useExplore()
 
 const names = (id) =>
     skills

@@ -32,6 +32,13 @@ const go = async (index) => {
 }
 
 const onHover = (event) => scramble(event.currentTarget.querySelector('.word'))
+
+// The lantern brings back the greeting, for one more look at the lamp. Off the home page it goes
+// home first.
+const greet = async () => {
+    if (!onHome.value) await router.push('/')
+    entered.value = false
+}
 </script>
 
 <template>
@@ -84,6 +91,14 @@ const onHover = (event) => scramble(event.currentTarget.querySelector('.word'))
                 >
                     <span class="number" aria-hidden="true">{{ number(i) }}</span>
                     <span class="word">{{ items[i] }}</span>
+                </button>
+            </li>
+            <li>
+                <button type="button" class="nav-item" aria-label="Back to the lantern" title="Back to the lantern" @click="greet">
+                    <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 1.5v2.8M9.2 4.3h5.6M12 19.7v2.8" />
+                        <path d="M9 5.6C5.2 8 5.2 16 9 18.4h6c3.8-2.4 3.8-10.4 0-12.8Z" />
+                    </svg>
                 </button>
             </li>
         </ul>

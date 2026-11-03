@@ -151,24 +151,52 @@ function buildLeaves(material, branch, palette) {
     return group
 }
 
-function buildLantern(toon, litPaper) {
+// Washi paper: short fine fibres on white. The map multiplies the paper colour, so the paper
+// keeps a fine, sharp grain at any size. Without it the paper was one smooth gradient and read as
+// out of focus. A soft mottle read as smudges, so the paper has none.
+function washiTexture() {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1024
+    const g = canvas.getContext('2d')
+    g.fillStyle = '#ffffff'
+    g.fillRect(0, 0, 1024, 1024)
+    g.lineCap = 'round'
+    for (let i = 0; i < 1800; i++) {
+        const x = rnd() * 1024
+        const y = rnd() * 1024
+        const a = rnd() * Math.PI
+        const l = 8 + rnd() * 46
+        g.strokeStyle = `rgba(110,70,40,${0.06 + rnd() * 0.1})`
+        g.lineWidth = 0.6 + rnd() * 0.9
+        g.beginPath()
+        g.moveTo(x, y)
+        g.quadraticCurveTo(x + Math.cos(a + 0.4) * l * 0.5, y + Math.sin(a + 0.4) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l)
+        g.stroke()
+    }
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+    texture.repeat.set(3, 1.2)
+    texture.anisotropy = 8
+    return texture
+}
+
+function buildLantern(toon, litPaper, paperToon) {
     const group = new THREE.Group()
+    const seamBasic = new THREE.MeshBasicMaterial({ vertexColors: true })
     const dark = (hex) => (geometry) => paint(geometry, (p, c) => c.set(hex))
     const profile = []
-    for (let i = 0; i <= 32; i++) {
-        const y = -0.16 + (i / 32) * 0.32
+    for (let i = 0; i <= 48; i++) {
+        const y = -0.16 + (i / 48) * 0.32
         profile.push(new THREE.Vector2(bodyRadius(y), y * 1.12))
     }
-    const body = new THREE.LatheGeometry(profile, 64)
+    const body = new THREE.LatheGeometry(profile, 128)
     const view = new THREE.Vector3(0, 0.05, 1).normalize()
     const n = new THREE.Vector3()
     const normals = body.attributes.normal
     paint(body, (p, c, i) => {
-        // Faint seams where the paper strips meet.
-        const angle = Math.atan2(p.z, p.x)
-        const seam = Math.pow(Math.abs(Math.cos(angle * 8)), 40)
         if (!litPaper) {
-            c.copy(color(0xb4502a)).lerp(color(0x7a2a1a), seam * 0.5)
+            c.set(0xb4502a)
             return
         }
         // Lit paper: the flame shows through, brightest where the paper faces the camera at
@@ -178,10 +206,19 @@ function buildLantern(toon, litPaper) {
         const mid = Math.max(0, 1 - Math.pow(Math.abs(p.y) / 0.18, 2))
         const heat = Math.pow(facing, 1.4) * (0.35 + 0.65 * mid)
         c.copy(color(0x9a3014)).lerp(color(0xf0781e), Math.min(1, heat * 1.5)).lerp(color(0xffdc96), Math.max(0, heat - 0.5) * 1.5)
-        c.multiplyScalar(1 - seam * 0.35)
     })
     body.translate(LANTERN.x, LANTERN.y, LANTERN.z)
-    group.add(new THREE.Mesh(body, litPaper ?? toon))
+    group.add(new THREE.Mesh(body, litPaper ?? paperToon))
+
+    // The seams where the paper strips meet: thin lines a shade darker than the paper.
+    const seamTone = dark(litPaper ? 0xc8662a : 0x8a3420)
+    for (let k = 0; k < 16; k++) {
+        const angle = (k / 16) * Math.PI * 2
+        const points = profile.map((v) => new THREE.Vector3(Math.cos(angle) * (v.x + 0.0005), v.y, Math.sin(angle) * (v.x + 0.0005)))
+        const seam = seamTone(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 48, 0.0008, 4, false))
+        seam.translate(LANTERN.x, LANTERN.y, LANTERN.z)
+        group.add(new THREE.Mesh(seam, litPaper ? seamBasic : toon))
+    }
 
     // The bamboo ribs.
     const ribTone = dark(litPaper ? 0x7a3218 : 0x5a2416)
@@ -259,19 +296,27 @@ const uniforms = createToonUniforms({
     warmStrength: 2.2,
 })
 const toon = createToonMaterial(uniforms)
-const pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[0] })
+// The msaa4 tier: the ink and the lens, but no glow pass. The glow pass put a soft halo on the
+// bright paper edge, and the gate draws its own glow in CSS.
+const pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[1] })
 createLookControl(uniforms).apply(SITE_LOOK, pipeline.grade.uniforms)
 // The gate sky has no vignette, and a vignette would break the matte.
 pipeline.grade.uniforms.uVignette.value = 0
 pipeline.grade.uniforms.uFocus.value = camera.position.distanceTo(LANTERN)
+// A deeper sharp slab than the island stops use, so the whole lantern, front to back, stays in
+// focus. The branch ends still soften.
+pipeline.grade.uniforms.uLensBand.value = 0.22
 
 if (layer === 'branch' || layer === 'all') {
     const branch = buildBranch(toon)
     scene.add(branch.group, buildLeaves(toon, branch, lit ? AUTUMN : SUMMER))
 }
 if (layer === 'lantern' || layer === 'all') {
-    const paper = lit ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }) : null
-    scene.add(buildLantern(toon, paper))
+    const washi = washiTexture()
+    const paper = lit ? new THREE.MeshBasicMaterial({ vertexColors: true, map: washi, side: THREE.DoubleSide }) : null
+    // The map changes the shader, so the unlit paper needs its own program key.
+    const paperToon = createToonMaterial(uniforms, { map: washi }, { key: 'aerie-toon-v3-map' })
+    scene.add(buildLantern(toon, paper, paperToon))
 }
 if (layer === 'sprites') scene.add(buildSprites(toon))
 

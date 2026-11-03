@@ -107,9 +107,13 @@ watch(active, (index) => {
     showSection(index)
 })
 
-// Fades the page in under the lifting gate.
+// Fades the page in under the lifting gate. The nav lantern sets entered back to false, and
+// the gate comes back for a second look.
 watch(entered, (value) => {
-    if (!value) return
+    if (!value) {
+        showGate.value = true
+        return
+    }
     gsap.fromTo('#home', { autoAlpha: 0 }, { autoAlpha: wordsHidden.value ? 0 : 1, duration: reducedMotion.value ? 0 : 1, delay: reducedMotion.value ? 0 : 0.6 })
     decodeTitle(0.7)
 })

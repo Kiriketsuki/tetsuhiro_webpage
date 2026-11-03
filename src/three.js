@@ -103,6 +103,11 @@ function fallBack(error) {
     ready.value = true
 }
 
+// Text pages dim the scene, so its twinkle and water are not worth the frames there. Behind the
+// gate the lantern art covers the scene, so the scene draws only the frames that change it, and
+// the lantern keeps the GPU and the main thread.
+const ambientFps = () => (route === 'Home' && entered.value ? 30 : 0)
+
 // The stop for the current route and section. Home waits on the wide view until the
 // visitor goes through the gate.
 function currentStop() {
@@ -144,9 +149,12 @@ function boot() {
             ready.value = true
         })
 
-    // The gate lift is a long move. Section and route changes are shorter ones.
+    // The gate lift is a long move. Section and route changes are shorter ones. The nav lantern
+    // brings the gate back: the camera cuts to the wide view under the art, and the twinkle stops
+    // until the visitor goes in again.
     watch(entered, (value) => {
-        if (value) manager.goTo(currentStop(), { duration: 2.4 })
+        manager.setAmbientFps(ambientFps())
+        manager.goTo(currentStop(), { duration: value ? 2.4 : 0 })
     })
     // During a jump the camera waits for the target section, then takes one move there.
     watch(active, (index) => {
@@ -162,12 +170,22 @@ function boot() {
 
     // Drag and pinch from ExplorePad.vue look around the current stop.
     const explore = useExplore()
-    // A tap on the wall that lands on a pin opens it.
-    const tap = (x, y) => {
-        const id = manager.tap(x, y)
-        if (id) wall.picked.value = id
+    // A tap on the wall tells the page which pin it hit, or null for the cork.
+    const tap = (x, y, type = 'mouse') => {
+        // Every tap is a new value, so a second tap on the same pin reaches the page too.
+        wall.picked.value = { id: manager.tap(x, y), touch: type !== 'mouse', at: performance.now() }
     }
-    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap })
+    // A mouse over the wall names the pin under it. The test runs once per frame at most.
+    let hoverAt = null
+    const hover = (x, y) => {
+        if (!wall.shown.value) return
+        if (!hoverAt) requestAnimationFrame(() => {
+            wall.hovered.value = manager.wall.pinAt(hoverAt.x, hoverAt.y)
+            hoverAt = null
+        })
+        hoverAt = { x, y }
+    }
+    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap, hover })
     wall.connect(manager.wall)
     manager.wall.built().then((ok) => {
         wallBuilt = ok
@@ -209,8 +227,7 @@ export function pause() {
 export function setRoute(name, { cut = false } = {}) {
     if (name === route && !cut) return
     route = name
-    // Text pages dim the scene, so its twinkle and water are not worth the frames there.
-    manager?.setAmbientFps(name === 'Home' ? 30 : 0)
+    manager?.setAmbientFps(ambientFps())
     // The skills page sits over the skill sky. A direct visit opens on it with every star lit.
     // A route change into or out of it is the move through the eyepiece. Projects sits over
     // the evidence wall in the same way, and its move is the flight to the workshop board.

@@ -256,7 +256,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         new THREE.PlaneGeometry(1, 1),
         new THREE.MeshBasicMaterial({ map: haloTexture(), color: 0xffc27a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
     )
-    scene.add(board, halo, ...createLight(small))
+    const light = createLight(small)
+    scene.add(board, halo, ...light.objects)
 
     // The sharp pages. Each one is a canvas texture with its own two materials.
     for (let k = 0; k < (small ? SLOTS.small : SLOTS.wide); k++) {
@@ -327,7 +328,9 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     // Steps the wall by dt seconds. Returns true while it needs more frames.
     const update = (dt) => {
-        const moving = Boolean(view.step(dt) | lift(dt))
+        const aiming = light.aim.step(dt)
+        if (aiming) shadowDirty = true
+        const moving = Boolean(view.step(dt) | lift(dt) | aiming)
         if (wasMoving && !moving) changed()
         wasMoving = moving
         if (moving || !due || performance.now() < due) return moving
@@ -337,7 +340,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     const rect = (item) => ({ x: item.x, y: item.y, w: item.w + 0.03, h: item.h + 0.03 })
 
-    const highlight = (id) => {
+    // reveal: pan so the pin is on screen. Keyboard marks reveal, the mouse never does.
+    const highlight = (id, reveal = true) => {
         const item = items.get(id) ?? null
         if (marked && marked !== item) marked.target = 0
         marked = item
@@ -346,7 +350,7 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
             halo.position.set(item.x, item.y, 0.0009)
             halo.rotation.z = item.tilt
             halo.scale.set((item.w + 0.035) * 2, (item.h + 0.035) * 2, 1)
-            view.reveal(rect(item))
+            if (reveal) view.reveal(rect(item))
         } else halo.material.opacity = 0
         changed()
     }
@@ -359,10 +363,51 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         changed()
     }
 
+    // A case folder is open: the top row of pins moves into sight above it. unfocus goes back.
+    const peek = ({ instant = false } = {}) => {
+        // With one group under the lamp the view already frames it, so it stays.
+        if (small || lit) return
+        before ??= view.snapshot()
+        view.peekTop(instant || reduced)
+        changed()
+    }
+
     const unfocus = ({ instant = false } = {}) => {
         if (before) view.go(before, instant)
         before = null
         changed()
+    }
+
+    // One group under a narrow lamp, framed on screen. null opens the lamp to the whole board
+    // and goes back to the overview.
+    let lit = null
+    const filter = (id) => {
+        const members = [...items.values()].filter((item) => item.source.group === id)
+        lit = members.length ? id : null
+        // The lamp moves, so its shadow map draws again, also when the move is instant.
+        shadowDirty = true
+        if (!members.length) {
+            light.aim.to(null, reduced)
+            view.go(view.home, reduced)
+            changed()
+            return
+        }
+        const left = Math.min(...members.map((m) => m.x - m.w / 2))
+        const right = Math.max(...members.map((m) => m.x + m.w / 2))
+        const low = Math.min(...members.map((m) => m.y - m.h / 2))
+        const high = Math.max(...members.map((m) => m.y + m.h / 2))
+        const centre = [(left + right) / 2, (low + high) / 2]
+        light.aim.to(centre, reduced, Math.hypot(right - left, high - low) / 2)
+        view.frameRect({ x: centre[0], y: centre[1], w: right - left + 0.08, h: high - low + 0.08 }, reduced)
+        changed()
+    }
+
+    // The client point of a pin head, for the tag that names it on screen.
+    const screenOf = (id) => {
+        const item = items.get(id)
+        if (!item) return null
+        const p = anchor(item).project(view.camera)
+        return { x: ((p.x + 1) / 2) * innerWidth, y: ((1 - p.y) / 2) * innerHeight }
     }
 
     const tap = (x, y) => {
@@ -471,6 +516,9 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         },
         roomCopy,
         reset,
+        filter,
+        screenOf,
+        peek,
         setReducedMotion: (value) => {
             reduced = value
             view.setReducedMotion(value)

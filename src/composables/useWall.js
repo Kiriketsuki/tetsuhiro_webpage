@@ -9,6 +9,8 @@ const picked = ref(null)
 // The visitor asked for the list (?list). It stays on across the project pages until they go
 // back to the wall, so a link from the list does not drop them onto the wall.
 const listed = ref(false)
+// The pin under the mouse, for its tag. Touch has no hover: a first tap names a pin instead.
+const hovered = ref(null)
 let controls = null
 
 export function useWall() {
@@ -19,9 +21,12 @@ export function useWall() {
         }
     }
 
-    const highlight = (id) => controls?.highlight(id)
+    const highlight = (id, reveal = true) => controls?.highlight(id, reveal)
     const focus = (id) => controls?.focus(id)
     const unfocus = () => controls?.unfocus()
+    const filter = (id) => controls?.filter(id)
+    const peek = () => controls?.peek()
+    const screenOf = (id) => controls?.screenOf(id) ?? null
 
-    return { shown, picked, listed, connect, highlight, focus, unfocus }
+    return { shown, picked, listed, hovered, connect, highlight, focus, unfocus, filter, screenOf, peek }
 }

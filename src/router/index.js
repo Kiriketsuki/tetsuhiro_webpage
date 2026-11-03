@@ -28,17 +28,15 @@ const routes = [
         component: () => import('../views/projects/Placeholders.vue'),
         meta: { title: 'Find My HDB' },
     },
-    // One page for every featured project. An unknown id falls through to the 404.
+    // One page for every featured project. An unknown id goes to the wall, so a link to a
+    // project that left the site still lands somewhere useful.
     {
         path: '/projects/:id',
         name: 'Project',
         // The same view as Projects: the wall with this pin open, or the project page.
         component: () => import('../views/Projects.vue'),
         meta: { title: (to) => findProject(to.params.id)?.title },
-        beforeEnter: (to) =>
-            findProject(to.params.id)
-                ? true
-                : { name: 'NotFound', params: { pathMatch: to.path.slice(1).split('/') }, replace: true },
+        beforeEnter: (to) => (findProject(to.params.id) ? true : { path: '/projects', replace: true }),
     },
     {
         path: '/:pathMatch(.*)*',

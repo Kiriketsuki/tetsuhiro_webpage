@@ -129,9 +129,10 @@ const plan = () => {
     if (planTimer || !meter) return
     planTimer = setTimeout(() => {
         planTimer = 0
-        meter?.update(progress.value * (1 - VISIT_SHARE) + visitShare * VISIT_SHARE)
+        meter?.update(realShare())
     }, PLAN_MS.min)
 }
+const realShare = () => progress.value * (1 - VISIT_SHARE) + visitShare * VISIT_SHARE
 watch(progress, (value) => {
     if (value >= DOWNLOADED) visitLoaded ??= preloadVisit()
     plan()
@@ -174,11 +175,26 @@ const onHover = (event) => {
     if (event.pointerType === 'mouse') swing(event)
 }
 
+// Resolves after the next two frames and an idle moment. A font that arrives last makes the
+// scene draw its labels again and upload them in the next frame, a long task on a slow phone.
+// That frame lands here, under the creeping meter, and not on the run to 1. A hidden tab has
+// no frames, so a timer stands in after SETTLE_MS.
+const SETTLE_MS = 3000
+const settled = () =>
+    new Promise((resolve) => {
+        const idle = () => ('requestIdleCallback' in window ? requestIdleCallback(resolve, { timeout: 1500 }) : setTimeout(resolve, 50))
+        requestAnimationFrame(() => requestAnimationFrame(idle))
+        setTimeout(resolve, SETTLE_MS)
+    })
+
 // At ready the meter runs to 1, once the fonts and the next pages are in too. After a failed
 // load the meter does not wait for them.
 watch(ready, async (value) => {
     if (!value || !meter) return
-    if (!loadError.value) await (visitLoaded ??= preloadVisit())
+    if (!loadError.value) {
+        await (visitLoaded ??= preloadVisit())
+        await settled()
+    }
     await meter.finish()
     full.value = true
 })

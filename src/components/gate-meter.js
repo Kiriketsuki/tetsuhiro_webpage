@@ -27,6 +27,8 @@ const KEYS = 72
 const STEP_S = 1 / 240
 // The final run to 1, in milliseconds, longer from further back.
 const FINISH_MS = { base: 450, range: 900 }
+// The longest the run to 1 waits for a frame, in milliseconds.
+const FRAME_WAIT_MS = 250
 
 // The value, its speed per second and the goal of a plan at a time on the document timeline.
 const sample = (plan, time) => {
@@ -157,10 +159,20 @@ export function createGateMeter(tracks, probe = null) {
                 return Promise.all(running.map((animation) => animation.finished.catch(() => {}))).then(() => {})
             }
             if (instant) return run()
-            // The run to 1 starts in a task of its own. New animations reach the compositor only
-            // when the task that made them ends, so work that went on in the caller's task kept
-            // the run off the screen until it was over, and the meter jumped to 1.
-            return new Promise((resolve) => setTimeout(() => run().then(resolve), 0))
+            // The run to 1 starts in a frame callback, so the frame that follows hands it to the
+            // compositor. New animations reach the compositor only with a frame, so a long task
+            // between the call and the next frame kept the run off the screen until it was
+            // over, and the meter jumped to 1. A hidden tab has no frames, so a timer stands in.
+            return new Promise((resolve) => {
+                let started = false
+                const go = () => {
+                    if (started) return
+                    started = true
+                    run().then(resolve)
+                }
+                requestAnimationFrame(go)
+                setTimeout(go, FRAME_WAIT_MS)
+            })
         },
         stop() {
             done = true

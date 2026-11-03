@@ -11,11 +11,11 @@ import { createLeafCarpet } from './aerie/leaf-carpet.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
 import { createCityBackdrop } from './aerie/city-backdrop.js'
 import { createSky, NIGHT_SKY, ISLAND_HAZE_DENSITY } from './aerie/sky.js'
-import { CAMPFIRE_BOUNCE } from './aerie/toon-material.js'
+import { CAMPFIRE_BOUNCE, SURFACE } from './aerie/toon-material.js'
+import { softenGeometry } from './aerie/soft-normals.js'
 import { createLeafCards } from './aerie/leaf-cards.js'
 import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
-import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
@@ -123,7 +123,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The move through the eyepiece while it runs: { t, on, legs, close, swap, end }.
     let scope = null
     const loaders = createLoaders()
-    const clock = new THREE.Clock(false)
+    // The rAF timestamp of the last frame, or null before the first frame of a run.
+    let frameAt = null
     let seconds = 0
     let ambient = 0
     let ambientFps = AMBIENT_FPS
@@ -375,8 +376,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         })
     }
 
-    const tick = () => {
-        const delta = Math.min(clock.getDelta(), 0.1)
+    // The frame step is the time between two rAF timestamps, which follow the display. A clock
+    // read in this callback wandered from it: the GSAP ticker and other rAF callbacks run first
+    // for a different time each frame. On a phone at 4x CPU throttle the read was up to 8.7 ms
+    // off, so the camera moved up to 79 percent more or less than the frame showed.
+    const tick = (time) => {
+        const delta = frameAt === null ? 0 : Math.min((time - frameAt) / 1000, 0.1)
+        frameAt = time
         seconds += delta
         ambient += delta
         rig.update(delta)
@@ -409,11 +415,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     const update = () => {
         if (running()) {
-            clock.start()
             renderer.setAnimationLoop(tick)
         } else {
             renderer.setAnimationLoop(null)
-            clock.stop()
+            frameAt = null
             if (state.reduced) requestRender()
         }
     }
@@ -493,6 +498,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         return module
     })
     moveModule.catch(() => {})
+    // The campfire and its kit of seats load in their own chunk beside the island. A failed
+    // campfire leaves the lawn bare and the rest of the island as it is.
+    const campfireBuild = import('./aerie/campfire.js').then(async (module) => ({ module, kit: await module.loadCampfireKit(loaders.gltf) }))
+    campfireBuild.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -590,9 +599,18 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             scene.add(parts.leaves.group)
             await nextTask()
 
-            const spot = anchor(root, 'Anchor_Campfire') ?? findCampfireSpot(root)
+            const fire = await campfireBuild.catch((error) => {
+                console.error('The campfire did not load.', error)
+                return null
+            })
+            const spot = fire && (anchor(root, 'Anchor_Campfire') ?? fire.module.findCampfireSpot(root))
             if (spot) {
-                parts.campfire = createCampfire({ position: spot, bounce: look.uniforms.uToonBounce.value[CAMPFIRE_BOUNCE] })
+                parts.campfire = fire.module.createCampfire({
+                    position: spot,
+                    kit: fire.kit,
+                    toon: { material: look.materials[0], surface: SURFACE, soften: softenGeometry },
+                    bounce: look.uniforms.uToonBounce.value[CAMPFIRE_BOUNCE],
+                })
                 scene.add(parts.campfire.group)
             }
             const glows = parts.campfire ? [...look.glowSpots, parts.campfire.glowSpot] : look.glowSpots
@@ -612,7 +630,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
             // The skill sky is its own chunk, so it stays out of the scene budget.
             await skyFonts
-            const { createConstellation } = await skyModule
+            const { createConstellation, eyepieceGlass } = await skyModule
+            eyepieceGlass(scene)
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 

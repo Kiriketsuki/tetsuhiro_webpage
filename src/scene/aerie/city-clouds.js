@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { HAZE_GLSL, PLANE_VERTEX } from './city-glsl.js'
+import { HAZE_GLSL, NOISE_GLSL, PLANE_VERTEX } from './city-glsl.js'
+import { bake } from './city-map.js'
 
 // Cloud and fog layers between the island and the city. Each layer is one flat plane of
 // slow drifting cloud over a thin even fog. The layers sit at different heights, so they
@@ -22,57 +23,34 @@ export const FOG_LAYER = { y: LAYERS[0].y, alpha: 0.42 }
 // The colour of thin cloud, in GLSL, from the haze colour along the view.
 export const THIN_CLOUD = 'haze + vec3( 1.0, 0.6, 0.26 ) * 0.05'
 
-// The noise tile: NOISE_TEXELS texels across, NOISE_CELLS value noise cells across. R and G
-// hold one octave each for the warp, B holds four octaves for the cloud.
+// The noise tile: NOISE_TEXELS texels across, NOISE_CELLS value noise cells across. The GPU
+// bakes it once at load. R and G hold one octave each for the warp, B holds four octaves for
+// the cloud. Each octave wraps at the tile edge, so the tile repeats with no seam.
 const NOISE_TEXELS = 128
 const NOISE_CELLS = 16
-
-function createNoiseTile() {
-    const lattice = (seed, period) => {
-        const values = new Float32Array(period * period)
-        let a = seed
-        for (let i = 0; i < values.length; i++) {
-            a = (Math.imul(a ^ (a >>> 15), 2246822519) + 0x9e3779b9) >>> 0
-            values[i] = a / 4294967296
-        }
-        return (x, y) => {
-            const ix = Math.floor(x)
-            const iy = Math.floor(y)
-            const fx = x - ix
-            const fy = y - iy
-            const sx = fx * fx * (3 - 2 * fx)
-            const sy = fy * fy * (3 - 2 * fy)
-            const at = (i, j) => values[(((j % period) + period) % period) * period + (((i % period) + period) % period)]
-            const top = at(ix, iy) + (at(ix + 1, iy) - at(ix, iy)) * sx
-            const bottom = at(ix, iy + 1) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * sx
-            return top + (bottom - top) * sy
-        }
-    }
-    const warpA = lattice(11, NOISE_CELLS)
-    const warpB = lattice(29, NOISE_CELLS)
-    const octaves = [0, 1, 2, 3].map((o) => lattice(47 + o * 13, NOISE_CELLS << o))
-    const data = new Uint8Array(NOISE_TEXELS * NOISE_TEXELS * 4)
-    for (let j = 0; j < NOISE_TEXELS; j++) {
-        for (let i = 0; i < NOISE_TEXELS; i++) {
-            const x = (i / NOISE_TEXELS) * NOISE_CELLS
-            const y = (j / NOISE_TEXELS) * NOISE_CELLS
-            const fbm = octaves.reduce((sum, octave, o) => sum + octave(x * 2 ** o, y * 2 ** o) * 0.5 ** (o + 1), 0)
-            const k = (j * NOISE_TEXELS + i) * 4
-            data[k] = Math.round(255 * warpA(x, y))
-            data[k + 1] = Math.round(255 * warpB(x, y))
-            data[k + 2] = Math.round(255 * fbm)
-            data[k + 3] = 255
-        }
-    }
-    const texture = new THREE.DataTexture(data, NOISE_TEXELS, NOISE_TEXELS, THREE.RGBAFormat)
-    texture.wrapS = THREE.RepeatWrapping
-    texture.wrapT = THREE.RepeatWrapping
-    texture.magFilter = THREE.LinearFilter
-    texture.minFilter = THREE.LinearMipmapLinearFilter
-    texture.generateMipmaps = true
-    texture.needsUpdate = true
-    return texture
+const NOISE_BAKE = /* glsl */ `
+varying vec2 vUv;
+${NOISE_GLSL}
+float tiled( vec2 p, float period ) {
+    vec2 i = floor( p );
+    vec2 f = fract( p );
+    f = f * f * ( 3.0 - 2.0 * f );
+    float a = hash12( mod( i, period ) );
+    float b = hash12( mod( i + vec2( 1.0, 0.0 ), period ) );
+    float c = hash12( mod( i + vec2( 0.0, 1.0 ), period ) );
+    float d = hash12( mod( i + 1.0, period ) );
+    return mix( mix( a, b, f.x ), mix( c, d, f.x ), f.y );
 }
+void main() {
+    vec2 p = vUv * ${NOISE_CELLS.toFixed(1)};
+    float fbm = 0.0;
+    for ( int o = 0; o < 4; o ++ ) {
+        float s = exp2( float( o ) );
+        fbm += tiled( p * s + 47.0, ${NOISE_CELLS.toFixed(1)} * s ) / ( 2.0 * s );
+    }
+    gl_FragColor = vec4( tiled( p + 11.0, ${NOISE_CELLS.toFixed(1)} ), tiled( p + 29.0, ${NOISE_CELLS.toFixed(1)} ), fbm, 1.0 );
+}
+`
 
 const fragmentShader = /* glsl */ `
 uniform sampler2D uNoise;
@@ -111,8 +89,8 @@ void main() {
 }
 `
 
-export function createCityClouds({ hazeUniforms, time, centre }) {
-    const noise = createNoiseTile()
+export function createCityClouds({ renderer, hazeUniforms, time, centre }) {
+    const noise = bake(renderer, NOISE_TEXELS, NOISE_BAKE, THREE.RepeatWrapping)
     const geometry = new THREE.PlaneGeometry(SIZE, SIZE)
     geometry.rotateX(-Math.PI / 2)
     const meshes = LAYERS.map((layer, index) => {
@@ -120,7 +98,7 @@ export function createCityClouds({ hazeUniforms, time, centre }) {
             name: `city.cloud${index}`,
             uniforms: {
                 ...hazeUniforms,
-                uNoise: { value: noise },
+                uNoise: { value: noise.texture },
                 uTime: time,
                 uScale: { value: layer.scale },
                 uClear: { value: layer.clear },

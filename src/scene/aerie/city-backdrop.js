@@ -203,7 +203,7 @@ export function createCityBackdrop({ renderer, haze, hazeDensity = 1 / 4200, pix
     mesh.renderOrder = -8
     mesh.name = 'City'
     const towers = createCityTowers({ hazeUniforms, look: CITY_LOOK, dpr })
-    const clouds = createCityClouds({ hazeUniforms, time, centre: CENTRE })
+    const clouds = createCityClouds({ renderer, hazeUniforms, time, centre: CENTRE })
     const layers = [mesh, towers.mesh, ...clouds.meshes]
     const offscreen = createCityOffscreen(layers)
     group.add(offscreen.quad, ...layers)

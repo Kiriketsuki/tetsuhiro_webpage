@@ -149,29 +149,33 @@ void main() {
 }
 `
 
-// Bakes the plan into a mipmapped render target, with one draw.
-export function bakeCityMap(renderer, look) {
-    const target = new THREE.WebGLRenderTarget(MAP_TEXELS, MAP_TEXELS, {
+// Draws one fragment shader into a mipmapped render target of size texels, with one draw.
+// The shader reads vUv. wrap is the texture wrap mode.
+export function bake(renderer, size, fragmentShader, wrap = THREE.ClampToEdgeWrapping) {
+    const target = new THREE.WebGLRenderTarget(size, size, {
         depthBuffer: false,
         generateMipmaps: true,
         minFilter: THREE.LinearMipmapLinearFilter,
         magFilter: THREE.LinearFilter,
+        wrapS: wrap,
+        wrapT: wrap,
     })
     const material = new THREE.ShaderMaterial({
-        name: 'city.map',
         vertexShader: 'varying vec2 vUv;\nvoid main() {\n    vUv = uv;\n    gl_Position = vec4( position.xy, 0.0, 1.0 );\n}',
-        fragmentShader: bakeShader(look),
+        fragmentShader,
         depthTest: false,
         depthWrite: false,
     })
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material)
     quad.frustumCulled = false
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
     const previous = renderer.getRenderTarget()
     renderer.setRenderTarget(target)
-    renderer.render(quad, camera)
+    renderer.render(quad, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1))
     renderer.setRenderTarget(previous)
     quad.geometry.dispose()
     material.dispose()
     return target
 }
+
+// Bakes the plan into the city map.
+export const bakeCityMap = (renderer, look) => bake(renderer, MAP_TEXELS, bakeShader(look))

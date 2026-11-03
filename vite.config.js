@@ -30,12 +30,39 @@ const chunkFileNames = (chunk) =>
 // It also drops the indent of every line, which the minifier keeps inside the shader strings
 // too. GLSL ignores the indent, every multi-line template string in src/scene is a shader,
 // and the shader patches in toon-material.js match one-line strings only.
+// It also drops the spaces inside the round brackets, round the commas, braces and semicolons,
+// and round an operator with a space on each side, in every multi-line template string. It
+// reads the template strings from the parsed module, so it never touches a one-line string,
+// an expression or a comment. It keeps every line break, because a preprocessor line must
+// stay on a line of its own. An #include path has no space after its <, so it keeps its space.
+// It keeps the spaces of "a - -b", where two signs would join into one token, and the spaces
+// of an operator at the end of a string part, where a ${} value such as -100.0 follows. It
+// also writes a float literal short, as GLSL allows: 1.0 as 1. and 0.5 as .5.
+const compactShader = (text) =>
+    text
+        .replace(/\b(\d+)\.0(?![\d.eE])/g, '$1.')
+        .replace(/(?<![\w.])0\.(\d)/g, '.$1')
+        .replace(/\([ \t]+/g, '(')
+        .replace(/[ \t]+\)/g, ')')
+        .replace(/[ \t]*([,;{}])[ \t]*/g, '$1')
+        .replace(/[ \t]+(==|!=|<=|>=|&&|\|\||[=*+\-/<>?:]) (?![=*+\-/<>]|$)/g, '$1')
+const shaderQuasis = (node, found) => {
+    if (!node || typeof node.type !== 'string') return found
+    if (node.type === 'TemplateLiteral' && node.quasis.some((q) => q.value.raw.includes('\n'))) found.push(...node.quasis)
+    for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach((child) => shaderQuasis(child, found))
+        else if (value && typeof value === 'object') shaderQuasis(value, found)
+    }
+    return found
+}
 const stripShaderComments = () => ({
     name: 'strip-shader-comments',
     apply: 'build',
     transform(code, id) {
         if (!/[\\/]src[\\/]scene[\\/].*\.js$/.test(id)) return null
-        return { code: code.replace(/^[ \t]*\/\/[^\n]*\n/gm, '').replace(/^[ \t]+/gm, ''), map: null }
+        const quasis = shaderQuasis(this.parse(code), []).sort((a, b) => b.start - a.start)
+        const compact = quasis.reduce((text, q) => text.slice(0, q.start) + compactShader(text.slice(q.start, q.end)) + text.slice(q.end), code)
+        return { code: compact.replace(/^[ \t]*\/\/[^\n]*\n/gm, '').replace(/^[ \t]+/gm, ''), map: null }
     },
 })
 

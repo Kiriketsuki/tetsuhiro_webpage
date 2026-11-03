@@ -49,7 +49,7 @@ export const route = {
     // camera rides closer and higher than on the other legs.
     'telescope>campfire': {
         back: 2.5,
-        up: 7,
+        up: 8,
         points: [
             [-7.7, 8.6, -4.6],
             [-6.8, 10.4, -8.4],

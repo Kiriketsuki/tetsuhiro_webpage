@@ -38,6 +38,8 @@ const STEER_MS = 250
 // program until the driver reports it ready, and a lost WebGL context never reports, so the
 // gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
 const COMPILE_WAIT_MS = 8000
+// How far a camera arc keeps clear of the house, in metres.
+const HOUSE_MARGIN = 0.5
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
@@ -80,7 +82,21 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The island haze matches the sky haze below the horizon and the city haze.
     scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, ISLAND_HAZE_DENSITY)
     const camera = new THREE.PerspectiveCamera(35, size()[0] / size()[1], 0.1, 12000)
-    const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
+    // The boxes round the house that a camera arc must not pass through. They fill in once the
+    // GLB loads. A ray test on the house triangles took up to 200 ms at the start of a move, a
+    // visible hitch, and a box test takes microseconds. A box that holds either end of the move
+    // (ends) does not count, so a move to a stop inside the house, such as the eyepiece, still
+    // works.
+    let solids = []
+    const ray = new THREE.Ray()
+    const hit = new THREE.Vector3()
+    const blocked = (a, b, ends = [a, b]) => {
+        const length = a.distanceTo(b)
+        if (length < 1e-3) return false
+        ray.set(a, b.clone().sub(a).divideScalar(length))
+        return solids.some((box) => !ends.some((end) => box.containsPoint(end)) && ray.intersectBox(box, hit) && a.distanceTo(hit) <= length)
+    }
+    const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start, blocked })
     // The story legs between neighbouring stops. The GLB route empties replace them once it loads.
     let legs = legsFromRoute(route)
 
@@ -133,11 +149,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // A phone judges its tier on a shorter run of frames, so a slow phone steps down within about
     // a second of a drag, not after three seconds of lag.
+    // A new tier rebuilds the pipeline, and the rebuild stalls a frame or more. A step that the
+    // governor asks for during a camera move waits in pendingTier until the move ends.
+    let pendingTier = null
     const governor = createGovernor({
         budgetMs: small ? BUDGET_MS.mobile : BUDGET_MS.desktop,
         tier: tierIndex,
         window: small ? GOVERNOR_FRAMES.mobile : GOVERNOR_FRAMES.desktop,
-        onStep: (next) => buildPipeline(next),
+        onStep: (next) => {
+            if (rig.moving) pendingTier = next
+            else buildPipeline(next)
+        },
     })
     // The time of the last drag, pinch or tap. A drag moves the camera through look offsets, which
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
@@ -360,6 +382,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             ambient = 0
         }
         const moving = rig.moving || performance.now() - steeredAt < STEER_MS
+        if (pendingTier !== null && !rig.moving) {
+            buildPipeline(pendingTier)
+            pendingTier = null
+        }
         render()
         // Only frames the camera drives count toward the governor: a move between stops, the ease
         // back after a drag, and a drag or pinch itself. They draw on every animation frame, so
@@ -572,6 +598,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
             rig.setShots(shots)
             legs = legsFromRoute(route, (name) => anchor(root, name))
+            solids = []
+            root.traverse((node) => {
+                if (node.isMesh && /^(House|Glass)/.test(node.name)) solids.push(new THREE.Box3().setFromObject(node).expandByScalar(HOUSE_MARGIN))
+            })
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
@@ -600,14 +630,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         parts,
         loaders,
         // A move to a neighbouring story stop follows its leg. Any other move takes the
-        // lifted arc, and a zero duration cuts. A move that starts in the middle of a leg
-        // starts from the camera, and rig.current is already that leg's end stop.
-        goTo: (id, { duration = 1.6 } = {}) => {
-            const leg = state.reduced || duration <= 0 ? null : (legs[`${rig.current}>${id}`] ?? null)
-            const time = state.reduced ? 0 : (leg?.duration ?? duration)
-            fade = id === 'bedroom' && time > 0 && rig.current !== 'bedroom' ? { t: 0, duration: time } : null
+        // lifted arc, and a zero duration cuts. Without a duration the move takes one from its
+        // path length. A move that starts in the middle of a leg starts from the camera at its
+        // speed, and rig.current is already that leg's end stop.
+        goTo: (id, { duration = null } = {}) => {
+            const cut = state.reduced || (duration !== null && duration <= 0)
+            const leg = cut ? null : (legs[`${rig.current}>${id}`] ?? null)
+            const from = rig.current
+            rig.goTo(id, { duration: cut ? 0 : duration, leg })
+            const time = rig.moveDuration
+            fade = id === 'bedroom' && time > 0 && from !== 'bedroom' ? { t: 0, duration: time } : null
             pipeline.grade.uniforms.uFade.value = 0
-            rig.goTo(id, { duration: time, leg })
             requestRender()
         },
         // 0 stops the ambient clock: frames then draw only for camera moves and requests.

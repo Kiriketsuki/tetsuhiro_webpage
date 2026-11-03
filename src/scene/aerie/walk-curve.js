@@ -5,8 +5,9 @@ import * as THREE from 'three'
 // the distance. three's CatmullRomCurve3 does the same job, but with its Curve base it adds
 // about 1.5 kB gzip to the scene chunk, which sits at its 200 kB budget.
 
-// Samples in the arc-length table for each segment between two points.
-const SAMPLES_PER_SEGMENT = 24
+// Samples in the arc-length table for each segment between two points. Fewer samples leave a
+// ripple of a few percent in the camera speed.
+const SAMPLES_PER_SEGMENT = 64
 // The step for the tangent, as a share of the leg.
 const TANGENT_STEP = 1e-3
 
@@ -33,6 +34,22 @@ function evaluate(points, p, target) {
     )
 }
 
+// The fractional index at which a rising table of running totals reaches share u of its last
+// value. A table of running lengths maps a share of the distance to a sample index.
+export function tableIndex(totals, u) {
+    const last = totals.length - 1
+    const value = THREE.MathUtils.clamp(u, 0, 1) * totals[last]
+    let low = 0
+    let high = last
+    while (high - low > 1) {
+        const middle = (low + high) >> 1
+        if (totals[middle] < value) low = middle
+        else high = middle
+    }
+    const span = totals[high] - totals[low]
+    return low + (span > 0 ? (value - totals[low]) / span : 0)
+}
+
 // points: two or more THREE.Vector3.
 export function createWalkCurve(points) {
     const segments = points.length - 1
@@ -49,25 +66,18 @@ export function createWalkCurve(points) {
     const length = lengths[count]
 
     // The spline parameter at share u (0 to 1) of the distance along it.
-    const parameterAt = (u) => {
-        const distance = THREE.MathUtils.clamp(u, 0, 1) * length
-        let low = 0
-        let high = count
-        while (high - low > 1) {
-            const middle = (low + high) >> 1
-            if (lengths[middle] < distance) low = middle
-            else high = middle
-        }
-        const span = lengths[high] - lengths[low]
-        const k = low + (span > 0 ? (distance - lengths[low]) / span : 0)
-        return k / SAMPLES_PER_SEGMENT
-    }
+    const parameterAt = (u) => tableIndex(lengths, u) / SAMPLES_PER_SEGMENT
 
     const behind = new THREE.Vector3()
     return {
         points,
         length,
         pointAt: (u, target) => evaluate(points, parameterAt(u), target),
+        // The spline parameter at share u of the distance, and the point at a parameter. Two
+        // splines with the same number of points share parameters point for point, so a camera
+        // and its look point can run on one parameter.
+        parameterAt,
+        pointAtParameter: (p, target) => evaluate(points, p, target),
         // The unit direction of travel at share u.
         tangentAt: (u, target) => {
             const from = Math.max(0, u - TANGENT_STEP)

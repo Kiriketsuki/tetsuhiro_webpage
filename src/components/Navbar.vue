@@ -78,7 +78,7 @@ const greet = async () => {
             </button>
         </div>
 
-        <ul class="nav-side end">
+        <ul class="nav-side">
             <li v-for="i in right" :key="i">
                 <button
                     type="button"
@@ -106,52 +106,66 @@ const greet = async () => {
 </template>
 
 <style scoped>
-/* A solid strip with one rule on top. No blur, no rounded box. */
+/* A frosted strip with hexagonal ends that floats over the aerie. A new theme changes
+   the cut --c, the rim colour here and the fill on ::before. The strip top stays under
+   4.25rem from the bottom, and under 2.7rem below 640px wide, where the project sheets
+   and folders end. */
 .nav-strip {
+    --c: 1.2rem;
     position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    bottom: calc(clamp(0.5rem, 1vw, 0.75rem) + env(safe-area-inset-bottom));
+    left: 50%;
     z-index: 50;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    align-items: stretch;
-    padding: 0 clamp(0.5rem, 4vw, 4.5rem);
-    background: var(--color-bg-base);
-    border-top: 1px solid var(--color-line);
-    /* Its own layer, so it stays put while the phone toolbar slides. */
-    transform: translateZ(0);
+    width: max-content;
+    /* A percentage of the viewport box leaves out the scrollbar, unlike vw. */
+    max-width: calc(100% - 0.5rem);
+    padding: 0 var(--c);
+    /* A faint rim, so the blur shows through the fill. */
+    background: color-mix(in oklch, var(--color-text-strong) 15%, transparent);
+    backdrop-filter: blur(14px);
+    /* Centred, and on its own layer, so it stays put while the phone toolbar slides. */
+    transform: translate3d(-50%, 0, 0);
     opacity: 0;
     visibility: hidden;
+    /* Only a fade, with no movement, so reduced motion needs no override. */
     transition: opacity 0.8s 0.6s, visibility 0s 1.4s;
 }
 
 .nav-strip.shown {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.8s 0.6s, visibility 0s;
+    transition-delay: 0.6s, 0s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .nav-strip,
-    .nav-strip.shown {
-        transition: none;
-    }
+/* A clip-path cuts a CSS border away, so the strip itself is the rim colour and the fill
+   sits 1px inside it. The fill corner sits 0.6px closer to its end, which keeps the rim
+   1px wide on the 45 degree edges. */
+.nav-strip,
+.nav-strip::before {
+    clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% 50%, calc(100% - var(--c)) 100%, var(--c) 100%, 0 50%);
+}
+
+.nav-strip::before {
+    --c: calc(1.2rem - 0.6px);
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    background: color-mix(in oklch, var(--color-bg-base) 58%, transparent);
 }
 
 .nav-side {
     display: flex;
-    gap: clamp(0rem, 3vw, 3rem);
-}
-
-.nav-side.end {
-    justify-content: flex-end;
+    gap: clamp(0rem, 1.5vw, 1.25rem);
 }
 
 /* Vertical rules either side of the middle, like the 2022 wynmonde nav. */
 .nav-middle {
     display: flex;
-    padding: 0 clamp(0.1rem, 2.5vw, 2.5rem);
+    margin: 0 clamp(0.15rem, 1vw - 0.4rem, 0.75rem);
+    padding: 0 clamp(0.15rem, 1.5vw - 0.3rem, 1.25rem);
     border-right: 1px solid var(--color-line);
     border-left: 1px solid var(--color-line);
 }
@@ -161,12 +175,12 @@ const greet = async () => {
     align-items: center;
     gap: 0.45rem;
     height: 100%;
-    padding: 0.85rem 0.3rem 0.7rem;
+    /* Tight enough for the five words and the lantern on a 360px phone. */
+    padding: 0.6rem 0.1rem 0.5rem;
     border-bottom: 2px solid transparent;
     color: var(--color-text-muted);
     font-family: var(--font-label);
     font-size: 0.64rem;
-    letter-spacing: 0.06em;
     text-transform: uppercase;
     transition: color 0.2s, border-color 0.2s;
 }
@@ -187,7 +201,7 @@ const greet = async () => {
 
 @media (min-width: 640px) {
     .nav-item {
-        padding: 1rem 0.5rem 0.85rem;
+        padding: 0.8rem 0.5rem 0.7rem;
         font-size: 0.78rem;
         letter-spacing: 0.12em;
     }

@@ -1,28 +1,89 @@
 import * as THREE from 'three'
 
-// The light of the workshop wall at night. The brass picture light hangs above the board
-// and throws a warm pool down the cork, so the top of the board reads brightest and the
-// corners fall into the dark. A dim cool fill keeps the shadows blue grey and not black,
+// The light of the workshop wall at night. The brass picture light is a long bar above the
+// board, so it washes the cork evenly from side to side, brightest just under the bar and
+// dimmer toward the bottom. A dim cool fill keeps the shadows blue grey and not black,
 // which gives the split tone of the island: warm light, cool shade.
+//
+// One spot light draws the wash and the shadows. A spot alone lights a round pool, so the
+// spot throws its light through a mask (SpotLight.map). The mask divides out the angle at
+// which the light meets the cork, so the board shows the wash of a bar and not a cone.
+// A RectAreaLight would need about 100 kB of lookup tables and casts no shadow.
 
 const WARM = 0xffead0
+// The spot hangs out in front of the bar, so its cone covers the whole frame inside the
+// sharp part of its edge. Positions are in metres on the board, from the cork centre.
+const LAMP = { at: [0, 0.66, 0.8], aim: [0, 0.1, 0], angle: 1, penumbra: 0.06 }
+// The light that falls on the cork under the middle of the bar. The brightest card there
+// peaks at about 80 percent of full white, so the lamp never clips a card to a flat white.
+const PEAK = 2.4
+const MASK = 128
+const smooth = THREE.MathUtils.smoothstep
+
+// The wash on the cork plane, 1 under the middle of the bar. It falls to about 0.32 at the
+// bottom of the cork and to about half at the sides of the frame. It fades out on the wall
+// past the frame, and it stops at the bar, so the lamp never lights its own brass.
+const wash = (x, y) => {
+    const down = 0.07 + 0.93 * smooth(y, -0.92, 0.5)
+    const above = 1 - smooth(y, 0.5, 0.58)
+    const side = (1 - 0.5 * smooth(Math.abs(x), 0.4, 0.95)) * (1 - 0.75 * smooth(Math.abs(x), 0.8, 1.3))
+    return down * above * side
+}
+
+// Draws the mask of the lamp. Each texel casts a ray from the lamp to the cork plane and
+// takes the wash there over the cosine of the light on the cork. Returns the mask and the
+// largest ratio on the board, which the lamp takes as its intensity factor.
+function washMask(lamp) {
+    lamp.updateMatrixWorld()
+    lamp.target.updateMatrixWorld()
+    lamp.shadow.updateMatrices(lamp)
+    const from = lamp.position
+    const ray = new THREE.Vector3()
+    const ratios = new Float32Array(MASK * MASK)
+    let most = 0
+    for (let j = 0; j < MASK; j++) {
+        for (let i = 0; i < MASK; i++) {
+            // The canvas texture flips on upload, so canvas row 0 is the top of the light view.
+            ray.set(((i + 0.5) / MASK) * 2 - 1, (1 - (j + 0.5) / MASK) * 2 - 1, 0.5).unproject(lamp.shadow.camera).sub(from)
+            if (ray.z >= 0) continue
+            const t = -from.z / ray.z
+            const x = from.x + ray.x * t
+            const y = from.y + ray.y * t
+            const ratio = (wash(x, y) * Math.hypot(x - from.x, y - from.y, from.z)) / from.z
+            ratios[j * MASK + i] = ratio
+            if (Math.abs(x) < 0.8 && Math.abs(y) < 0.5) most = Math.max(most, ratio)
+        }
+    }
+    const canvas = Object.assign(document.createElement('canvas'), { width: MASK, height: MASK })
+    const ctx = canvas.getContext('2d')
+    const image = ctx.createImageData(MASK, MASK)
+    ratios.forEach((ratio, k) => {
+        const v = Math.round(Math.min(1, ratio / most) * 255)
+        image.data.set([v, v, v, 255], k * 4)
+    })
+    ctx.putImageData(image, 0, 0)
+    return { texture: new THREE.CanvasTexture(canvas), most }
+}
 
 // The wall draws the shadow map only when a pin lifts, so its size costs memory, not frame time.
 export function createLight(small) {
-    // The scene pipeline has no tone mapping, so the lamp stays below the clip on white paper.
-    const lamp = new THREE.SpotLight(WARM, 2.4, 0, 0.95, 1, 1.6)
-    lamp.position.set(0, 0.6, 0.34)
-    lamp.target.position.set(0, -0.12, 0)
+    // A decay of 0 leaves all the falloff to the mask.
+    const lamp = new THREE.SpotLight(WARM, 1, 0, LAMP.angle, LAMP.penumbra, 0)
+    lamp.position.set(...LAMP.at)
+    lamp.target.position.set(...LAMP.aim)
     lamp.castShadow = true
-    // The light covers only the board, so 1024 texels give about 1.5 mm each on every screen.
-    lamp.shadow.mapSize.setScalar(1024)
-    lamp.shadow.camera.near = 0.05
+    // The wide cone spreads the shadow map, so a wide screen takes 1536 texels, about 2 mm each.
+    lamp.shadow.mapSize.setScalar(small ? 1024 : 1536)
+    lamp.shadow.camera.near = 0.2
     lamp.shadow.camera.far = 3
     lamp.shadow.bias = -0.0003
     lamp.shadow.normalBias = 0.001
     lamp.shadow.radius = 4
     // The shade keeps some of the lamp, so the yarn shadows read soft and do not hatch the board.
     lamp.shadow.intensity = 0.7
+    const mask = washMask(lamp)
+    lamp.map = mask.texture
+    lamp.intensity = PEAK * mask.most
 
     const fill = new THREE.HemisphereLight(0x8c97b8, 0x2a2430, 0.7)
     // A low warm glow from a desk lamp off to the left, so the lower corners keep some colour.
@@ -52,51 +113,7 @@ export function createLight(small) {
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), new THREE.MeshLambertMaterial({ color: 0x3e3029 }))
     wall.position.z = -0.04
     wall.receiveShadow = true
-    return { objects: [lamp, lamp.target, fill, desk, bar, lip, ...rods, top, wall], aim: createAim(lamp, fill, desk) }
-}
-
-// The whole board under the lamp, and one group under a narrow pool with the room dark around it.
-const WIDE = { x: 0, y: 0.6, tx: 0, ty: -0.12, angle: 0.95, lamp: 2.4, fill: 0.7, desk: 0.5 }
-const NARROW = { lamp: 2.7, fill: 0.22, desk: 0.12 }
-const AIM_SECONDS = 0.5
-
-// Moves the lamp between the whole board and one group. to(point, instant, radius) aims a pool
-// that covers that radius (metres) round a point on the cork, to(null) opens it to the board. step(dt) eases the lamp there and
-// returns true while it moves, so the shadow map draws again.
-function createAim(lamp, fill, desk) {
-    let from = { ...WIDE }
-    let goal = { ...WIDE }
-    let t = 1
-    const now = () => {
-        const k = t * t * (3 - 2 * t)
-        return Object.fromEntries(Object.keys(goal).map((key) => [key, from[key] + (goal[key] - from[key]) * k]))
-    }
-    const apply = (v) => {
-        lamp.position.set(v.x, v.y, 0.34)
-        lamp.target.position.set(v.tx, v.ty, 0)
-        lamp.target.updateMatrixWorld()
-        lamp.angle = v.angle
-        lamp.intensity = v.lamp
-        fill.intensity = v.fill
-        desk.intensity = v.desk
-    }
-    return {
-        to: (point, instant = false, radius = 0.3) => {
-            from = now()
-            // The lamp hangs 0.32 m up the board and 0.34 m out, so the cone angle that
-            // reaches the radius comes from that distance, with a margin for the soft edge.
-            const angle = Math.min(WIDE.angle, Math.atan((radius * 1.15) / Math.hypot(0.32, 0.34)))
-            goal = point ? { x: point[0], y: point[1] + 0.32, tx: point[0], ty: point[1], ...NARROW, angle } : { ...WIDE }
-            t = instant ? 1 : 0
-            if (instant) apply(goal)
-        },
-        step: (dt) => {
-            if (t >= 1) return false
-            t = Math.min(1, t + dt / AIM_SECONDS)
-            apply(now())
-            return true
-        },
-    }
+    return [lamp, lamp.target, fill, desk, bar, lip, ...rods, top, wall]
 }
 
 // A small grey grain that tiles over the cork, so the cork reads as cork up close. It is a

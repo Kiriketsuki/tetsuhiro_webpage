@@ -25,7 +25,7 @@ const picture = computed(() => (showImages.value ? peeked.value.image : null))
 
 <template>
     <div class="stop" :data-side="sideOf('projects')">
-        <article class="frame frame-rose flex w-full max-w-[34rem] flex-col gap-4 p-5 pt-7 sm:p-8 sm:pt-9">
+        <article class="frame frame-rose flex w-full max-w-[34rem] flex-col gap-4 p-5 sm:p-8">
             <span class="frame-legend">02 / over the bridge</span>
 
             <div class="flex items-end justify-between gap-6">
@@ -54,6 +54,13 @@ const picture = computed(() => (showImages.value ? peeked.value.image : null))
 </template>
 
 <style scoped>
+/* A phone shows four rows, so the card stays short and the workshop stays in view. */
+@media (max-width: 639px) {
+    ol > :nth-child(n + 5) {
+        display: none;
+    }
+}
+
 /* A small framed plate for the hovered project's picture. */
 .peek {
     place-items: center;

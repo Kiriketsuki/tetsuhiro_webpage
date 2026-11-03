@@ -9,7 +9,7 @@
                     <div class="flex flex-col items-start gap-4">
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
-                        <p class="hero-chapter">01 / arrival</p>
+                        <p class="hero-chapter">01 / arrival &middot; 1&deg;17&prime;N 103&deg;51&prime;E</p>
                         <button type="button" class="action hero-scene" @click="sceneOnly = true">
                             just the aerie
                         </button>
@@ -49,7 +49,7 @@ import Skills from '../components/Skills.vue'
 import Projects from '../components/Projects.vue'
 import Contact from '../components/Contact.vue'
 import ExplorePad from '../components/ExplorePad.vue'
-import { useWaypoints, sections } from '../composables/useWaypoints.js'
+import { useWaypoints, sections, takeLanding } from '../composables/useWaypoints.js'
 import { useExplore } from '../composables/useExplore.js'
 import { useScramble } from '../composables/useScramble.js'
 
@@ -127,9 +127,11 @@ watch(wordsHidden, (value) => {
 
 onMounted(async () => {
     await nextTick()
-    window.scrollTo(0, 0)
-    setActive(0)
-    showSection(0)
+    // A link back from another page can open Home on one section (useWaypoints.js land).
+    const start = takeLanding()
+    window.scrollTo({ top: start ? document.querySelector(`.${sections[start]}`).offsetTop : 0, behavior: 'instant' })
+    setActive(start)
+    showSection(start)
     if (entered.value) decodeTitle(0.2)
 
     trigger = ScrollTrigger.create({
@@ -211,7 +213,7 @@ body {
 
 .hero-chapter {
     padding-left: 0.3rem;
-    color: var(--color-text-faint);
+    color: var(--color-brass);
     font-family: var(--font-label);
     font-size: clamp(0.6rem, 0.75vw, 0.7rem);
     letter-spacing: 0.16em;

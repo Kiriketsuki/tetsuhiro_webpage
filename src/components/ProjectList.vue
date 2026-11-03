@@ -1,5 +1,18 @@
 <template>
-    <main class="flex min-h-screen w-screen flex-col items-center gap-10 px-5 pt-16 pb-32">
+    <component
+        :is="sheet ? 'aside' : 'main'"
+        ref="root"
+        :class="sheet ? 'list-sheet flex flex-col items-center gap-8 px-4 pb-10 sm:px-6' : 'flex min-h-screen w-screen flex-col items-center gap-10 px-5 pt-16 pb-32'"
+        :aria-label="sheet ? 'Every project, as a list' : undefined"
+        :tabindex="sheet ? -1 : undefined"
+        @pointerdown.stop
+    >
+        <!-- The way out stays in reach at any scroll: it sticks to the top of the list. -->
+        <nav class="list-bar" :class="{ page: !sheet }" aria-label="Leave the list">
+            <button v-if="sheet" type="button" class="action" @click="emit('close')">back to the wall</button>
+            <router-link :to="homeAt('projects')" class="action">back to the aerie</router-link>
+        </nav>
+
         <header class="flex w-full max-w-6xl flex-col gap-4">
             <p class="label text-rose">02 / projects</p>
             <h1 class="font-slab text-[clamp(2.75rem,8vw,6rem)] leading-none text-text-strong">
@@ -17,7 +30,7 @@
                 <section
                     v-for="band in bands"
                     :key="band.key"
-                    class="frame p-4 pt-7 sm:p-7 sm:pt-9"
+                    class="frame p-4 sm:p-7"
                     :class="band.key === 'work' ? 'frame-rose' : 'frame-line'"
                 >
                     <span class="frame-legend">{{ band.legend }}</span>
@@ -36,7 +49,7 @@
             </div>
 
             <!-- The hovered row, as a spec sheet. Wide screens only. -->
-            <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 pt-8 lg:flex" aria-hidden="true">
+            <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 lg:flex" aria-hidden="true">
                 <span class="frame-legend">{{ String(peekedIndex + 1).padStart(2, '0') }}</span>
                 <div class="plate">
                     <img v-if="peeked.image" :src="peeked.image" alt="" decoding="async" />
@@ -53,7 +66,7 @@
         </div>
 
         <div class="grid w-full max-w-6xl items-start gap-8 lg:grid-cols-2">
-            <section class="frame frame-line p-4 pt-7 sm:p-7 sm:pt-9">
+            <section class="frame frame-line p-4 sm:p-7">
                 <span class="frame-legend">archive</span>
                 <h2 class="sr-only">Older and smaller projects</h2>
                 <ul class="lines">
@@ -69,7 +82,7 @@
                 </ul>
             </section>
 
-            <section class="frame frame-line p-4 pt-7 sm:p-7 sm:pt-9">
+            <section class="frame frame-line p-4 sm:p-7">
                 <span class="frame-legend">other work</span>
                 <h2 class="sr-only">Work that is not a user interface</h2>
                 <ul class="lines">
@@ -81,22 +94,35 @@
                 </ul>
             </section>
         </div>
-
-        <div class="flex flex-wrap justify-center gap-3 self-center">
-            <router-link v-if="wallShown" to="/projects" class="action" @click="listed = false">Back to the wall</router-link>
-            <router-link to="/" class="action">Back to the aerie</router-link>
-        </div>
-    </main>
+    </component>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import ProjectRow from './ProjectRow.vue'
 import { monogram, projects } from '../data/projects.js'
 import { GROUPS, archive, otherWork, withPage } from '../data/project-pages.js'
-import { useWall } from '../composables/useWall.js'
+import { homeAt } from '../composables/useWaypoints.js'
 
-const { shown: wallShown, listed } = useWall()
+// The list of every project. On its own it is a page: the fallback when the wall cannot draw.
+// With `sheet` it is a sheet off the evidence wall, beside the board, and it scrolls inside
+// itself. Escape and "back to the wall" close the sheet.
+const props = defineProps({ sheet: { type: Boolean, default: false } })
+const emit = defineEmits(['close'])
+const root = ref(null)
+
+const onKey = (e) => {
+    if (e.key !== 'Escape') return
+    e.preventDefault()
+    emit('close')
+}
+onMounted(() => {
+    if (!props.sheet) return
+    window.addEventListener('keydown', onKey)
+    // Screen readers start at the top of the sheet. The page under it does not scroll.
+    root.value?.focus({ preventScroll: true })
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 const all = projects.map(withPage)
 
@@ -118,6 +144,100 @@ const rows = (project) => [
 </script>
 
 <style scoped>
+/* The sheet comes off the board at the post-it, on the right edge, and opens beside the
+   wall. A phone has no room beside the board, so there the sheet rises from the bottom
+   and the top of the board stays in sight above it. */
+.list-sheet {
+    position: fixed;
+    z-index: 30;
+    top: 1rem;
+    right: 1rem;
+    bottom: 4.75rem;
+    width: min(34rem, calc(100vw - 2rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    background: var(--color-bg-base);
+    box-shadow: 0 1.5rem 3rem rgb(0 0 0 / 0.55);
+    transform-origin: 90% 55%;
+    animation: sheet-off-board 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.list-sheet:focus {
+    outline: none;
+}
+
+@keyframes sheet-off-board {
+    from {
+        opacity: 0;
+        transform: translate(4%, 6%) rotate(4deg) scale(0.4);
+    }
+}
+
+@media (max-width: 767px) {
+    .list-sheet {
+        top: auto;
+        left: 0.5rem;
+        right: 0.5rem;
+        height: min(78svh, calc(100svh - 7rem));
+        width: auto;
+        transform-origin: 85% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .list-sheet {
+        animation: none;
+    }
+}
+
+/* The wall header beside the sheet already names the page, so the sheet keeps only the
+   paragraph. The sheet is narrow on every screen: one column, and no spec sheet beside the rows. */
+.list-sheet header > :is(.label, h1) {
+    display: none;
+}
+
+.list-sheet .grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.list-sheet aside {
+    display: none;
+}
+
+/* The rows drop their stack column, as on a phone, so a long title keeps its room. */
+.list-sheet :deep(.index-row) {
+    grid-template-columns: 1.75rem 1fr auto 1rem;
+}
+
+.list-sheet :deep(.index-stack) {
+    display: none;
+}
+
+.list-bar {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-self: stretch;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.9rem 0 0.7rem;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-bg-base);
+}
+
+/* On the page the bar spans the content width and clears the top of the screen. */
+.list-bar.page {
+    width: 100%;
+    max-width: 72rem;
+    align-self: center;
+    justify-content: flex-start;
+    margin-top: -3rem;
+}
+
 /* The archive and the other work: a title, a year, and one line under them. */
 .lines > li {
     display: grid;
@@ -140,7 +260,7 @@ const rows = (project) => [
 }
 
 .line-title.text-link {
-    color: var(--color-teal-action-hover);
+    color: var(--color-action-text);
 }
 
 .line-title span {

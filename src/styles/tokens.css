@@ -5,15 +5,16 @@
     --color-bg-overlay: oklch(0.27 0.055 261.4); /* #172641 */
     --color-line: oklch(0.36 0.046 256.1); /* #2d3e55 */
 
-    /* frame plates, warm grey on the navy page */
-    --color-plate: #222222;
-    --color-plate-raised: #2a2a2a;
-    --color-plate-line: #333333;
-    --color-plate-edge: #4a4a4a;
+    /* night glass: the panes, their brass rings, the gold names (docs/design-system.md) */
+    --color-glass: oklch(0.199 0.045 270.4 / 0.74); /* #0e142a at 74% */
+    --color-glass-deep: oklch(0.15 0.035 269.7 / 0.88); /* #060a1a at 88% */
+    --color-brass: oklch(0.739 0.087 78); /* #c9a46a */
+    --color-brass-dim: oklch(0.739 0.087 78 / 0.45);
+    --color-gold: oklch(0.894 0.072 84.8); /* #f2d9a6 */
 
-    /* interaction: links, actions, focus rings, the active nav underline */
-    --color-teal-action: #0d9488;
-    --color-teal-action-hover: #14b8a6;
+    /* interaction: links, actions, focus rings. Chrysaki blonde, the lamp colour of the aerie. */
+    --color-action: oklch(0.812 0.152 74.2); /* #fbb13c */
+    --color-action-text: oklch(0.862 0.127 81.3); /* #fcc96a */
 
     /* text */
     --color-text-strong: oklch(0.96 0.012 79.8); /* #f6f1e9 */

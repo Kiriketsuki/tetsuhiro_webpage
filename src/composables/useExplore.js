@@ -4,8 +4,6 @@ import { ref } from 'vue'
 // ExplorePad.vue turns gestures into pan, zoom and tap, and the scene manager moves the
 // camera or the skill sky. three.js connects them.
 const exploring = ref(false)
-// True while the move through the eyepiece and its iris run. Home holds its words back.
-const looking = ref(false)
 let rig = null
 
 export function useExplore() {
@@ -20,5 +18,5 @@ export function useExplore() {
     const zoom = (factor) => rig?.zoom(factor)
     const tap = (x, y) => rig?.tap?.(x, y)
 
-    return { exploring, looking, connect, pan, zoom, tap }
+    return { exploring, connect, pan, zoom, tap }
 }

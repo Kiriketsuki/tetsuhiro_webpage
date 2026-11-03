@@ -9,12 +9,7 @@
                 What I reach for as of November 2026. Mostly web and 3D, with Python and Go
                 behind them, from the database to the agents.
             </p>
-            <!-- A phone keeps the card short, so the telescope above it stays in view. -->
-            <p class="font-body text-sm text-text-body sm:hidden">
-                {{ skills.length }} skills in {{ branches.length }} groups, from the web to the agents.
-                Look through the telescope to see them as stars.
-            </p>
-            <dl class="rows hidden text-sm sm:grid">
+            <dl class="rows text-sm">
                 <template v-for="branch in branches" :key="branch.id">
                     <dt class="branch" :style="{ '--branch': `var(--color-${branch.color})` }">
                         {{ branch.label }}

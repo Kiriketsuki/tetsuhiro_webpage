@@ -6,27 +6,34 @@
                 Things I have made
             </h1>
             <p class="max-w-2xl font-body text-[clamp(0.95rem,1.2vw,1.1rem)] text-text-body">
-                Work comes first, then school and side projects. Each one has its own page with
-                screenshots. Further down are the older and smaller things, and a few that never had
-                a screen.
+                Work comes first, then what I have built this year, then school. Each one has its own
+                page with screenshots. Further down are the older and smaller things, and a few that
+                never had a screen.
             </p>
         </header>
 
         <div class="grid w-full max-w-6xl items-start gap-8 lg:grid-cols-[1fr_20rem]">
-            <section class="frame frame-rose p-4 pt-7 sm:p-7 sm:pt-9">
-                <span class="frame-legend">index</span>
-                <h2 class="sr-only">All projects</h2>
-                <ol class="border-t border-line">
-                    <ProjectRow
-                        v-for="(project, i) in projects"
-                        :key="project.id"
-                        :project="project"
-                        :number="i + 1"
-                        detail
-                        @peek="peekedIndex = i"
-                    />
-                </ol>
-            </section>
+            <div class="flex flex-col gap-8">
+                <section
+                    v-for="band in bands"
+                    :key="band.key"
+                    class="frame p-4 pt-7 sm:p-7 sm:pt-9"
+                    :class="band.key === 'work' ? 'frame-rose' : 'frame-line'"
+                >
+                    <span class="frame-legend">{{ band.legend }}</span>
+                    <h2 class="sr-only">{{ band.heading }}</h2>
+                    <ol class="border-t border-line">
+                        <ProjectRow
+                            v-for="{ project, index } in band.rows"
+                            :key="project.id"
+                            :project="project"
+                            :number="index + 1"
+                            detail
+                            @peek="peekedIndex = index"
+                        />
+                    </ol>
+                </section>
+            </div>
 
             <!-- The hovered row, as a spec sheet. Wide screens only. -->
             <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 pt-8 lg:flex" aria-hidden="true">
@@ -52,6 +59,9 @@
                 <ul class="lines">
                     <li v-for="item in archive" :key="item.title">
                         <router-link v-if="item.to" :to="item.to" class="line-title text-link">{{ item.title }}</router-link>
+                        <a v-else-if="item.href" :href="item.href" target="_blank" rel="noopener" class="line-title text-link">
+                            {{ item.title }} <span aria-hidden="true">↗</span>
+                        </a>
                         <span v-else class="line-title">{{ item.title }}</span>
                         <span class="line-year">{{ item.year }}</span>
                         <span class="line-note">{{ item.note }}</span>
@@ -79,11 +89,20 @@
 <script setup>
 import { computed, ref } from 'vue'
 import ProjectRow from '../components/ProjectRow.vue'
-import { archive, monogram, otherWork, projects } from '../data/projects.js'
+import { monogram, projects } from '../data/projects.js'
+import { GROUPS, archive, otherWork, withPage } from '../data/project-pages.js'
+
+const all = projects.map(withPage)
+
+// The numbers run on across the bands, so each row keeps its place in the whole list.
+const bands = GROUPS.map((group) => ({
+    ...group,
+    rows: all.map((project, index) => ({ project, index })).filter(({ project }) => project.group === group.key),
+}))
 
 // Kept as an index: the legend shows the row number.
 const peekedIndex = ref(0)
-const peeked = computed(() => projects[peekedIndex.value])
+const peeked = computed(() => all[peekedIndex.value])
 
 const rows = (project) => [
     ['Stack', project.stack],
@@ -116,6 +135,11 @@ const rows = (project) => [
 
 .line-title.text-link {
     color: var(--color-teal-action-hover);
+}
+
+.line-title span {
+    font-family: var(--font-label);
+    font-size: 0.7rem;
 }
 
 .line-year {

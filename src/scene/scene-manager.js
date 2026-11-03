@@ -18,7 +18,7 @@ import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
-import { projects } from '../data/projects.js'
+import { homeProjects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops, legsFromRoute } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
@@ -212,10 +212,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         }
         const k = s.t < s.swap ? (s.t - s.close) / SCOPE.close : 1 - (s.t - s.swap) / SCOPE.open
         pipeline.grade.uniforms.uIris.value = THREE.MathUtils.smoothstep(k, 0, 1)
-        if (s.t >= s.swap + SCOPE.open && !s.legs.length) {
-            scope = null
-            s.done()
-        }
+        if (s.t >= s.swap + SCOPE.open && !s.legs.length) scope = null
         return true
     }
 
@@ -410,7 +407,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (board) {
                 // The card atlas uses the site fonts, so it waits for them.
                 await fonts
-                parts.cards = createCorkboard({ board, projects })
+                parts.cards = createCorkboard({ board, projects: homeProjects })
                 scene.add(parts.cards.mesh)
             }
 
@@ -500,37 +497,30 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // The look through the telescope. The camera flies up to the eyepiece (by way of the
         // terrace from any other stop), the iris closes, and it opens on the skill sky. Off
         // plays it in reverse and flies on to the stop `back`. Reduced motion swaps at once,
-        // and src/three.js crossfades the frame. The promise resolves once the iris is fully
-        // open again, so the page can hold its words back until then.
+        // and src/three.js crossfades the frame.
         lookThrough: (on, back = 'telescope') => {
             const iris = pipeline.grade.uniforms.uIris
             // A visitor who leaves while the iris still opens on the sky gets a close from
             // where the blades are, not a jump back to fully open.
             const from = iris.value
             iris.value = 0
-            scope?.done()
             scope = null
             if (on === (view === 'sky') || state.reduced) {
                 if (on !== (view === 'sky')) showSky(on)
                 if (!on) api.goTo(back)
-                return Promise.resolve()
+                return
             }
-            let done
-            const finished = new Promise((resolve) => {
-                done = resolve
-            })
             const { fly, close } = SCOPE
             if (on) {
                 const lead = ['telescope', 'eyepiece'].includes(rig.current) ? 0 : 1.6
                 const shut = lead + fly - SCOPE.overlap
-                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1), done }
+                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1) }
             } else {
                 const legs = [[close, 'eyepiece', 0], [close, 'telescope', fly]]
                 if (back !== 'telescope') legs.push([close + fly, back, 1.6])
-                scope = { t: close * from, on, close: 0, swap: close, legs, done }
+                scope = { t: close * from, on, close: 0, swap: close, legs }
             }
             requestRender()
-            return finished
         },
         release: () => {
             rig.release()

@@ -22,15 +22,10 @@ let inSky = false
 
 // The telescope eyepiece: the camera flies up to the eyepiece, an iris closes, and it opens
 // on the skill sky (scene-manager.js lookThrough). Leaving plays it in reverse, on to `back`.
-// Reduced motion swaps at once, under a still of the old frame that fades out. `looking`
-// stays true until the iris is open again, so Home shows no card over the blades.
-let moves = 0
+// Reduced motion swaps at once, under a still of the old frame that fades out.
 function eyepiece(toSky, back) {
     if (toSky === inSky) return
     inSky = toSky
-    const { looking } = useExplore()
-    const move = ++moves
-    looking.value = true
     if (reducedMotion.value) {
         // The canvas keeps no drawing buffer, so the still copies a frame drawn just now.
         manager.renderNow()
@@ -42,9 +37,7 @@ function eyepiece(toSky, back) {
         canvas.after(still)
         gsap.to(still, { opacity: 0, duration: 0.6, onComplete: () => still.remove() })
     }
-    manager.lookThrough(toSky, back).then(() => {
-        if (move === moves) looking.value = false
-    })
+    manager.lookThrough(toSky, back)
 }
 
 // No WebGL, or the scene failed to build. The canvas shows a CSS night sky instead, and

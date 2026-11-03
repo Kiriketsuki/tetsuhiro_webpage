@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-// The painted surface detail for the toon island, built at load in plain JS. Nothing
+// The painted surface detail for the toon aerie, built at load in plain JS. Nothing
 // downloads, so it costs no asset bytes and carries no licence. Every pattern wraps at the
 // tile edge, so the tiles join without a seam. Each channel centres on 0.5 grey, and the
 // toon shader multiplies the albedo by twice the value, so the detail changes only the
@@ -230,9 +230,9 @@ function writeBytes(state, texture) {
     texture.needsUpdate = true
 }
 
-// Starts the build in small slices between frames, so it overlaps the island download and
+// Starts the build in small slices between frames, so it overlaps the aerie download and
 // never blocks the page for more than a slice. finish() builds the rows that remain at
-// once and returns the texture, so the island can always use it the moment it loads.
+// once and returns the texture, so the aerie can always use it the moment it loads.
 // Pass { sliced: false } to build it all at once.
 export function createDetailTexture({ anisotropy = 1, sliced = true } = {}) {
     const count = SIZE * SIZE

@@ -149,7 +149,7 @@ function drawNote(ctx, pin, i, w, h) {
     ctx.fillText(pin.year, 48, h - 44)
 }
 
-// The island has no screenshot, so its print is a small drawing of the night island.
+// The aerie has no screenshot, so its print is a small drawing of the night aerie.
 function drawNight(ctx, w, h) {
     const poly = (color, points) => {
         ctx.fillStyle = color
@@ -176,7 +176,7 @@ function drawNight(ctx, w, h) {
 }
 
 function drawCover(ctx, pin, img, w, h) {
-    if (!img) return pin.id === 'island' ? drawNight(ctx, w, h) : monogram(ctx, pin, -GAP / 2, -GAP / 2, w + GAP, h + GAP)
+    if (!img) return pin.id === 'aerie' ? drawNight(ctx, w, h) : monogram(ctx, pin, -GAP / 2, -GAP / 2, w + GAP, h + GAP)
     cover(ctx, img, -GAP / 2, -GAP / 2, w + GAP, h + GAP)
     // A faint warm wash, so a bright screenshot sits in the lamp light like a printed photo.
     ctx.fillStyle = 'rgba(120,80,40,0.10)'

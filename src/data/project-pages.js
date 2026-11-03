@@ -144,7 +144,7 @@ const pages = {
             { label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/TrKixel' },
         ],
     },
-    island: {
+    aerie: {
         blurb: 'This site: a night aerie built in Blender and drawn in Three.js.',
         coverAlt: 'The aerie at night: a tall house with a steel frame, red autumn trees and lit windows.',
         body: [

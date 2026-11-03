@@ -13,17 +13,14 @@ const { active, entered, goTo } = useWaypoints()
 const onHome = computed(() => route.name === 'Home')
 const shown = computed(() => entered.value || (route.name && !onHome.value))
 
-// plants_in_space had two links on each side. The items follow the walk across the aerie
-// (src/data/waypoints.js). About, the bedroom, is the highest room of the house and the
-// middle stop of the five, so it takes the middle, under the mark.
+// The items follow the walk across the aerie (src/data/waypoints.js). Every stop is numbered
+// the same way, About too, and a brass rule separates the tabs.
 const items = ['Welcome', 'Projects', 'About', 'Skills', 'Contact']
-const left = [0, 1]
-const right = [3, 4]
-const middle = 2
+const ABOUT = 2
 
 const number = (i) => String(i + 1).padStart(2, '0')
 // The About room (/about) marks About too.
-const isActive = (i) => (onHome.value && i === active.value) || (i === middle && route.name === 'About')
+const isActive = (i) => (onHome.value && i === active.value) || (i === ABOUT && route.name === 'About')
 
 const go = async (index) => {
     if (goTo(index)) return
@@ -44,43 +41,8 @@ const greet = async () => {
 
 <template>
     <nav class="nav-strip" :class="{ shown }" aria-label="Sections" :aria-hidden="shown ? undefined : 'true'">
-        <ul class="nav-side">
-            <li v-for="i in left" :key="i">
-                <button
-                    type="button"
-                    class="nav-item"
-                    :class="{ active: isActive(i) }"
-                    :aria-current="isActive(i) ? 'true' : undefined"
-                    @click="go(i)"
-                    @mouseenter="onHover"
-                    @focus="onHover"
-                >
-                    <span class="number" aria-hidden="true">{{ number(i) }}</span>
-                    <span class="word">{{ items[i] }}</span>
-                </button>
-            </li>
-        </ul>
-
-        <div class="nav-middle">
-            <button
-                type="button"
-                class="nav-item"
-                :class="{ active: isActive(middle) }"
-                :aria-current="isActive(middle) ? 'true' : undefined"
-                @click="go(middle)"
-                @mouseenter="onHover"
-                @focus="onHover"
-            >
-                <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 2.5 21 9l-3.4 10.5H6.4L3 9Z" />
-                    <path d="M12 7.5 16.3 10.6 14.7 15.6H9.3L7.7 10.6Z" />
-                </svg>
-                <span class="word">{{ items[middle] }}</span>
-            </button>
-        </div>
-
-        <ul class="nav-side">
-            <li v-for="i in right" :key="i">
+        <ul class="nav-row">
+            <li v-for="(item, i) in items" :key="item">
                 <button
                     type="button"
                     class="nav-item"
@@ -116,8 +78,6 @@ const greet = async () => {
     bottom: calc(clamp(0.5rem, 1vw, 0.75rem) + env(safe-area-inset-bottom));
     left: 50%;
     z-index: 50;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
     width: max-content;
     /* A percentage of the viewport box leaves out the scrollbar, unlike vw. */
     max-width: calc(100% - 1rem);
@@ -141,7 +101,10 @@ const greet = async () => {
 
 /* The brass rim is one evenodd polygon: the octagon, then the same octagon 1px inside it.
    A clip-path cuts a CSS border away, and a box-shadow cannot turn at a corner. The inner
-   cut is 0.59px shorter, 1 x (2 - sqrt 2), so the rim stays 1px wide on the 45 degree edges. */
+   cut is 0.59px shorter, 1 x (2 - sqrt 2), so the rim stays 1px wide on the 45 degree edges.
+   Each octagon repeats its first point to close itself. Without that, the path ran from the
+   outer octagon straight into the inner one, and the top left diagonal rendered about 0.1px
+   wide. The seam between the two closing points has no area. */
 .nav-strip::before {
     --d: calc(var(--c) - 0.59px);
     content: "";
@@ -149,18 +112,28 @@ const greet = async () => {
     inset: 0;
     pointer-events: none;
     background: var(--color-brass-soft);
-    clip-path: polygon(evenodd, var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), calc(1px + var(--d)) 1px, calc(100% - 1px - var(--d)) 1px, calc(100% - 1px) calc(1px + var(--d)), calc(100% - 1px) calc(100% - 1px - var(--d)), calc(100% - 1px - var(--d)) calc(100% - 1px), calc(1px + var(--d)) calc(100% - 1px), 1px calc(100% - 1px - var(--d)), 1px calc(1px + var(--d)));
+    clip-path: polygon(evenodd, var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0, calc(1px + var(--d)) 1px, calc(100% - 1px - var(--d)) 1px, calc(100% - 1px) calc(1px + var(--d)), calc(100% - 1px) calc(100% - 1px - var(--d)), calc(100% - 1px - var(--d)) calc(100% - 1px), calc(1px + var(--d)) calc(100% - 1px), 1px calc(100% - 1px - var(--d)), 1px calc(1px + var(--d)), calc(1px + var(--d)) 1px);
 }
 
-.nav-side {
+.nav-row {
     display: flex;
-    gap: clamp(0rem, 1.5vw, 1.25rem);
 }
 
-.nav-middle {
+/* A short brass rule between the tabs, half the strip height. */
+.nav-row > li {
+    position: relative;
     display: flex;
-    margin: 0 clamp(0.15rem, 1vw - 0.4rem, 0.75rem);
-    padding: 0 clamp(0.15rem, 1.5vw - 0.3rem, 1.25rem);
+    padding: 0 clamp(0.3rem, 1vw - 0.1rem, 0.7rem);
+}
+
+.nav-row > li + li::before {
+    content: "";
+    position: absolute;
+    top: 30%;
+    bottom: 30%;
+    left: 0;
+    width: 1px;
+    background: var(--color-brass-soft);
 }
 
 .nav-item {

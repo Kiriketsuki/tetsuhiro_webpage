@@ -164,7 +164,7 @@ export const PINS = [
         tilt: -4,
     },
     {
-        id: 'island',
+        id: 'aerie',
         group: '3d',
         kind: 'hero',
         title: 'This aerie',
@@ -172,7 +172,7 @@ export const PINS = [
         line: 'This site: a night aerie built in Blender and drawn in Three.js.',
         stack: ['Three.js', 'GLSL', 'Blender', 'Vue'],
         link: 'https://github.com/Kiriketsuki/tetsuhiro_webpage',
-        page: 'island',
+        page: 'aerie',
         at: [0.14, -0.28],
         tilt: 2,
     },
@@ -217,10 +217,10 @@ export const STRINGS = [
     ['statusline', 'usaki', 'the status bar left the terminal'],
     ['agenkic-hub', 'seeki', 'the same issue-to-branch CI'],
     ['trkixel', 'seeki', 'Rust and the same release setup'],
-    ['resonant-respite', 'island', 'the music world became this aerie'],
-    ['aetherial-verdancy', 'island', 'Vue, Three.js and Blender again'],
+    ['resonant-respite', 'aerie', 'the music world became this aerie'],
+    ['aetherial-verdancy', 'aerie', 'Vue, Three.js and Blender again'],
     ['resonant-respite', 'aetherial-verdancy', 'music drives the scene, 2024'],
-    ['kinopy', 'island', 'shipped in the same October'],
+    ['kinopy', 'aerie', 'shipped in the same October'],
     ['aetherial-verdancy', 'kinopy', 'plants grown, then plants solved'],
 ].map(([from, to, label]) => ({ from, to, label }))
 

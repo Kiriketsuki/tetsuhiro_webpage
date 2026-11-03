@@ -314,7 +314,7 @@ export class GradePass extends Pass {
         this.uniforms.uTexel.value.set(1 / width, 1 / height)
     }
 
-    // camera: the perspective camera of the island view, or null to turn the depth looks off.
+    // camera: the perspective camera of the aerie view, or null to turn the depth looks off.
     setCamera(camera, pixelRatio = 1) {
         this.camera = camera
         this.uniforms.uPixel.value = pixelRatio

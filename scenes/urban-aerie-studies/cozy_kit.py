@@ -13,7 +13,7 @@ Batch=SS['Batch']
 
 # One palette for the whole house. The wood, sage, ceramic, brass and charcoal values match the
 # rooftop dining set and the telescope, so the interiors speak the same language as the terraces.
-# Each name hits one export_island_b.py web family by pattern, so no new web material appears.
+# Each name hits one export_aerie.py web family by pattern, so no new web material appears.
 PALETTE={
     'oak':('CI_Oak_wood',(.40,.235,.12),.8,0),
     'walnut':('CI_Walnut_wood',(.18,.095,.05),.8,0),

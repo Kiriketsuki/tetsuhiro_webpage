@@ -181,8 +181,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
     let steeredAt = -Infinity
 
-    // The lens follows the stop's focus point, and adds the depth under the resting cursor
-    // (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
+    // The lens keeps the stop's focus point sharp, and adds a second sharp slab at the depth
+    // under the resting cursor (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
     // the hover focus comes back after the move. Reduced motion keeps the stop's focus only. The
     // cursor patch and the vignette centre ease after the pointer, so they drift and never jump.
     // --aerie-lens tells the focus ring in the shell how strong the lens is, so the ring fades
@@ -208,9 +208,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const on = !!cursor && dof === 1 && !state.reduced
         // Reduced motion draws single frames, so a long step snaps the pull out in one frame.
         const hover = hoverFocus.update({ on, cursor, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
-        uniforms.uHoverFocus.value = hover.focus
+        uniforms.uFocus2.value = hover.focus
         uniforms.uHover.value = hover.weight
-        uniforms.uHoverCap.value = HOVER_FOCUS.cap
         if (cursor) lensCursor.uv.lerp(cursor, k)
         lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)

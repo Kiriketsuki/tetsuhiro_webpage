@@ -76,10 +76,9 @@ uniform float uFocus;
 uniform float uLensBand;
 uniform float uLensRamp;
 uniform float uLensMax;
-// The hover focus in metres, its weight and its cap (hover-focus.js).
-uniform float uHoverFocus;
+// The second focal depth in metres, under the resting cursor, and its weight (hover-focus.js).
+uniform float uFocus2;
 uniform float uHover;
-uniform float uHoverCap;
 // The eased cursor in uv and how much it clears the blur around it.
 uniform vec2 uCursor;
 uniform float uCursorClear;
@@ -141,16 +140,24 @@ float ink( vec2 uv ) {
 // so one wall of the house read crisp and the porch beside it soft (lens research,
 // 2026-11-02: Godot tilt-shift, pmndrs focusRange, GPU Gems 3 ch. 28).
 //
-// The hover focus adds a second focal plane at the depth under the resting cursor. It blurs
-// what the stop's focus keeps sharp by up to uHoverCap, so the stop's subject never goes fully
-// soft. The cursor can also clear the blur in a soft patch around it (uCursorClear). The gather is depth aware: a tap counts only if its own disc reaches this pixel, and a
-// tap behind this pixel counts by the smaller disc, so a blurred background never spreads over
-// a sharp edge in front of it. A per-pixel spin of the spiral turns banding into fine grain.
+// The resting cursor adds a second focal slab at the depth under it (uFocus2). A pixel takes
+// the smaller blur of the two slabs, so the stop's subject and the cursor's subject are both
+// sharp, and the rest blurs by its distance from the nearer one. The far city looks like a
+// model when it is sharp, so it keeps FAR_SOFT of the full blur in either slab. The owner
+// picked this soft floor over a focus limit (2026-11-03): the cursor still pulls the city
+// closer, but its towers never go crisp. The cursor can also clear the blur in a soft patch
+// around it (uCursorClear). The gather is depth aware:
+// a tap counts only if its own disc reaches this pixel, and a tap behind this pixel counts by
+// the smaller disc, so a blurred background never spreads over a sharp edge in front of it.
+// A per-pixel spin of the spiral turns banding into fine grain.
 const float LENS_TAPS = 16.0;
+const float FAR_SOFT = 0.6;
+float slab( float depth, float focus ) {
+    return smoothstep( uLensBand, uLensBand + uLensRamp, abs( depth - focus ) / depth );
+}
 float blurPx( float depth, vec2 uv ) {
-    float s = smoothstep( uLensBand, uLensBand + uLensRamp, abs( depth - uFocus ) / depth );
-    float h = smoothstep( uLensBand, uLensBand + uLensRamp, abs( depth - uHoverFocus ) / depth );
-    s = mix( s, h * mix( s, 1.0, uHoverCap ), uHover );
+    float s = min( slab( depth, uFocus ), mix( 1.0, slab( depth, uFocus2 ), uHover ) );
+    s = max( s, FAR_SOFT * smoothstep( 150.0, 400.0, depth ) );
     vec2 d = ( uv - uCursor ) * uAspect / uAspect.y;
     float clear = 1.0 - uCursorClear * exp( -dot( d, d ) / 0.018 );
     return uLensMax * s * clear * uPixel;
@@ -275,9 +282,8 @@ export class GradePass extends Pass {
             uLensBand: { value: 0.12 },
             uLensRamp: { value: 0.45 },
             uLensMax: { value: 6 },
-            uHoverFocus: { value: 10 },
+            uFocus2: { value: 10 },
             uHover: { value: 0 },
-            uHoverCap: { value: 0.8 },
             uCursor: { value: new THREE.Vector2(0.5, 0.5) },
             uCursorClear: { value: 0 },
             uVignetteCentre: { value: new THREE.Vector2(0.5, 0.5) },

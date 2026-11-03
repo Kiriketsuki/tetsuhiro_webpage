@@ -1,6 +1,5 @@
 import * as THREE from 'three'
-import desktopUrl from '../assets/models/island_b.glb?url'
-import mobileUrl from '../assets/models/island_b_lod1.glb?url'
+import { islandUrl, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -40,7 +39,6 @@ const FADE_EDGE = 0.35
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
 // The board size when Anchor_Corkboard gives a position but no size, in metres.
 const BOARD_SIZE = { width: 1.0, height: 0.7 }
-const MOBILE = '(max-width: 767px)'
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
 // The city haze density: the city loses about a fifth of its colour at the bottom of the
@@ -52,7 +50,7 @@ const FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer.
 export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
-    const small = window.matchMedia(MOBILE).matches
+    const small = isSmallScreen()
     const useLod = lod ?? (small ? 1 : 0)
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
     renderer.toneMapping = THREE.NoToneMapping
@@ -325,7 +323,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     loaders.manager.onProgress = (url, loaded, total) => report(total ? loaded / total : 0)
 
     const ready = loaders.gltf
-        .loadAsync(useLod === 1 ? mobileUrl : desktopUrl, (event) => {
+        .loadAsync(islandUrl(useLod), (event) => {
             if (event.lengthComputable) islandBytes = event.loaded / event.total
             report(0)
         })

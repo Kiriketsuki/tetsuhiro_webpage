@@ -330,13 +330,19 @@ if ( toonSurface == ${SURFACE.stone} ) {
 
 float toonShadow = 1.0;
 #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
-    DirectionalLightShadow toonMoonShadow = directionalLightShadows[ 0 ];
-    toonShadow = getShadow( directionalShadowMap[ 0 ], toonMoonShadow.shadowMapSize, toonMoonShadow.shadowIntensity,
-        toonMoonShadow.shadowBias, toonMoonShadow.shadowRadius, vDirectionalShadowCoord[ 0 ] );
     // A face that turns almost edge-on to the moon gets little moon light, but there the
     // shadow map draws stair-step bands, as the slats did on the telescope wall. The
     // shadow fades out toward the edge-on angle, so the wall shades evenly.
-    toonShadow = mix( 1.0, toonShadow, smoothstep( 0.02, 0.2, dot( toonSmooth, uToonMoonDir ) ) );
+    float toonMoonFacing = smoothstep( 0.02, 0.2, dot( toonSmooth, uToonMoonDir ) );
+    // Where the fade is zero, mix( 1.0, shadow, 0.0 ) is exactly 1.0, so the shadow read is dead
+    // work. The test is strict and has no epsilon, so every pixel with a fade above zero takes the
+    // same read and the same mix as before.
+    if ( toonMoonFacing > 0.0 ) {
+        DirectionalLightShadow toonMoonShadow = directionalLightShadows[ 0 ];
+        toonShadow = getShadow( directionalShadowMap[ 0 ], toonMoonShadow.shadowMapSize, toonMoonShadow.shadowIntensity,
+            toonMoonShadow.shadowBias, toonMoonShadow.shadowRadius, vDirectionalShadowCoord[ 0 ] );
+        toonShadow = mix( 1.0, toonShadow, toonMoonFacing );
+    }
 #endif
 // A crown shades as one soft mass. The lumps under the cards throw small hard shadows onto
 // the cards and onto each other, and those read as dark maroon patches in a close-up, so
@@ -619,14 +625,21 @@ toonAlbedo *= mix( vec3( 1.0 ), mix( vec3( 0.259, 0.2, 0.157 ), vec3( 1.0 ), vTo
 // Half-lambert wrap from the moon, so the light falls off smoothly with no band steps.
 float toonWrap = dot( toonN, uToonMoonDir ) * 0.5 + 0.5;
 float toonDiffuse = toonWrap * toonWrap * toonShadow;
+// The look options are off by default. A uniform test skips their maths, and an option at zero
+// leaves the value exactly as it was, because mix( x, y, 0.0 ) is x for a finite y. The test is
+// uniform, so the derivative in the cel block stays in uniform flow.
 // Soft cel bands: three steps, each with a short soft edge, so no band edge aliases.
-float toonBand = ( floor( toonDiffuse * 3.0 ) + smoothstep( 0.4, 0.6, fract( toonDiffuse * 3.0 ) ) ) / 3.0;
-toonDiffuse = mix( toonDiffuse, toonBand, uToonBands );
-// The two-tone edge spans about one pixel, so the cel line stays crisp but does not alias.
-float toonCelEdge = fwidth( toonDiffuse ) + 0.015;
-float toonCel = smoothstep( 0.3 - toonCelEdge, 0.3 + toonCelEdge, toonDiffuse );
-toonDiffuse = mix( toonDiffuse, mix( 0.12, 0.78, toonCel ), uToonCel );
-toonAlbedo = mix( toonAlbedo, toonAlbedo * uToonShadeTint, uToonCel * ( 1.0 - toonCel ) );
+if ( uToonBands != 0.0 ) {
+    float toonBand = ( floor( toonDiffuse * 3.0 ) + smoothstep( 0.4, 0.6, fract( toonDiffuse * 3.0 ) ) ) / 3.0;
+    toonDiffuse = mix( toonDiffuse, toonBand, uToonBands );
+}
+if ( uToonCel != 0.0 ) {
+    // The two-tone edge spans about one pixel, so the cel line stays crisp but does not alias.
+    float toonCelEdge = fwidth( toonDiffuse ) + 0.015;
+    float toonCel = smoothstep( 0.3 - toonCelEdge, 0.3 + toonCelEdge, toonDiffuse );
+    toonDiffuse = mix( toonDiffuse, mix( 0.12, 0.78, toonCel ), uToonCel );
+    toonAlbedo = mix( toonAlbedo, toonAlbedo * uToonShadeTint, uToonCel * ( 1.0 - toonCel ) );
+}
 // The shade side keeps its hue: darker values get richer and warmer instead of grey.
 toonAlbedo = max( toonAlbedo, vec3( 0.0 ) );
 // A power of 1.2 pushed every shaded honey board to red-brown, so the shade side keeps a
@@ -696,27 +709,32 @@ for ( int i = 0; i < ${TOON_BOUNCES}; i ++ ) {
     vec3 toLight = uToonBounce[ i ].xyz - vToonWorld;
     float d = length( toLight );
     float r = max( uToonBounce[ i ].w, 1e-3 );
-    float near = r * r / ( r * r + d * d );
-    float reach = ( 1.0 - smoothstep( 0.0, 1.0, d / r ) ) * near;
-    vec3 dir = toLight / max( d, 1e-3 );
-    // Only faces that turn toward the lamp take its light, so the spill never leaks
-    // through a wall onto the outside of the house as a round pool. Floors and ceilings take
-    // about a third of it. Round 6 cut the ceilings too: the full spill put a strong orange
-    // wash on the workshop ceiling above the right window (S2).
-    // Round 10 wraps the facing term a little, so a face edge-on to the lamp still takes about
-    // a quarter of the light. A narrow wall reveal that faced the lamp drew a hard bright stripe
-    // beside a dark wall that met it edge-on (S2).
-    // Round 11 lets the campfire light the ground around it at nearly full strength, and the
-    // window spill reach a little further onto the floors, decks and steps below.
-    float floors = i == ${CAMPFIRE_BOUNCE} ? 0.85 : 0.5;
-    float facing = ( floors + ( 1.0 - floors ) * ( 1.0 - abs( toonN.y ) ) ) * max( dot( toonN, dir ) * 0.75 + 0.25, 0.0 );
-    // Round 14: the top and the bottom faces of the outer wall boards take no window spill. The
-    // bedroom lamp lit the top of one board through the wall, a thin orange line in S4.
-    if ( toonTimbered && abs( toonFlat.y ) > 0.5 ) facing = 0.0;
-    toonWarm += reach * facing;
-    if ( reach > toonWarmBest ) {
-        toonWarmBest = reach;
-        toonWarmDir = dir;
+    // Past the radius the smoothstep is 1, so the reach is exactly 0. It then adds nothing to
+    // the spill and cannot beat the best reach, which starts at 0. The 1.001 factor keeps a wide
+    // margin over the rounding of d / r, so a lamp edge pixel always takes the full path.
+    if ( d <= r * 1.001 ) {
+        float near = r * r / ( r * r + d * d );
+        float reach = ( 1.0 - smoothstep( 0.0, 1.0, d / r ) ) * near;
+        vec3 dir = toLight / max( d, 1e-3 );
+        // Only faces that turn toward the lamp take its light, so the spill never leaks
+        // through a wall onto the outside of the house as a round pool. Floors and ceilings take
+        // about a third of it. Round 6 cut the ceilings too: the full spill put a strong orange
+        // wash on the workshop ceiling above the right window (S2).
+        // Round 10 wraps the facing term a little, so a face edge-on to the lamp still takes about
+        // a quarter of the light. A narrow wall reveal that faced the lamp drew a hard bright stripe
+        // beside a dark wall that met it edge-on (S2).
+        // Round 11 lets the campfire light the ground around it at nearly full strength, and the
+        // window spill reach a little further onto the floors, decks and steps below.
+        float floors = i == ${CAMPFIRE_BOUNCE} ? 0.85 : 0.5;
+        float facing = ( floors + ( 1.0 - floors ) * ( 1.0 - abs( toonN.y ) ) ) * max( dot( toonN, dir ) * 0.75 + 0.25, 0.0 );
+        // Round 14: the top and the bottom faces of the outer wall boards take no window spill. The
+        // bedroom lamp lit the top of one board through the wall, a thin orange line in S4.
+        if ( toonTimbered && abs( toonFlat.y ) > 0.5 ) facing = 0.0;
+        toonWarm += reach * facing;
+        if ( reach > toonWarmBest ) {
+            toonWarmBest = reach;
+            toonWarmDir = dir;
+        }
     }
 }
 // The spill eases off where it is strong, so a wall edge close to a lamp shows a soft
@@ -724,7 +742,7 @@ for ( int i = 0; i < ${TOON_BOUNCES}; i ++ ) {
 // Round 11 breaks the spill on the ground into soft irregular patches with the 1.7 m
 // mottle, so no round disc shows on the lawn, the deck or the steps.
 toonWarm *= mix( 1.0, 0.45 + 1.1 * texture2D( uToonDetail, vToonWorld.xz / 1.7 + 0.83 ).g, smoothstep( 0.5, 0.9, toonN.y ) );
-toonWarm = mix( toonWarm, 0.45 * smoothstep( 0.12, 0.16, toonWarm ) + 0.55 * smoothstep( 0.42, 0.48, toonWarm ), uToonCel );
+if ( uToonCel != 0.0 ) toonWarm = mix( toonWarm, 0.45 * smoothstep( 0.12, 0.16, toonWarm ) + 0.55 * smoothstep( 0.42, 0.48, toonWarm ), uToonCel );
 toonLight += uToonWarm * toonWarm * 1.25 / ( 1.0 + toonWarm );
 
 // Metal takes less diffuse light, so its highlights carry the form, as on real brass.

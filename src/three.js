@@ -114,10 +114,10 @@ function boot() {
         canvas,
         reducedMotion: reducedMotion.value,
         start: currentStop(),
-        // A direct visit to /skills opens on the skill sky, so the reveal waits for it.
-        sky: location.pathname.replace(/\/+$/, '').toLowerCase() === '/skills',
+        // Only the focus ring reads the lens strength, so only the ring restyles when it moves.
+        lensTarget: () => document.querySelector('.focus-ring'),
         // A direct visit to Projects, or to one project, opens on the wall, so the reveal waits
-        // for it too. The two older project pages are text pages.
+        // for it. The two older project pages are text pages.
         wall: /^\/projects(\/(?!dancing_tables$|placeholders$)[^/]+)?$/.test(location.pathname.replace(/\/+$/, '').toLowerCase()),
         onProgress: (value) => {
             progress.value = Math.max(progress.value, value)

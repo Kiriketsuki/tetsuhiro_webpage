@@ -39,17 +39,25 @@ const RIM_POINTS = [
 
 function createFalloff() {
     const data = new Uint8Array(SIZE * SIZE * 4)
-    for (let y = 0; y < SIZE; y += 1) {
-        for (let x = 0; x < SIZE; x += 1) {
+    // The falloff is round, so one quadrant gives all four. The mirrored distances are exact in
+    // double precision and Math.hypot ignores signs, so each mirrored cell holds the same byte
+    // as a direct calculation. Each cell is four equal bytes, so one 32-bit store writes it.
+    const cells = new Uint32Array(data.buffer)
+    const half = SIZE / 2
+    for (let y = 0; y < half; y += 1) {
+        for (let x = 0; x < half; x += 1) {
             const r = Math.hypot(x - SIZE / 2 + 0.5, y - SIZE / 2 + 0.5) / (SIZE / 2)
-            const i = (y * SIZE + x) * 4
             // A smooth falloff that reaches zero before the square edge, so no edge shows. The
             // alpha map reads the green channel, so every channel holds the falloff. Round 9
             // wrote it to alpha alone, and each disc drew as a full dark square.
             // Round 14 keeps the core dark out to a quarter of the radius, so the shadow hugs
             // the foot of a prop. The round 13 falloff faded from the very centre, and most of
             // its dark part hid under the prop itself.
-            data.fill(Math.round(255 * Math.pow(1 - THREE.MathUtils.smoothstep(r, 0.25, 1), 1.2)), i, i + 4)
+            const cell = Math.round(255 * Math.pow(1 - THREE.MathUtils.smoothstep(r, 0.25, 1), 1.2)) * 0x01010101
+            cells[y * SIZE + x] = cell
+            cells[y * SIZE + (SIZE - 1 - x)] = cell
+            cells[(SIZE - 1 - y) * SIZE + x] = cell
+            cells[(SIZE - 1 - y) * SIZE + (SIZE - 1 - x)] = cell
         }
     }
     const texture = new THREE.DataTexture(data, SIZE, SIZE, THREE.RGBAFormat)

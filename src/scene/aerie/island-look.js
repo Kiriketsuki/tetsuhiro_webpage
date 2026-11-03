@@ -12,6 +12,7 @@ import { createGlassMaterial, createFrameMaterial } from './glass.js'
 import { prepareWater, createWaterMaterial } from './water.js'
 import { createContactShadows, propSpots } from './contact-shadows.js'
 import { createLookWorker } from './look-client.js'
+import { createDropRay } from './drop-ray.js'
 
 // Puts the cozy night look, after the art style of Leaf it Alone, on a loaded island_b GLB.
 // Opaque parts share one toon material with half-lambert light, warm hue-keeping shadows
@@ -136,19 +137,22 @@ const WALL_DIRECTIONS = [
 ].map((d) => new THREE.Vector3(...d))
 const MIN_GLOW = 0.1
 
+// A Raycaster tested every wall triangle for each of the five rays of each sprite. The drop-ray
+// grid gives the same hits and tests only the triangles under each short ray. It runs after
+// towerRoof and timberWalls, so the walls no longer change.
 function fitGlowsToWalls(spots, meshes) {
     const walls = meshes.filter((mesh) => WALL_FAMILIES.includes(mesh.userData.webMaterial))
-    const raycaster = new THREE.Raycaster()
+    if (!spots.length) return { fitted: [], shrunk: 0 }
+    // The Raycaster computed the missing bounding sphere of every wall on the first ray, and
+    // the page gets the bounds back with the geometry. The grid opens only the walls near each
+    // ray, so the spheres are computed here.
+    walls.forEach((mesh) => {
+        if (mesh.material && mesh.geometry.boundingSphere === null) mesh.geometry.computeBoundingSphere()
+    })
+    const grid = createDropRay(walls)
     let shrunk = 0
     const fitted = spots.map((spot) => {
-        raycaster.far = spot.size
-        const clear = Math.min(
-            spot.size,
-            ...WALL_DIRECTIONS.map((direction) => {
-                raycaster.set(spot.position, direction)
-                return raycaster.intersectObjects(walls, false)[0]?.distance ?? spot.size
-            })
-        )
+        const clear = Math.min(spot.size, ...WALL_DIRECTIONS.map((direction) => grid.cast(spot.position, spot.size, direction)?.distance ?? spot.size))
         if (clear >= spot.size) return spot
         shrunk += 1
         return { ...spot, size: Math.max(MIN_GLOW, clear * 1.1) }
@@ -450,6 +454,43 @@ function lightenTelescopeBands(meshes, anchor) {
         })
 }
 
+// The crown and plant families, with the options shapeCrowns takes for each. crowns.js writes
+// both normal attributes of every vertex these meshes keep: the trees set new attributes
+// (crowns.js:254-255) and the planting writes every shrub and tuft vertex (crowns.js:354 and
+// :373-378). So the creased normals of softenGeometry never reach the screen on these meshes,
+// and the skip saves their cost. In Node on a desktop, these meshes take 9 ms in place of 29 ms
+// on LOD0, and 3 ms in place of 9 ms on LOD1.
+const CROWN_SHAPES = new Map([
+    ['web_crown', { bend: true }],
+    ['web_plants', { bend: false }],
+])
+
+// The attribute layout that softenGeometry makes, without its creased normals. flatNormal is
+// the same copy of the exported normal, and normal holds zeros until crowns.js writes it. The
+// attributes keep the same order, types and sizes.
+function keepNormalLayout(geometry) {
+    if (geometry.attributes.flatNormal) return geometry
+    const flat = geometry.index ? geometry.toNonIndexed() : geometry
+    if (!flat.attributes.normal) flat.computeVertexNormals()
+    const flatNormal = flat.attributes.normal.clone()
+    flat.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(flat.attributes.position.count * 3), 3, false))
+    flat.setAttribute('flatNormal', flatNormal)
+    return flat
+}
+
+// shapeTreeCrowns returns early on a crown with no lumps, and leaves the zero normals of
+// keepNormalLayout on it. The dev build stops on such a mesh, so the shading never goes flat
+// without a warning.
+function assertCrownNormals(meshes) {
+    meshes.forEach((mesh) => {
+        if (!CROWN_SHAPES.has(mesh.userData.webMaterial)) return
+        const normal = mesh.geometry.attributes.normal
+        if (normal && normal.count > 0 && normal.array.every((value) => value === 0)) {
+            throw new Error(`island-look: ${mesh.name} kept the zero normals of the crown skip`)
+        }
+    })
+}
+
 // The geometry half of the look: the soft normals, the surface tags, the water flow, the crown
 // and plant shapes, the palette and the autumn paint, the leaf piles, the shrub shadows and the
 // fitted glow sprites. It reads and writes geometry, userData and plain numbers only, so
@@ -466,7 +507,7 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
         // The rename comes first. softenGeometry and crowns.js copy every attribute, so aoBake rides along.
         if (adoptAoBake(child.geometry)) aoMeshes += 1
         const crease = metal ? METAL_CREASE : child.userData.webMaterial === 'web_rock' && !isLaidRock(child) || child.name.startsWith('Pad') ? ROCK_CREASE : undefined
-        const soft = softenGeometry(child.geometry, crease)
+        const soft = CROWN_SHAPES.has(child.userData.webMaterial) ? keepNormalLayout(child.geometry) : softenGeometry(child.geometry, crease)
         if (soft !== child.geometry) child.geometry.dispose()
         child.geometry = soft
         tagSurface(soft, surfaceOf(child), child)
@@ -485,8 +526,8 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
 
     meshes.forEach((mesh) => {
         const family = mesh.userData.webMaterial
-        if (family === 'web_crown') shapeCrowns(mesh, { bend: true })
-        else if (family === 'web_plants') shapeCrowns(mesh)
+        const crown = CROWN_SHAPES.get(family)
+        if (crown) shapeCrowns(mesh, crown)
         else if (THIN_FAMILIES.includes(family)) thinMembers(mesh)
     })
     applyPalette(meshes)
@@ -504,6 +545,8 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
     const piles = createLeafPiles({ meshes, material: opaque, litterAt, blocked })
     if (piles) meshes.push(piles)
     const shrubShadows = propSpots(meshes, isLaidRock, blocked)
+    // Node imports this module with no import.meta.env, so the check reads it with care.
+    if (import.meta.env?.DEV) assertCrownNormals(meshes)
     return { aoMeshes, pond, waterMouth, glows, litterAt, piles, shrubShadows }
 }
 
@@ -521,9 +564,12 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
         return p ? { x: p.x, y: p.y, z: p.z, radius } : null
     }).filter(Boolean)
 
-    const detail = (detailBuild ?? createDetailTexture({ anisotropy, sliced: false })).finish()
-    const carpet = (carpetBuild ?? createLeafCarpet({ anisotropy })).finish()
-    const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail, carpet })
+    // The two texture builds keep their slices running while the worker shapes the island, and
+    // finish only after its reply. The uniforms hold the texture objects, so they need no
+    // finished data yet, and nothing renders or compiles before the finish below.
+    const detail = detailBuild ?? createDetailTexture({ anisotropy, sliced: false })
+    const carpet = carpetBuild ?? createLeafCarpet({ anisotropy })
+    const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail: detail.texture, carpet })
     const opaque = createToonMaterial(uniforms, {}, { key: 'aerie-toon-v3-ao', defines: { AERIE_AO: '' } })
     opaque.name = 'aerie.toon'
     const time = { value: 0 }
@@ -574,9 +620,17 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
     })
 
     const own = worker ? null : createLookWorker()
-    const shaped = await (worker ?? own)
-        .shape({ meshes, opaque, water, lip, telescope: anchorPosition(gltf, TELESCOPE.anchor), bounces, spots })
-        .finally(() => own?.dispose())
+    let shaped
+    try {
+        shaped = await (worker ?? own)
+            .shape({ meshes, opaque, water, lip, telescope: anchorPosition(gltf, TELESCOPE.anchor), bounces, spots })
+            .finally(() => own?.dispose())
+    } finally {
+        // Both finish calls run once the reply or the failure arrives. On a failure they also
+        // stop the slice timers. Each call builds the same bytes as an early finish.
+        detail.finish()
+        carpet.finish()
+    }
 
     if (water.length) {
         const material = createWaterMaterial({ pond: shaped.pond, time, mouth: shaped.waterMouth })
@@ -602,7 +656,7 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
     }
     const dispose = () => {
         materials.forEach((material) => material.dispose())
-        detail.dispose()
+        detail.texture.dispose()
         carpet.dispose()
         shadows?.userData.dispose()
     }

@@ -124,7 +124,7 @@ function sampleCourse(course) {
 // Builds the plan of one layout. at(s) gives the point, the unit direction, the unit normal to
 // the left bank and the half width at a distance s along the course. locate(x, z) gives the
 // distance along the course, the signed distance across it and the half width there.
-export function planRiver(layout = pick()) {
+export function planRiver(ground, layout = pick()) {
     const { samples, length, step } = sampleCourse(layout.course)
     const sample = (i) => samples.subarray(i * 4, i * 4 + 3)
     const at = (s) => {
@@ -166,7 +166,7 @@ export function planRiver(layout = pick()) {
         return Math.abs(r.across) < r.half + PARK_WIDTH + ROAD + 20
     }
     const bridges = layout.bridges.map((b) => planBridge(b, at, isle, length))
-    return { samples, length, step, park: PARK_WIDTH, road: PARK_WIDTH + ROAD, at, locate, isle, isleHalf, isWater, isOpen, bridges }
+    return { ground, samples, length, step, park: PARK_WIDTH, road: PARK_WIDTH + ROAD, at, locate, isle, isleHalf, isWater, isOpen, bridges }
 }
 
 // The two ends of a bridge, its unit direction, and the stretch of it over the water. A road
@@ -240,10 +240,11 @@ vec4 riverAt( vec2 p ) {
     }
 }
 
-// Loads the river: its plan, its bake GLSL, and its lights and parks layer.
-export function createCityRiver({ hazeUniforms, time, dpr }) {
-    const plan = planRiver()
+// Loads the river: its plan, its bake GLSL, and its lights and parks layer. city holds the
+// ground height, the bokeh sizes, the city haze and its GLSL (city-river-lights.js).
+export function createCityRiver({ city, hazeUniforms, time, dpr }) {
+    const plan = planRiver(city.ground)
     if (import.meta.env.DEV) window.__river = plan
-    const lights = createRiverLights({ plan, hazeUniforms, time, dpr })
+    const lights = createRiverLights({ plan, city, hazeUniforms, time, dpr })
     return { plan, bake: riverGlsl(plan), isOpen: plan.isOpen, group: lights.group, dispose: lights.dispose }
 }

@@ -4,6 +4,7 @@ import { CITY_HAZE, HAZE_GLSL, NOISE_GLSL, PLANE_VERTEX } from './city-glsl.js'
 import { createCityClouds } from './city-clouds.js'
 import { BOKEH, CITY_LOOK, GRID, GRID_NORMAL, MAP_CENTRE, MAP_SIZE, MAP_TEXELS, bakeCityMap, inPark } from './city-map.js'
 import { createCityTowers } from './city-towers.js'
+import { GROUND } from './city-skyline.js'
 import { createCityOffscreen } from './city-offscreen.js'
 
 // The invented night city far below the aerie, drawn by one shader on one flat plane, with
@@ -217,7 +218,7 @@ export function createCityBackdrop({ renderer, haze, hazeDensity = 1 / 4200, pix
     let built = null
     const ready = import('./city-river.js').then(({ createCityRiver }) => {
         if (disposed) return
-        const river = createCityRiver({ hazeUniforms, time, dpr })
+        const river = createCityRiver({ city: { ground: GROUND, bokeh: BOKEH, haze: CITY_HAZE, hazeGlsl: HAZE_GLSL }, hazeUniforms, time, dpr })
         const map = bakeCityMap(renderer, CITY_LOOK, river.bake)
         const towers = createCityTowers({ hazeUniforms, look: CITY_LOOK, dpr, isOpen: (x, z) => river.isOpen(x, z) || inPark(x, z) })
         material.uniforms.uMap.value = map.texture

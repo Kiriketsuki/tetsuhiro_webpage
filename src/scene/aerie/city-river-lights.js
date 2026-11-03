@@ -1,7 +1,4 @@
 import * as THREE from 'three'
-import { CITY_HAZE, HAZE_GLSL } from './city-glsl.js'
-import { BOKEH } from './city-map.js'
-import { GROUND } from './city-skyline.js'
 
 // The lights and the parks of the river (city-river.js). Every light is a bokeh disc of the
 // same screen size as the ground lights: the bridge lamps, arches, pylons and cables, the
@@ -11,6 +8,9 @@ import { GROUND } from './city-skyline.js'
 // pixels by the vertex shader. They add to the city in its target, so the city haze dims
 // them as it dims the ground lights. The parks are one more draw: dark green strips along
 // the banks and over the island.
+// This module and city-river.js import nothing from the scene modules. The scene passes in
+// what they share (city: the ground height, the bokeh sizes, the city haze and its GLSL).
+// An import from the scene chunk would make Rollup drop src/three.js as its facade.
 
 const CITY_CENTRE = [0, -900]
 const CITY_RADIUS = 4500
@@ -37,12 +37,13 @@ const scaled = (colour, gain) => COLOURS[colour].map((c) => c * gain)
 // Collects lights. add() places one light, and a second, dimmer one as its reflection
 // when the light stands over the water.
 function lightList(plan) {
+    const ground = plan.ground
     const list = []
     const add = (x, y, z, colour, gain, { size = 1, phase = 0, mode = MODE.still, reflect = true } = {}) => {
         const rgb = scaled(colour, gain)
-        list.push({ at: [x, GROUND + y, z], rgb, info: [size, 1, phase, mode] })
+        list.push({ at: [x, ground + y, z], rgb, info: [size, 1, phase, mode] })
         // A high light lies on the water further off, so its reflection is fainter.
-        if (reflect && y > 1 && plan.isWater(x, z)) list.push({ at: [x, GROUND - y, z], rgb: rgb.map((c) => (c * 0.35) / (1 + y / 40)), info: [size, STREAK, phase, mode] })
+        if (reflect && y > 1 && plan.isWater(x, z)) list.push({ at: [x, ground - y, z], rgb: rgb.map((c) => (c * 0.35) / (1 + y / 40)), info: [size, STREAK, phase, mode] })
     }
     return { list, add }
 }
@@ -153,7 +154,7 @@ function bankStreaks(plan, list, rand) {
             const across = side * (p.half - 14)
             const colour = tints[Math.floor(rand() * tints.length)]
             list.push({
-                at: [p.x + p.normal[0] * across, GROUND - 22 - 30 * rand(), p.z + p.normal[1] * across],
+                at: [p.x + p.normal[0] * across, plan.ground - 22 - 30 * rand(), p.z + p.normal[1] * across],
                 rgb: scaled(colour, 0.04 + 0.06 * rand()),
                 info: [0.9, STREAK, Math.atan2(side * p.normal[1], side * p.normal[0]), MODE.bank],
             })
@@ -176,7 +177,7 @@ function carLights(plan, list, rand) {
 
 const f1 = (x) => x.toFixed(3)
 
-const lightsVertex = (plan) => /* glsl */ `
+const lightsVertex = (plan, city) => /* glsl */ `
 uniform float uTime;
 uniform float uDpr;
 uniform float uHazeDensity;
@@ -203,7 +204,7 @@ void main() {
         vec2 e = normalize( b.xy - a.xy );
         float across = sign( aCentre.y ) * ( mix( a.z, b.z, f - float( i ) ) + abs( aCentre.y ) );
         vec2 c = mix( a.xy, b.xy, f - float( i ) ) + vec2( -e.y, e.x ) * across;
-        world = vec3( c.x, ${f1(GROUND + 3)}, c.y );
+        world = vec3( c.x, ${f1(plan.ground + 3)}, c.y );
     } else if ( aInfo.w > 2.5 ) {
         colour *= step( dot( cameraPosition.xz - world.xz, vec2( cos( aInfo.z ), sin( aInfo.z ) ) ), 0.0 );
     } else if ( aInfo.w > 1.5 ) {
@@ -214,8 +215,8 @@ void main() {
     float dist = distance( world, cameraPosition );
     float fog = dist * uHazeDensity;
     float edge = 1.0 - smoothstep( 0.55, 1.0, length( world.xz - ${`vec2( ${f1(CITY_CENTRE[0])}, ${f1(CITY_CENTRE[1])} )`} ) / ${f1(CITY_RADIUS)} );
-    vColour = colour * ${f1(1 - CITY_HAZE)} * exp( -fog * fog ) * edge;
-    vRadius = uDpr * mix( ${f1(BOKEH[0])}, ${f1(BOKEH[1])}, smoothstep( 900.0, 3000.0, dist ) ) * aInfo.x;
+    vColour = colour * ${f1(1 - city.haze)} * exp( -fog * fog ) * edge;
+    vRadius = uDpr * mix( ${f1(city.bokeh[0])}, ${f1(city.bokeh[1])}, smoothstep( 900.0, 3000.0, dist ) ) * aInfo.x;
     vStretch = aInfo.y;
     vPhase = aInfo.z;
     vPx = aCorner * ( vRadius + 1.0 ) * vec2( 1.0, aInfo.y );
@@ -258,14 +259,14 @@ void main() {
     gl_Position = projectionMatrix * viewMatrix * world;
 }
 `
-const parksFragment = /* glsl */ `
+const parksFragment = (city) => /* glsl */ `
 varying float vEdge;
 varying vec3 vWorld;
-${HAZE_GLSL}
+${city.hazeGlsl}
 void main() {
     float soft = smoothstep( 0.0, 0.3, vEdge ) * smoothstep( 1.0, 0.7, vEdge );
     float edge = 1.0 - smoothstep( 0.55, 1.0, length( vWorld.xz - vec2( ${f1(CITY_CENTRE[0])}, ${f1(CITY_CENTRE[1])} ) ) / ${f1(CITY_RADIUS)} );
-    vec3 col = mix( vec3( 0.018, 0.055, 0.032 ), hazeAt( normalize( vWorld - cameraPosition ) ), ${f1(CITY_HAZE)} );
+    vec3 col = mix( vec3( 0.018, 0.055, 0.032 ), hazeAt( normalize( vWorld - cameraPosition ) ), ${f1(city.haze)} );
     gl_FragColor = vec4( applyHaze( col, vWorld ), 0.85 * soft * edge );
 }
 `
@@ -278,7 +279,7 @@ function parkGeometry(plan) {
     const strip = (points) => {
         const base = position.length / 3
         points.forEach(([x0, z0, x1, z1], i) => {
-            position.push(x0, GROUND + 0.5, z0, x1, GROUND + 0.5, z1)
+            position.push(x0, plan.ground + 0.5, z0, x1, plan.ground + 0.5, z1)
             edge.push(0, 1)
             if (i > 0) index.push(base + 2 * i - 2, base + 2 * i - 1, base + 2 * i, base + 2 * i - 1, base + 2 * i + 1, base + 2 * i)
         })
@@ -340,7 +341,7 @@ function random(seed) {
     }
 }
 
-export function createRiverLights({ plan, hazeUniforms, time, dpr }) {
+export function createRiverLights({ plan, city, hazeUniforms, time, dpr }) {
     const rand = random(20261103)
     const { list, add } = lightList(plan)
     plan.bridges.forEach((bridge) => bridgeLights(bridge, add))
@@ -356,7 +357,7 @@ export function createRiverLights({ plan, hazeUniforms, time, dpr }) {
         new THREE.ShaderMaterial({
             name: 'city.river.lights',
             uniforms: { uTime: time, uDpr: dpr, uHazeDensity: hazeUniforms.uHazeDensity, uView: { value: view }, uCourse: { value: course } },
-            vertexShader: lightsVertex(plan),
+            vertexShader: lightsVertex(plan, city),
             fragmentShader: lightsFragment,
             transparent: true,
             depthWrite: false,
@@ -375,7 +376,7 @@ export function createRiverLights({ plan, hazeUniforms, time, dpr }) {
     }
     const parks = new THREE.Mesh(
         parkGeometry(plan),
-        new THREE.ShaderMaterial({ name: 'city.river.parks', uniforms: hazeUniforms, vertexShader: parksVertex, fragmentShader: parksFragment, transparent: true, depthWrite: false })
+        new THREE.ShaderMaterial({ name: 'city.river.parks', uniforms: hazeUniforms, vertexShader: parksVertex, fragmentShader: parksFragment(city), transparent: true, depthWrite: false })
     )
     lights.name = 'CityRiverLights'
     parks.name = 'CityRiverParks'

@@ -21,7 +21,11 @@ const SCENE_SOURCE = 'src/three.js'
 const LIMITS = {
     shellJs: 110_000,
     sceneJs: 200_000,
-    lazyChunk: 8_000,
+    // November 2026: the skill logos moved out of the shell into their own chunk, about
+    // 17 kB for 21 logos, which loads when the first skill card opens in the sky. The skill
+    // sky is its own chunk of about 9 kB that loads after the island. The shell got about
+    // 9 kB lighter. The limit was 8 kB.
+    lazyChunk: 20_000,
     shellCss: 8_000,
     model: 1_500_000,
     // The scene's image textures. The detail texture and the leaf atlas build at runtime,

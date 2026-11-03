@@ -27,7 +27,7 @@ const featured = [
     {
         id: 'autoconnect',
         title: 'Auto-Connect operator interfaces',
-        blurb: 'The software that runs driverless vehicles at airports. I built it from the first diagram, as its only engineer.',
+        blurb: 'The software that runs driverless vehicles at airports. I built it from the first diagram, alone for the first eighteen months, and now with a team.',
         stack: 'Flask, then FastAPI and uv, websockets',
         year: '2025 to 2026',
         role: 'Software Engineer, Aurrigo',
@@ -40,7 +40,7 @@ const featured = [
         ],
         note: 'The real screens are not public, so I redrew these from scratch. Layout only, no real data.',
         body: [
-            'Auto-Connect is the software Aurrigo uses to run driverless vehicles on the airside of an airport. I set it up from the first architecture diagram in May 2025, and I was its only engineer.',
+            'Auto-Connect is the software Aurrigo uses to run driverless vehicles on the airside of an airport. I set it up from the first architecture diagram in May 2025. I was its sole engineer for the first eighteen months, and it now has a team.',
             'I wrote the first backend in Flask with MySQL, then rebuilt it in FastAPI with uv that September. The four operator screens, for fleet, stand, baggage area and remote supervision, talk to it over websockets.',
             'The tricky part is keeping a busy screen calm, so the thing that needs you right now is the first thing you see.',
             'In December the stand screen went map-first, with its panels floating over the map.',

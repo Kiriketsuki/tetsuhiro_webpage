@@ -15,7 +15,6 @@ import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
-import { createConstellation } from './aerie/constellation.js'
 import { projects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
@@ -29,6 +28,10 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 // single frames only.
 
 const AMBIENT_FPS = 30
+// The longest the reveal waits for compileAsync, in milliseconds. compileAsync polls each
+// program until the driver reports it ready, and a lost WebGL context never reports, so the
+// gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
+const COMPILE_WAIT_MS = 8000
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
@@ -159,6 +162,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (!reveal || state.reduced) parts.constellation.showAll()
             pipeline.setView(parts.constellation.scene, parts.constellation.camera)
         } else {
+            parts.constellation.close()
             pipeline.setView(scene, camera)
         }
         requestRender()
@@ -367,16 +371,19 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 scene.add(parts.cards.mesh)
             }
 
-            await document.fonts.load('30px "JetBrains Mono"').catch(() => {})
-            parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
+            // The skill sky is its own chunk, so it stays out of the scene budget.
+            await Promise.all([document.fonts.load('30px "JetBrains Mono"'), document.fonts.load('italic 42px "Instrument Serif"')]).catch(() => {})
+            const { createConstellation } = await import('./aerie/constellation.js')
+            parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 
             rig.setShots(shots)
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
-            await renderer.compileAsync(scene, camera)
-            await renderer.compileAsync(parts.constellation.scene, parts.constellation.camera)
+            const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
+            await compiled(scene, camera)
+            await compiled(parts.constellation.scene, parts.constellation.camera)
             renderer.shadowMap.needsUpdate = true
             state.ready = true
             onProgress(1)
@@ -421,6 +428,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pan: (dx, dy) => {
             if (view === 'sky') parts.constellation.pan(dx, dy)
             else rig.pan(dx, dy)
+            requestRender()
+        },
+        // x and y are client pixels. A tap on the skill sky flies to the constellation
+        // under it, or back out to the whole sky.
+        tap: (x, y) => {
+            if (view !== 'sky') return
+            parts.constellation.focus((x / window.innerWidth) * 2 - 1, 1 - (y / window.innerHeight) * 2, state.reduced)
             requestRender()
         },
         zoom: (factor) => {

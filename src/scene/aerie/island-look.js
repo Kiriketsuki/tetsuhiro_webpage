@@ -450,6 +450,43 @@ function lightenTelescopeBands(meshes, anchor) {
         })
 }
 
+// The crown and plant families, with the options shapeCrowns takes for each. crowns.js writes
+// both normal attributes of every vertex these meshes keep: the trees set new attributes
+// (crowns.js:254-255) and the planting writes every shrub and tuft vertex (crowns.js:354 and
+// :373-378). So the creased normals of softenGeometry never reach the screen on these meshes,
+// and the skip saves their cost. In Node on a desktop, these meshes take 9 ms in place of 29 ms
+// on LOD0, and 3 ms in place of 9 ms on LOD1.
+const CROWN_SHAPES = new Map([
+    ['web_crown', { bend: true }],
+    ['web_plants', { bend: false }],
+])
+
+// The attribute layout that softenGeometry makes, without its creased normals. flatNormal is
+// the same copy of the exported normal, and normal holds zeros until crowns.js writes it. The
+// attributes keep the same order, types and sizes.
+function keepNormalLayout(geometry) {
+    if (geometry.attributes.flatNormal) return geometry
+    const flat = geometry.index ? geometry.toNonIndexed() : geometry
+    if (!flat.attributes.normal) flat.computeVertexNormals()
+    const flatNormal = flat.attributes.normal.clone()
+    flat.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(flat.attributes.position.count * 3), 3, false))
+    flat.setAttribute('flatNormal', flatNormal)
+    return flat
+}
+
+// shapeTreeCrowns returns early on a crown with no lumps, and leaves the zero normals of
+// keepNormalLayout on it. The dev build stops on such a mesh, so the shading never goes flat
+// without a warning.
+function assertCrownNormals(meshes) {
+    meshes.forEach((mesh) => {
+        if (!CROWN_SHAPES.has(mesh.userData.webMaterial)) return
+        const normal = mesh.geometry.attributes.normal
+        if (normal && normal.count > 0 && normal.array.every((value) => value === 0)) {
+            throw new Error(`island-look: ${mesh.name} kept the zero normals of the crown skip`)
+        }
+    })
+}
+
 // The geometry half of the look: the soft normals, the surface tags, the water flow, the crown
 // and plant shapes, the palette and the autumn paint, the leaf piles, the shrub shadows and the
 // fitted glow sprites. It reads and writes geometry, userData and plain numbers only, so
@@ -466,7 +503,7 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
         // The rename comes first. softenGeometry and crowns.js copy every attribute, so aoBake rides along.
         if (adoptAoBake(child.geometry)) aoMeshes += 1
         const crease = metal ? METAL_CREASE : child.userData.webMaterial === 'web_rock' && !isLaidRock(child) || child.name.startsWith('Pad') ? ROCK_CREASE : undefined
-        const soft = softenGeometry(child.geometry, crease)
+        const soft = CROWN_SHAPES.has(child.userData.webMaterial) ? keepNormalLayout(child.geometry) : softenGeometry(child.geometry, crease)
         if (soft !== child.geometry) child.geometry.dispose()
         child.geometry = soft
         tagSurface(soft, surfaceOf(child), child)
@@ -485,8 +522,8 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
 
     meshes.forEach((mesh) => {
         const family = mesh.userData.webMaterial
-        if (family === 'web_crown') shapeCrowns(mesh, { bend: true })
-        else if (family === 'web_plants') shapeCrowns(mesh)
+        const crown = CROWN_SHAPES.get(family)
+        if (crown) shapeCrowns(mesh, crown)
         else if (THIN_FAMILIES.includes(family)) thinMembers(mesh)
     })
     applyPalette(meshes)
@@ -504,6 +541,8 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
     const piles = createLeafPiles({ meshes, material: opaque, litterAt, blocked })
     if (piles) meshes.push(piles)
     const shrubShadows = propSpots(meshes, isLaidRock, blocked)
+    // Node imports this module with no import.meta.env, so the check reads it with care.
+    if (import.meta.env?.DEV) assertCrownNormals(meshes)
     return { aoMeshes, pond, waterMouth, glows, litterAt, piles, shrubShadows }
 }
 

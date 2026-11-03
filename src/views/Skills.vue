@@ -47,7 +47,9 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
 /* A plate of night glass, like the skill cards in sky-overlay.css, with a brass hairline. The
    back control sits first in it, so it is close and easy to find. The plate takes no pointer
    events, so a drag that starts on it still moves the sky. Each night glass token has the old
-   value as a fallback, so the plate keeps its colours on a build without those tokens. */
+   value as a fallback, so the plate keeps its colours on a build without those tokens. The
+   plate and the back key have square corners, like every control in docs/design-system.md,
+   so a plain 1 px border draws their rings. */
 .sky-head {
     position: relative;
     display: flex;
@@ -56,7 +58,6 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
     align-items: flex-start;
     padding: 0.75rem 1.25rem 1rem 0.75rem;
     border: 1px solid var(--color-brass-dim, rgb(232 192 137 / 0.28));
-    border-radius: 1rem;
     background:
         radial-gradient(circle at 86% 24%, rgb(255 255 255 / 0.7) 0 0.6px, transparent 1.2px),
         radial-gradient(circle at 70% 78%, rgb(255 255 255 / 0.45) 0 0.5px, transparent 1px),
@@ -75,7 +76,6 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
     margin-bottom: 0.75rem;
     padding: 0 1rem;
     border: 1px solid var(--color-action, #14b8a6);
-    border-radius: 999px;
     background: color-mix(in oklab, var(--color-action, #0d9488) 20%, transparent);
     color: var(--color-text-strong);
     font-family: var(--font-label);

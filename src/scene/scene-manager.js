@@ -349,12 +349,23 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // Steps the move through the eyepiece. Each leg starts the camera on its way when its time
     // comes. The iris closes, the picture swaps while it is shut, and the iris opens again.
+    // A leg that starts in the workshop or the bedroom leaves through its door, not through its
+    // walls. It takes its duration from its path, which slows at the door (camera-move.js). In
+    // its fixed 1.6 s the camera passed the porch at 40 m/s. The legs and the iris still ahead
+    // wait for it.
     const stepScope = (delta) => {
         const s = scope
         s.t += delta
         while (s.legs.length && s.t >= s.legs[0][0]) {
-            const [, id, duration] = s.legs.shift()
-            rig.goTo(id, duration)
+            const [, id, planned] = s.legs.shift()
+            const door = planned ? doorFor(rig.current, id, camera.position) : null
+            rig.goTo(id, { duration: door ? null : planned, door })
+            if (!door) continue
+            const late = rig.moveDuration - planned
+            const wait = (time) => (time > s.t ? time + late : time)
+            s.legs = s.legs.map(([time, ...leg]) => [wait(time), ...leg])
+            s.close = wait(s.close)
+            s.swap = wait(s.swap)
         }
         if (!s.swapped && s.t >= s.swap) {
             s.swapped = true

@@ -113,7 +113,7 @@ void main() {
     float density = 0.32 + 0.35 * smoothstep( 0.3, 0.75, noise( p / 900.0 + 3.0 ) ) + 0.15 * noise( p / 260.0 );
     density *= 1.0 - 0.7 * smoothstep( 0.7, 0.8, noise( p / 1300.0 + 9.0 ) );
     float neon = 0.0;
-    ${DISTRICTS.map((d) => `{
+    ${DISTRICTS.map((d) => /* glsl */ `{
         float w = exp( -dot( p - ${v2(d.at)}, p - ${v2(d.at)} ) / ${f1(d.radius * d.radius)} );
         density = mix( density, max( density, ${f1(d.density)} ), w );
         neon += ${f1(d.neon * d.hue * look.neon)} * w;
@@ -134,7 +134,7 @@ void main() {
     float avenues = max( lamp( repeatDist( g.y, ${f1(AVENUE_STEP)} ), 9.0 ), 0.6 * lamp( repeatDist( g.x, ${f1(CROSS_STEP)} ), 7.0 ) );
     float diagonal = lamp( abs( dot( p - ${v2(DIAGONAL.at)}, ${v2([-Math.sin(gridTurn + DIAGONAL.turn), Math.cos(gridTurn + DIAGONAL.turn)])} ) ), 10.0 );
     float lines = max( avenues, diagonal ) * inGrid * ( 1.0 - park );
-    ${PLACES.map(({ at, count, length }, i) => `{
+    ${PLACES.map(({ at, count, length }, i) => /* glsl */ `{
         vec2 d = p - ${v2(at)};
         float k = ${f1((2 * Math.PI) / count)};
         float a = atan( d.y, d.x ) + ${f1(i * 0.7)};

@@ -215,3 +215,59 @@ to 164 m/s2, the workshop to the board 588 to 9 m/s2, the workshop to the campfi
   rest then, so it does not show as a jump.
 - The numbers come from headless Chromium on a desktop GPU. The throttle slows the CPU, not
   the GPU, so no real phone GPU was measured.
+
+## Third pass: planned paths (3 November 2026, night)
+
+The owner: "i want the camera path to be smart and avoid obstacles and be natural as well",
+then "especially for going up the tower, it needs to be smooth instead of trying to follow the
+stairs". The story legs rode a drone follow along the walk splines, so the move to the bedroom
+traced the stair flights. Jumps rose in arcs over a box round the house.
+
+### What changed
+
+1. **Clearance field** (`clearance.js`). After the island loads, the meshes of the aerie (the
+   island, the house, the trees and their leaf crowns, the props and the campfire kit) mark a
+   1 m grid, and an exact distance transform gives the distance to the nearest surface. The
+   build runs in slices of at most 4 ms behind the gate: 78 ms in all on a desktop, 290 ms on
+   a phone at 4x CPU throttle.
+2. **Planner** (`path-plan.js`). A move keeps the straight line when it stays as clear as its
+   two ends. Otherwise A* runs on a 2 m grid with a cost for low clearance, line-of-sight
+   cuts drop the corners, and an elastic band relaxes the path smooth while it pushes out to
+   4 m of clearance. Near its ends a path may come as close as the shot is.
+3. **Plans ahead.** The flights between every two stops, and to and from the workshop door,
+   plan after the field builds. A move from rest reads its plan. A take-over plans at once:
+   at most 4.6 ms on a desktop and 26 ms on the throttled phone.
+4. **View.** The view blends from the start view to the end view along the distance flown.
+   In the middle of a move it leans toward the way the camera flies, up to 60 percent, and
+   only where the camera flies forward.
+5. **Removed.** The walk legs, the follow frames, the lifted arcs, the crane and the house
+   box test. `route.js` keeps the doorway. The doorway entry, the turn limit and the pace
+   stay.
+
+### Measurements
+
+All 30 moves between the six stops, stepped at 1/120 s, at 1440x900. The mesh check covers all
+78 meshes of the aerie.
+
+| Worst case | Second pass | Planned paths |
+|---|---|---|
+| Mesh crossings | 0 (house and props only) | 0 (all 78 meshes) |
+| Peak acceleration | 336 m/s2 | 136 m/s2 |
+| Peak turn | 59 degrees/s | 58 degrees/s |
+| Moves with more than one speed peak | 4 | 3 |
+| Workshop to bedroom: corner within 2 m | 89 degrees | 27 degrees |
+| Longest move | 4.4 s | 4.4 s |
+
+The three moves with a second speed peak are the pad to the board and the bedroom to the
+board, where the camera slows for the door, and the pad to the telescope.
+
+Real input, with the frame clock from the second pass, at desktop and phone with 4x CPU
+throttle: every run shows on screen the speed peaks the path has, no stall frame, at most 3
+percent speed change from one frame to the next, and a peak turn of 60 degrees/s. The move up
+the tower turns at 24 degrees/s, against 53 before.
+
+### Left open
+
+- The pad to the board peaks at 136 m/s2 where the flight meets the door axis.
+- A take-over on a slow phone plans for up to 26 ms in its first frame.
+- The back button from `/projects` still flies to the pad (corkboard work).

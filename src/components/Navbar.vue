@@ -79,7 +79,7 @@ const greet = async () => {
             </button>
         </div>
 
-        <ul class="nav-side end">
+        <ul class="nav-side">
             <li v-for="i in right" :key="i">
                 <button
                     type="button"
@@ -107,54 +107,60 @@ const greet = async () => {
 </template>
 
 <style scoped>
-/* A solid strip with one rule on top. No blur, no rounded box. */
+/* A glass octagon with a brass rim that floats over the aerie (docs/design-system.md).
+   The strip top stays under 4.25rem from the bottom, and under 4rem below 768px wide,
+   where the project sheets and folders end. */
 .nav-strip {
+    --c: 0.65rem;
     position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    bottom: calc(clamp(0.5rem, 1vw, 0.75rem) + env(safe-area-inset-bottom));
+    left: 50%;
     z-index: 50;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    align-items: stretch;
-    padding: 0 clamp(0.5rem, 4vw, 4.5rem);
-    background: var(--color-bg-base);
-    border-top: 1px solid var(--color-line);
-    /* Its own layer, so it stays put while the phone toolbar slides. */
-    transform: translateZ(0);
+    width: max-content;
+    /* A percentage of the viewport box leaves out the scrollbar, unlike vw. */
+    max-width: calc(100% - 1rem);
+    padding: 0 1.1rem;
+    background: var(--color-glass);
+    backdrop-filter: blur(14px);
+    clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+    /* Centred, and on its own layer, so it stays put while the phone toolbar slides. */
+    transform: translate3d(-50%, 0, 0);
     opacity: 0;
     visibility: hidden;
+    /* Only a fade, with no movement, so reduced motion needs no override. */
     transition: opacity 0.8s 0.6s, visibility 0s 1.4s;
 }
 
 .nav-strip.shown {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.8s 0.6s, visibility 0s;
+    transition-delay: 0.6s, 0s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .nav-strip,
-    .nav-strip.shown {
-        transition: none;
-    }
+/* The brass rim is one evenodd polygon: the octagon, then the same octagon 1px inside it.
+   A clip-path cuts a CSS border away, and a box-shadow cannot turn at a corner. The inner
+   cut is 0.59px shorter, 1 x (2 - sqrt 2), so the rim stays 1px wide on the 45 degree edges. */
+.nav-strip::before {
+    --d: calc(var(--c) - 0.59px);
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--color-brass-soft);
+    clip-path: polygon(evenodd, var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), calc(1px + var(--d)) 1px, calc(100% - 1px - var(--d)) 1px, calc(100% - 1px) calc(1px + var(--d)), calc(100% - 1px) calc(100% - 1px - var(--d)), calc(100% - 1px - var(--d)) calc(100% - 1px), calc(1px + var(--d)) calc(100% - 1px), 1px calc(100% - 1px - var(--d)), 1px calc(1px + var(--d)));
 }
 
 .nav-side {
     display: flex;
-    gap: clamp(0rem, 3vw, 3rem);
+    gap: clamp(0rem, 1.5vw, 1.25rem);
 }
 
-.nav-side.end {
-    justify-content: flex-end;
-}
-
-/* Vertical rules either side of the middle, like the 2022 wynmonde nav. */
 .nav-middle {
     display: flex;
-    padding: 0 clamp(0.1rem, 2.5vw, 2.5rem);
-    border-right: 1px solid var(--color-line);
-    border-left: 1px solid var(--color-line);
+    margin: 0 clamp(0.15rem, 1vw - 0.4rem, 0.75rem);
+    padding: 0 clamp(0.15rem, 1.5vw - 0.3rem, 1.25rem);
 }
 
 .nav-item {
@@ -162,12 +168,11 @@ const greet = async () => {
     align-items: center;
     gap: 0.45rem;
     height: 100%;
-    padding: 0.85rem 0.3rem 0.7rem;
-    border-bottom: 2px solid transparent;
+    /* Tight enough for the five words and the lantern on a 360px phone, and 48px tall. */
+    padding: 1.05rem 0.1rem;
     color: var(--color-text-muted);
     font-family: var(--font-label);
     font-size: 0.64rem;
-    letter-spacing: 0.06em;
     text-transform: uppercase;
     transition: color 0.2s, border-color 0.2s;
 }
@@ -188,7 +193,7 @@ const greet = async () => {
 
 @media (min-width: 640px) {
     .nav-item {
-        padding: 1rem 0.5rem 0.85rem;
+        padding: 1.05rem 0.5rem;
         font-size: 0.78rem;
         letter-spacing: 0.12em;
     }
@@ -205,12 +210,19 @@ const greet = async () => {
 
 .nav-item:hover {
     color: var(--color-text-strong);
-    border-bottom-color: var(--color-text-strong);
 }
 
+/* The stop in view takes a small blonde hex, the same mark as the pane legends. */
 .nav-item.active {
     color: var(--color-text-strong);
-    border-bottom-color: var(--color-action);
+}
+
+.nav-item.active::before {
+    content: "";
+    width: 0.45rem;
+    aspect-ratio: 0.866;
+    background: var(--color-action);
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 }
 
 .nav-item:focus-visible {

@@ -57,12 +57,11 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
     flex-direction: column;
     align-items: flex-start;
     padding: 0.75rem 1.25rem 1rem 0.75rem;
-    border: 1px solid var(--color-brass-dim, rgb(232 192 137 / 0.28));
+    border: 1px solid var(--color-brass-soft);
     background:
         radial-gradient(circle at 86% 24%, rgb(255 255 255 / 0.7) 0 0.6px, transparent 1.2px),
         radial-gradient(circle at 70% 78%, rgb(255 255 255 / 0.45) 0 0.5px, transparent 1px),
-        radial-gradient(120% 100% at 100% 0%, rgb(163 131 227 / 0.16), transparent 65%),
-        var(--color-glass, rgb(7 10 31 / 0.72));
+        var(--color-glass);
     box-shadow: 0 0.75rem 2rem rgb(2 4 16 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.06);
     backdrop-filter: blur(10px);
     pointer-events: none;

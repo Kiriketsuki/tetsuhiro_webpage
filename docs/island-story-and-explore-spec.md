@@ -52,25 +52,17 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 
 ### Moves between stops
 
-**A move to a neighbour follows the route.** Each pair of neighbouring stops has one leg. A leg is a walk spline along the real path:
+**Every move flies one planned path (owner, 3 November 2026).** "I want the camera path to be smart and avoid obstacles and be natural", and "especially for going up the tower, it needs to be smooth instead of trying to follow the stairs". The walk splines and the drone follow are gone (`docs/smooth-camera.md`, "Third pass").
 
-| Leg | Route |
-|---|---|
-| `arrival` to `workshop` | the ramp, the deck, the bridge, the path, the workshop porch |
-| `workshop` to `bedroom` | the porch, then up and round the outside of the stair tower to the top floor |
-| `bedroom` to `telescope` | out through the balcony door onto the L-shaped terrace |
-| `telescope` to `campfire` | back past the tower, down to the lawn, across behind the fire, then a slow turn north over the rim to the city |
+- A planner (`src/scene/aerie/path-plan.js`) flies each move through the free space round the aerie. It keeps about 4 m from the house, the trees and the props where it can, and comes as close as a shot is near its two ends.
+- A move between neighbours and a jump of two or more stops plan the same way. The jump arcs and the crane are gone.
+- The view blends from the start view to the end view, and in the middle of a move it leans toward the way the camera flies.
+- A move takes 1.8 s to 4.4 s, from its distance and its view turn together. The view turns at most 60 degrees a second.
+- The `workshop` to `bedroom` move keeps the rain on the glass and the fade (`fade` in `scene-manager.js`). It rises up the front of the house in one curve.
+- The lens fades out during a move, as `rig.travel` already does. The focus point blends from one stop's focus to the next.
+- A move into or out of the board view still passes through the workshop doorway.
 
-- The camera rides behind and above the walk spline (a drone follow, about 4 m up and 5 m back) and looks at a point about 3 m ahead on it.
-- The start shot, the follow frame at the middle of the walk and the end shot are control points of one camera spline and one look spline. The camera runs along both with one speed curve, so a move has no seams (`docs/smooth-camera.md`, 3 November 2026).
-- A move takes 1.8 s to 3.6 s, from its camera distance and its view turn together.
-- A scroll up plays the same leg in reverse.
-- The `workshop` to `bedroom` leg keeps the rain on the glass and the fade (`fade` in `scene-manager.js`). The leg stays outside the tower, so the camera never passes through a wall.
-- The lens fades out during a leg, as `rig.travel` already does for a move. The focus point blends from one stop's focus to the next.
-
-**A jump of two or more stops keeps the lifted arc.** A nav click or a number key that skips a stop uses today's move, with `LIFT_PER_METRE` and `MAX_LIFT`. The full route from the pad to the fire runs about 12 s, which is too long for a jump.
-
-**A new section in the middle of a leg starts a new move from where the camera is.** The rig already starts every move from the current camera. If the new target is a neighbour of the leg's end stop, the move takes that leg. Otherwise it takes the arc.
+**A new section in the middle of a move starts a new move from where the camera is.** It plans from the camera's position and keeps the camera's speed.
 
 **A direct visit still cuts.** `setRoute(name, { cut: true })` opens the route's room without a move.
 
@@ -89,8 +81,8 @@ The gate lift flies from `overview` to `arrival`, not to `hero`. The move reads 
 
 ### Story acceptance checks
 
-1. Scroll from 01 to 05 and back. Each move follows its leg, and no camera passes through geometry.
-2. Click Contact from Welcome. The camera takes the arc, in at most 3.6 s. The arc clears the house.
+1. Scroll from 01 to 05 and back. Each move flies one smooth curve, and no camera passes through geometry.
+2. Click Contact from Welcome. The camera flies a planned path, in at most 4.4 s, clear of the house.
 3. Open `/projects` directly. The scene opens at `workshop` with no move.
 4. With reduced motion, each section change cuts.
 5. The frame time stays under 16.7 ms (desktop) and 22 ms (mid Android) during a leg, measured in the lab.

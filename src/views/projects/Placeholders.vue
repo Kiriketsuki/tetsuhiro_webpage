@@ -71,13 +71,13 @@
             </div>
 
             <div class="image">
-                <img src="../../assets/project_gallery/placeholders/placeholders_0.png" alt="A page from the Find My HDB web app.">
+                <img src="../../assets/project_gallery/placeholders/placeholders_0.webp" width="836" height="939" loading="lazy" decoding="async" alt="A page from the Find My HDB web app.">
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/placeholders/placeholders_1.jpg" alt="One of the UML diagrams for Find My HDB.">
+                <img src="../../assets/project_gallery/placeholders/placeholders_1.jpg" width="994" height="818" loading="lazy" decoding="async" alt="One of the UML diagrams for Find My HDB.">
             </div>
             <div class="text">
                 <h5>

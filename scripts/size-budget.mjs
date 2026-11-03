@@ -31,6 +31,11 @@ const LIMITS = {
     // The scene's image textures. The detail texture and the leaf atlas build at runtime,
     // so only the painted city layers count here.
     textures: 150_000,
+    // Explore on foot (docs/island-story-and-explore-spec.md): the lazy explore chunk, the
+    // collision proxy and the walker model. A file that does not exist yet counts as zero.
+    exploreJs: 20_000,
+    collideModel: 60_000,
+    walkerModel: 80_000,
 }
 const TEXTURE = /\.(png|webp|jpe?g|ktx2)$/i
 
@@ -86,6 +91,11 @@ function measure(manifest) {
         .filter((file) => file.endsWith('.glb'))
         .map((file) => ({ file: `assets/${file}`, size: rawSize(`assets/${file}`) }))
         .sort((a, b) => b.size - a.size)
+    // Vite names a hashed asset <name>-<hash>.glb, so the prefix finds it.
+    const modelOf = (name) => models.find((model) => model.file.startsWith(`assets/${name}-`))
+    const modelSize = (name) => modelOf(name)?.size ?? 0
+    const modelNote = (name) => modelOf(name)?.file ?? 'none yet'
+    const exploreFiles = lazyFiles.filter((file) => /(^|\/)explore-[^/]*\.js$/.test(file))
 
     return [
         { name: 'shell JS (gzip)', limit: LIMITS.shellJs, size: sum(shellFiles, gzipSize), note: shellFiles.join(', ') },
@@ -103,6 +113,14 @@ function measure(manifest) {
             note: filesOf(manifest, shellKeys, 'css').join(', '),
         },
         { name: 'largest model (raw)', limit: LIMITS.model, size: models[0]?.size ?? 0, note: models[0]?.file ?? 'none' },
+        {
+            name: 'explore JS, lazy (gzip)',
+            limit: LIMITS.exploreJs,
+            size: sum(exploreFiles, gzipSize),
+            note: exploreFiles.length ? exploreFiles.join(', ') : 'none yet',
+        },
+        { name: 'collision model (raw)', limit: LIMITS.collideModel, size: modelSize('island_b_collide'), note: modelNote('island_b_collide') },
+        { name: 'walker model (raw)', limit: LIMITS.walkerModel, size: modelSize('walker'), note: modelNote('walker') },
         {
             name: 'scene textures (raw)',
             limit: LIMITS.textures,

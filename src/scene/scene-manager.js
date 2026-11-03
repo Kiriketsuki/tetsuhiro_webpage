@@ -210,6 +210,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // Ends the eyepiece move and the board move at once. A new move of either kind, or a route
     // that drops the sky or the wall at once, starts from rest.
     const settle = () => {
+        // The promise of an eyepiece move resolves here too, so nothing waits on it for ever.
+        scope?.done?.()
         scope = null
         boardMove = null
         pipeline.grade.uniforms.uIris.value = 0
@@ -296,7 +298,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         }
         const k = s.t < s.swap ? (s.t - s.close) / SCOPE.close : 1 - (s.t - s.swap) / SCOPE.open
         pipeline.grade.uniforms.uIris.value = THREE.MathUtils.smoothstep(k, 0, 1)
-        if (s.t >= s.swap + SCOPE.open && !s.legs.length) scope = null
+        if (s.t >= s.swap + SCOPE.open && !s.legs.length) {
+            scope = null
+            s.done()
+        }
         return true
     }
 
@@ -701,31 +706,38 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // The look through the telescope. The camera flies up to the eyepiece (by way of the
         // terrace from any other stop), the iris closes, and it opens on the skill sky. Off
         // plays it in reverse and flies on to the stop `back`. Reduced motion swaps at once,
-        // and src/three.js crossfades the frame.
+        // and src/three.js crossfades the frame. The promise resolves once the iris is fully
+        // open again, so the page can hold its words back until then.
         lookThrough: (on, back = 'telescope') => {
             const iris = pipeline.grade.uniforms.uIris
             // A visitor who leaves while the iris still opens on the sky gets a close from
             // where the blades are, not a jump back to fully open.
             const from = iris.value
             iris.value = 0
+            scope?.done()
             scope = null
             boardMove = null
             if (on === (view === 'sky') || state.reduced) {
                 if (on !== (view === 'sky')) showSky(on)
                 if (!on) api.goTo(back)
-                return
+                return Promise.resolve()
             }
+            let done
+            const finished = new Promise((resolve) => {
+                done = resolve
+            })
             const { fly, close } = SCOPE
             if (on) {
                 const lead = ['telescope', 'eyepiece'].includes(rig.current) ? 0 : 1.6
                 const shut = lead + fly - SCOPE.overlap
-                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1) }
+                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1), done }
             } else {
                 const legs = [[close, 'eyepiece', 0], [close, 'telescope', fly]]
                 if (back !== 'telescope') legs.push([close + fly, back, 1.6])
-                scope = { t: close * from, on, close: 0, swap: close, legs }
+                scope = { t: close * from, on, close: 0, swap: close, legs, done }
             }
             requestRender()
+            return finished
         },
         release: () => {
             rig.release()

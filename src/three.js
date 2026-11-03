@@ -41,12 +41,19 @@ function crossfade() {
 
 // The telescope eyepiece: the camera flies up to the eyepiece, an iris closes, and it opens
 // on the skill sky (scene-manager.js lookThrough). Leaving plays it in reverse, on to `back`.
-// Reduced motion swaps at once, under a still of the old frame that fades out.
+// Reduced motion swaps at once, under a still of the old frame that fades out. `looking`
+// stays true until the iris is open again, so Home shows no card over the blades.
+let moves = 0
 function eyepiece(toSky, back) {
     if (toSky === inSky) return
     inSky = toSky
+    const { looking } = useExplore()
+    const move = ++moves
+    looking.value = true
     if (reducedMotion.value) crossfade()
-    manager.lookThrough(toSky, back)
+    manager.lookThrough(toSky, back).then(() => {
+        if (move === moves) looking.value = false
+    })
 }
 
 // The workshop board: the camera flies to the board and the room board dissolves into the

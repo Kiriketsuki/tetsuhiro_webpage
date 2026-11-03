@@ -27,7 +27,7 @@
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_0.png" alt="The banquet hall scene from the Dancing Tables site.">
+                <img src="../../assets/project_gallery/dancing/dancing_0.webp" width="2500" height="1282" decoding="async" alt="The banquet hall scene from the Dancing Tables site.">
             </div>
 
             <div class="text">
@@ -70,13 +70,13 @@
             </div>
 
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_1.png" alt="A furnished table in the banquet hall.">
+                <img src="../../assets/project_gallery/dancing/dancing_1.webp" width="2535" height="1330" loading="lazy" decoding="async" alt="A furnished table in the banquet hall.">
             </div>
         </div>
 
         <div class="text_right section">
             <div class="image">
-                <img src="../../assets/project_gallery/dancing/dancing_2.png" alt="The table lifting robot in the banquet hall.">
+                <img src="../../assets/project_gallery/dancing/dancing_2.webp" width="2532" height="1292" loading="lazy" decoding="async" alt="The table lifting robot in the banquet hall.">
             </div>
             <div class="text">
                 <h5>

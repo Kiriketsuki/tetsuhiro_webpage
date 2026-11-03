@@ -17,9 +17,8 @@ import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
-import { createCorkboard, findBoard } from './aerie/corkboard.js'
-import { homeProjects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops, legsFromRoute } from './aerie/camera-rig.js'
+import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
@@ -44,23 +43,26 @@ const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
 // the iris close and open, and how early the iris starts to close before the camera stops.
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
-// The board size when Anchor_Corkboard gives a position but no size, in metres.
-const BOARD_SIZE = { width: 1.0, height: 0.7 }
+// The move to the evidence wall, in seconds: the flight from the workshop stop to the board
+// stop, and the dissolve from the room board to the lit wall.
+const WALL = { fly: 1.5, dissolve: 0.55 }
+// The kit board hangs a little in front of the old board, which stays in the island GLB
+// (corkboard-kit.md, case 1). Offsets along the anchor's right and normal, in metres.
+const BOARD_OFFSET = { right: 0.02, out: 0.073 }
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
 // The city haze density: the city loses about a fifth of its colour at the bottom of the
 // overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
-// The faces that corkboard.js draws its card text with, and the faces of the skill sky
-// overlay. A canvas draws with a fallback font while its face is still loading, so each font
-// names the weight the canvas asks for.
-const CARD_FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
+// The faces of the skill sky overlay. A canvas draws with a fallback font while its face is
+// still loading, so each font names the weight the canvas asks for.
 const SKY_FONTS = ['30px "JetBrains Mono"', 'italic 42px "Instrument Serif"']
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer. lensTarget: an
 // optional function that returns the element that reads --aerie-lens. Without it, or while it
-// returns null, the value goes on the root element.
-export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {}, lensTarget = null }) {
+// returns null, the value goes on the root element. wall: true when the first view is the
+// evidence wall, so `ready` waits for it.
+export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', wall = false, hooks = {}, lensTarget = null }) {
     const small = isSmallScreen()
     const useLod = lod ?? islandLod()
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
@@ -83,11 +85,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let legs = legsFromRoute(route)
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
-    const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, cards: null, constellation: null }
+    const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, constellation: null, wall: null, roomBoard: null }
     // The even darkening during the move into the bedroom: { t, duration } while it runs.
     let fade = null
-    // 'island' or 'sky'. The sky is the telescope's view of the skills.
+    // 'island', 'sky' or 'wall'. The sky is the telescope's view of the skills, and the wall is
+    // the corkboard in the workshop, the Projects view.
     let view = 'island'
+    // The move to or from the wall while it runs: { t, on, legs, swap, swapped }.
+    let boardMove = null
     // The move through the eyepiece while it runs: { t, on, legs, close, swap, end }.
     let scope = null
     const loaders = createLoaders()
@@ -112,6 +117,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         parts.waterfall?.resize(bufferHeight(), camera)
         parts.stars?.setPixelRatio(renderer.getPixelRatio())
         parts.constellation?.setPixelRatio(renderer.getPixelRatio())
+        parts.wall?.setPixelRatio(renderer.getPixelRatio())
     }
 
     const buildPipeline = (index) => {
@@ -119,6 +125,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pipeline?.dispose()
         pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[index], small })
         if (view === 'sky' && parts.constellation) pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+        if (view === 'wall' && parts.wall) pipeline.setView(parts.wall.scene, parts.wall.camera)
         lookControl?.apply(lookSet, pipeline.grade.uniforms)
         resizeSprites()
         state.dirty = true
@@ -174,6 +181,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         hooks.before?.()
         const begin = performance.now()
         updateLens()
+        // The wall renders its shadow map only after a pin lifts.
+        if (view === 'wall' && parts.wall.takeShadowDirty()) renderer.shadowMap.needsUpdate = true
         pipeline.render()
         submits.push(performance.now() - begin)
         if (submits.length > 120) submits = submits.slice(-60)
@@ -185,6 +194,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // order. Without it they all show at once.
     const showSky = (on, { reveal = true } = {}) => {
         if (!parts.constellation) return
+        // Off leaves any other view alone, so it never drops the wall.
+        if (!on && view !== 'sky') return
         view = on ? 'sky' : 'island'
         if (on) {
             parts.constellation.open()
@@ -194,7 +205,85 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.constellation.close()
             pipeline.setView(scene, camera)
         }
+        // A context restore during another view leaves this view's shadow map to redraw.
+        renderer.shadowMap.needsUpdate = true
         requestRender()
+    }
+
+    // Ends the eyepiece move and the board move at once. A new move of either kind, or a route
+    // that drops the sky or the wall at once, starts from rest.
+    const settle = () => {
+        // The promise of an eyepiece move resolves here too, so nothing waits on it for ever.
+        scope?.done?.()
+        scope = null
+        boardMove = null
+        pipeline.grade.uniforms.uIris.value = 0
+        pipeline.grade.uniforms.uFade.value = 0
+    }
+
+    // Turning on reduced motion mid move finishes the move: the camera cuts to its last stop,
+    // and a swap that has not run yet runs now.
+    const finishMoves = () => {
+        const move = scope ?? boardMove
+        if (!move) return
+        const last = move.legs.at(-1)?.[1]
+        if (!move.swapped) {
+            if (move === scope) showSky(move.on)
+            else showWall(move.on)
+        }
+        settle()
+        rig.jump(last ?? rig.current)
+    }
+
+    // Swaps the picture between the island and the evidence wall. A call before the wall has
+    // built waits for it, and runs only if no later call has turned the wall off.
+    const showWall = (on) => {
+        wallWanted = on
+        if (!parts.wall) {
+            if (on && !wallFailed) wallReady.then(() => wallWanted && showWall(true), () => {})
+            return
+        }
+        if (on === (view === 'wall')) return
+        view = on ? 'wall' : 'island'
+        pipeline.setView(on ? parts.wall.scene : scene, on ? parts.wall.camera : camera)
+        // Each scene keeps the shadow map of its own light, but a swap needs one fresh render.
+        renderer.shadowMap.needsUpdate = true
+        requestRender()
+    }
+
+    // Swaps the picture under a still of the frame before it, and the still fades out. The
+    // canvas keeps no drawing buffer, so the still copies a frame drawn just now. The page CSS
+    // places every canvas where the scene canvas sits.
+    const dissolve = (swap) => {
+        render()
+        const still = document.createElement('canvas')
+        Object.assign(still, { width: canvas.width, height: canvas.height })
+        still.className = canvas.className
+        still.setAttribute('aria-hidden', 'true')
+        still.style.cssText = `visibility:visible;opacity:${getComputedStyle(canvas).opacity};pointer-events:none;transition:opacity ${WALL.dissolve}s ease`
+        still.getContext('2d').drawImage(canvas, 0, 0)
+        canvas.after(still)
+        swap()
+        render()
+        requestAnimationFrame(() => requestAnimationFrame(() => (still.style.opacity = '0')))
+        setTimeout(() => still.remove(), WALL.dissolve * 1000 + 120)
+    }
+
+    // Steps the move to or from the wall, like the eyepiece move. The swap waits for the wall
+    // to build, so the camera holds at the board until it can dissolve.
+    const stepBoard = (delta) => {
+        const b = boardMove
+        b.t += delta
+        while (b.legs.length && b.t >= b.legs[0][0]) {
+            const [, id, duration] = b.legs.shift()
+            rig.goTo(id, duration)
+        }
+        if (!b.swapped && b.t >= b.swap && (!b.on || parts.wall || wallFailed)) {
+            b.swapped = true
+            dissolve(() => showWall(b.on))
+        }
+        if (b.swapped && !b.legs.length && !rig.moving) boardMove = null
+        return true
     }
 
     // Steps the move through the eyepiece. Each leg starts the camera on its way when its time
@@ -222,8 +311,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The eyepiece move, the skill sky reveal and the bedroom fade. Returns true while any of
     // them needs frames.
     const advanceEffects = (delta) => {
-        const scoping = scope ? stepScope(delta) : false
-        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) || scoping : scoping
+        const scoping = Boolean((scope ? stepScope(delta) : false) | (boardMove ? stepBoard(delta) : false))
+        const walling = view === 'wall' ? parts.wall.update(delta) : false
+        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) || scoping : scoping || walling
         if (!fade) return revealing
         fade.t += delta
         const k = fade.t / fade.duration
@@ -245,6 +335,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         requestAnimationFrame(() => {
             pending = false
             rig.update(0)
+            if (view === 'wall') parts.wall.update(0)
             render()
         })
     }
@@ -255,7 +346,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         ambient += delta
         rig.update(delta)
         const effects = advanceEffects(delta)
-        const tickAmbient = ambientFps > 0 && ambient >= 1 / ambientFps
+        // The wall has nothing that twinkles, so its frames draw only when something moves.
+        const tickAmbient = view !== 'wall' && ambientFps > 0 && ambient >= 1 / ambientFps
         if (!rig.moving && !effects && !state.dirty && !tickAmbient) return
         if (tickAmbient) {
             parts.city?.update(seconds)
@@ -296,6 +388,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pipeline?.resize(width, height)
         rig.resize()
         parts.constellation?.resize(width / height)
+        parts.wall?.resize(width, height)
+        if (parts.wall && parts.roomBoard) boardShot(parts.wall)
         resizeSprites()
         requestRender()
     }
@@ -321,17 +415,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     canvas.addEventListener('webglcontextlost', onLost)
     canvas.addEventListener('webglcontextrestored', onRestored)
 
-    // Anchor_Corkboard faces out along its local +Z in the glTF frame. Without the anchor,
-    // a ray from the workshop camera finds the board.
-    const boardFrom = (root, cameras) => {
+    // Anchor_Corkboard faces out along its local +Z in the glTF frame. The kit board hangs in
+    // front of it, and the wall's room copy hangs on the kit board.
+    let boardFrame = null
+    const boardFrom = (root) => {
         const node = root.getObjectByName('Anchor_Corkboard')
-        if (node) {
-            const normal = new THREE.Vector3(0, 0, 1).transformDirection(node.matrixWorld)
-            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal).normalize()
-            return { centre: node.getWorldPosition(new THREE.Vector3()), normal, right, up: new THREE.Vector3().crossVectors(normal, right), ...BOARD_SIZE }
-        }
-        const camera = cameras.find((c) => c.name === stops.workshop.camera)
-        return camera ? findBoard(root, camera) : null
+        if (!node) return null
+        const normal = new THREE.Vector3(0, 0, 1).transformDirection(node.matrixWorld)
+        const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal).normalize()
+        const up = new THREE.Vector3().crossVectors(normal, right)
+        const centre = node.getWorldPosition(new THREE.Vector3()).addScaledVector(right, BOARD_OFFSET.right).addScaledVector(normal, BOARD_OFFSET.out)
+        return { centre, normal, right, up }
     }
 
     const anchor = (root, name) => root.getObjectByName(name)?.getWorldPosition(new THREE.Vector3()) ?? null
@@ -350,11 +444,73 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const carpetBuild = createLeafCarpet({ sliced: true })
     // The look worker loads beside the island, so it is ready when the island arrives.
     const lookWorker = createLookWorker()
-    const fonts = Promise.all(CARD_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
     const skyFonts = Promise.all(SKY_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
     const skyModule = import('./aerie/constellation.js')
     skyModule.catch(() => {})
 
+    // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
+    const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
+
+    // The evidence wall sits in its own chunk too. It builds after the island reveal, or before the
+    // reveal on a direct visit to /projects. A failed wall leaves Projects on its list page.
+    let wallBuild = null
+    let wallFailed = false
+    let wallWanted = false
+    const buildWall = () =>
+        (wallBuild ??= import('./aerie/wall.js')
+            .then(async ({ createWall }) => {
+                const built = await createWall({
+                    loaders,
+                    small,
+                    reducedMotion: state.reduced,
+                    anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()),
+                    pixelRatio: renderer.getPixelRatio(),
+                    request: () => requestRender(),
+                })
+                built.resize(...size())
+                if (boardFrame) placeRoomBoard(built)
+                await compiled(built.scene, built.camera)
+                // The room copy joins the island scene, so its programs and its atlas get ready
+                // before its first frame too.
+                if (parts.roomBoard) {
+                    await compiled(scene, camera)
+                    parts.roomBoard.group.traverse((node) => node.material?.map && renderer.initTexture(node.material.map))
+                }
+                parts.wall = built
+            })
+            .catch((error) => {
+                wallFailed = true
+                console.error('The evidence wall did not load.', error)
+            }))
+
+    // Hangs the wall's room copy on the workshop board, and adds the board stop: square in front
+    // of the copy, at the distance where the copy fills the frame as the wall's overview does.
+    const placeRoomBoard = (built) => {
+        const { centre, normal, right, up } = boardFrame
+        const room = built.roomCopy()
+        room.group.position.copy(centre)
+        room.group.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, normal))
+        scene.add(room.group)
+        parts.roomBoard = room
+        boardShot(built)
+        renderer.shadowMap.needsUpdate = true
+    }
+
+    // The board stop depends on the wall's overview, which depends on the screen, so a resize
+    // places it again. addShot keeps a move that runs now going.
+    const boardShot = (built) => {
+        const { centre, normal, right, up } = boardFrame
+        const home = built.home
+        const k = parts.roomBoard.group.scale.x
+        // A narrow screen widens the rig's lens (fitFov), so the stop comes closer by as much.
+        const lens = Math.tan(THREE.MathUtils.degToRad(15)) / Math.tan(THREE.MathUtils.degToRad(fitFov(30, camera.aspect) / 2))
+        const target = centre.clone().addScaledVector(right, home.x * k).addScaledVector(up, home.y * k)
+        const position = target.clone().addScaledVector(normal, home.d * k * lens)
+        shots.board = { position, target, focus: target.clone(), fov: 30, shift: [0, 0], tall: [0, 0], zoom: 1, tallZoom: 1 }
+        rig.addShot('board', shots.board)
+    }
+
+    let shots = null
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
     loaders.manager.onProgress = (url, loaded, total) => report(total ? loaded / total : 0)
@@ -374,7 +530,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const moon = anchor(root, 'Anchor_Moon') ?? MOON_FALLBACK
             const shadow = createMoonShadow({ direction: moon, small })
             scene.add(root, shadow, shadow.target)
-            const shots = shotsFromStops(stops, gltf.cameras, (name) => anchor(root, name))
+            shots = shotsFromStops(stops, gltf.cameras, (name) => anchor(root, name))
             // The eyepiece looks only at the sky, so its shot places no crown cards.
             const viewpoints = Object.entries(shots).filter(([id]) => id !== 'eyepiece').map(([, shot]) => shot.position)
             parts.leaves = createLeafCards({
@@ -406,13 +562,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 scene.add(parts.waterfall.group)
             }
 
-            const board = boardFrom(root, gltf.cameras)
-            if (board) {
-                // The card atlas uses the site fonts, so it waits for them.
-                await fonts
-                parts.cards = createCorkboard({ board, projects: homeProjects })
-                scene.add(parts.cards.mesh)
-            }
+            boardFrame = boardFrom(root)
 
             // The skill sky is its own chunk, so it stays out of the scene budget.
             await skyFonts
@@ -425,9 +575,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
-            const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
             await compiled(scene, camera)
             await compiled(parts.constellation.scene, parts.constellation.camera)
+            if (wall) await buildWall()
             renderer.shadowMap.needsUpdate = true
             state.ready = true
             onProgress(1)
@@ -438,6 +588,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // A failed island never needs the look worker.
     ready.catch(() => lookWorker.dispose())
+    const wallReady = ready.then(buildWall)
+    wallReady.catch(() => {})
 
     const api = {
         ready,
@@ -466,8 +618,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         setQuality: (index) => buildPipeline(THREE.MathUtils.clamp(index, 0, TIERS.length - 1)),
         setReducedMotion: (value) => {
             state.reduced = value
+            if (value) finishMoves()
+            parts.wall?.setReducedMotion(value)
             update()
         },
+        settle,
         pause: () => {
             state.wanted = false
             update()
@@ -479,24 +634,83 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pan: (dx, dy) => {
             steeredAt = performance.now()
             if (view === 'sky') parts.constellation.pan(dx, dy)
+            else if (view === 'wall') parts.wall.pan(dx, dy)
             else rig.pan(dx, dy)
             requestRender()
         },
         // x and y are client pixels. A tap on the skill sky flies to the constellation
-        // under it, or back out to the whole sky.
+        // under it, or back out to the whole sky. A tap on the wall returns the pin under it.
         tap: (x, y) => {
-            if (view !== 'sky') return
+            if (view === 'wall') return parts.wall.tap(x, y)
+            if (view !== 'sky') return null
             steeredAt = performance.now()
             parts.constellation.focus((x / window.innerWidth) * 2 - 1, 1 - (y / window.innerHeight) * 2, state.reduced)
             requestRender()
+            return null
         },
-        zoom: (factor) => {
+        // x and y: the client point that the zoom keeps still. Only the wall uses it.
+        zoom: (factor, x, y) => {
             steeredAt = performance.now()
             if (view === 'sky') parts.constellation.zoom(factor)
+            else if (view === 'wall') parts.wall.zoom(factor, x, y)
             else rig.zoom(factor)
             requestRender()
         },
         showSky,
+        showWall,
+        // The pins on the wall. Each call does nothing until the wall has built.
+        wall: {
+            highlight: (id) => {
+                parts.wall?.highlight(id)
+                requestRender()
+            },
+            focus: (id) => {
+                parts.wall?.focus(id, { instant: state.reduced })
+                requestRender()
+            },
+            unfocus: () => {
+                parts.wall?.unfocus({ instant: state.reduced })
+                requestRender()
+            },
+            // Resolves true once the wall has built, false when it failed.
+            // A build that has started already, as on a direct visit, does not wait for the sky.
+            built: () => (wallBuild ?? wallReady).then(() => Boolean(parts.wall)),
+            // Back to the overview with no pin marked, so the dissolve from the room copy lines up.
+            reset: () => {
+                parts.wall?.reset()
+                requestRender()
+            },
+        },
+        // The move to the evidence wall: the camera flies to the workshop (from any other
+        // stop), on to the board stop in front of the room board, and the room board dissolves
+        // into the lit wall. Off dissolves back and flies on to the stop `back`. Reduced motion
+        // cuts the camera and keeps only the dissolve, which is a fade and not a motion.
+        enterWall: (on, back = 'workshop') => {
+            settle()
+            // The room copy shows the overview, so the wall starts there too.
+            if (on) parts.wall?.reset()
+            if (on === (view === 'wall') || !shots?.board || wallFailed) {
+                if (!on) api.goTo(back)
+                return
+            }
+            if (state.reduced) {
+                rig.jump(on ? 'board' : back)
+                if (parts.wall) dissolve(() => showWall(on))
+                else showWall(on)
+                return
+            }
+            if (on) {
+                const lead = ['workshop', 'board'].includes(rig.current) ? 0 : 1.6
+                const legs = [[0, 'workshop', lead], [lead, 'board', WALL.fly]].slice(lead ? 0 : 1)
+                boardMove = { t: 0, on, legs, swap: lead + WALL.fly, swapped: false }
+            } else {
+                rig.jump('board')
+                const legs = [[0, 'workshop', 1.2]]
+                if (back !== 'workshop') legs.push([1.2, back, 1.6])
+                boardMove = { t: 0, on, legs, swap: 0, swapped: false }
+            }
+            requestRender()
+        },
         // The look through the telescope. The camera flies up to the eyepiece (by way of the
         // terrace from any other stop), the iris closes, and it opens on the skill sky. Off
         // plays it in reverse and flies on to the stop `back`. Reduced motion swaps at once,
@@ -510,6 +724,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             iris.value = 0
             scope?.done()
             scope = null
+            boardMove = null
             if (on === (view === 'sky') || state.reduced) {
                 if (on !== (view === 'sky')) showSky(on)
                 if (!on) api.goTo(back)
@@ -571,6 +786,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         },
         get lod() {
             return useLod
+        },
+        // 'island', 'sky' or 'wall': the scene the pipeline draws now.
+        get view() {
+            return view
         },
         get pipeline() {
             return pipeline

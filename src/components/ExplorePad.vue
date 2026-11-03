@@ -46,7 +46,7 @@ const onMove = (e) => {
     if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > TAP_SLOP) press = null
     const now = snapshot()
     pan(now.x - last.x, now.y - last.y)
-    if (now.spread && last.spread) zoom(now.spread / last.spread)
+    if (now.spread && last.spread) zoom(now.spread / last.spread, now.x, now.y)
     last = now
 }
 
@@ -58,7 +58,7 @@ const onUp = (e) => {
 }
 
 // A trackpad pinch arrives as a wheel event too.
-const onWheel = (e) => zoom(Math.exp(-e.deltaY * 0.0015))
+const onWheel = (e) => zoom(Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY)
 
 const leave = () => {
     if (props.to) router.push(props.to)

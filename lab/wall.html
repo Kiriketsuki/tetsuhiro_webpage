@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Wall lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #120d0a; overflow: hidden; }
+      #wall-canvas { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; touch-action: none; }
+      #wall-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+      #wall-layer > * { pointer-events: auto; }
+      #lab-bar {
+        position: fixed; top: 8px; left: 8px; display: flex; gap: 4px; z-index: 20;
+        font: 11px ui-monospace, Consolas, monospace;
+      }
+      #lab-bar a {
+        color: #f3e2c7; background: rgba(20, 12, 8, 0.8); border: 1px solid #5a4030;
+        border-radius: 4px; padding: 4px 7px; text-decoration: none;
+      }
+      #lab-bar a[aria-current='true'] { border-color: #e0a35a; color: #ffd8a8; }
+    </style>
+  </head>
+  <body>
+    <!-- Dev-only lab for the projects evidence wall. vite.config.js does not list it as a
+         build input, so the production build never contains it. ?dir=b|c picks the
+         direction, ?focus=<pin id> opens one pin, ?nobar hides the lab links. -->
+    <canvas id="wall-canvas"></canvas>
+    <div id="wall-layer"></div>
+    <nav id="lab-bar"></nav>
+    <script type="module" src="/src/lab/wall-lab.js"></script>
+  </body>
+</html>

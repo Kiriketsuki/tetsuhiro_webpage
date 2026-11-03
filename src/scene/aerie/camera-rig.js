@@ -282,6 +282,11 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         jump(current)
     }
 
+    // Adds or replaces one shot without a jump, so a move that runs now keeps going.
+    const addShot = (id, shot) => {
+        all = { ...all, [id]: shot }
+    }
+
     const resize = () => applyLens()
     sidePanels.addEventListener('change', applyLens)
     jump(start)
@@ -295,6 +300,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         release,
         setPointer,
         setShots,
+        addShot,
         resize,
         get current() {
             return current

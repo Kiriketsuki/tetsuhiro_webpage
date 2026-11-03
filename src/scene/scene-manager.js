@@ -15,7 +15,6 @@ import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
-import { createConstellation } from './aerie/constellation.js'
 import { projects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
@@ -46,8 +45,10 @@ const CITY_HAZE_DENSITY = 1 / 2400
 // the canvas asks for.
 const FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"', '600 30px "JetBrains Mono"']
 
-// hooks.before and hooks.after run around each render, for the lab's GPU timer.
-export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
+// hooks.before and hooks.after run around each render, for the lab's GPU timer. sky: true when
+// the first view is the skill sky, so `ready` waits for it. Otherwise the sky builds after the
+// first frame of the island.
+export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', sky = false, hooks = {} }) {
     const small = isSmallScreen()
     const useLod = lod ?? (small ? 1 : 0)
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
@@ -155,7 +156,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
     // order. Without it they all show at once.
     const showSky = (on, { reveal = true } = {}) => {
-        if (!parts.constellation) return
+        if (!parts.constellation) {
+            if (on) skyReady.then(() => showSky(on, { reveal }))
+            return
+        }
         view = on ? 'sky' : 'island'
         if (on) {
             parts.constellation.open()
@@ -176,6 +180,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const [, id, duration] = s.legs.shift()
             rig.goTo(id, duration)
         }
+        // The iris holds shut until the skill sky has built, in the rare case that a visitor
+        // looks through the telescope within a second of the reveal.
+        if (!s.swapped && s.t >= s.swap && s.on && !parts.constellation) s.t = s.swap - 1e-3
         if (!s.swapped && s.t >= s.swap) {
             s.swapped = true
             showSky(s.on)
@@ -315,6 +322,20 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const carpetBuild = createLeafCarpet({ sliced: true })
     const fonts = Promise.all(FONTS.map((font) => document.fonts.load(font))).catch(() => {})
 
+    // The skill sky sits in its own chunk. Its download starts now, beside the island, and it
+    // builds and compiles after the first frame of the island, so the first look through the
+    // telescope does not stall. The site shows the island first on every route but Skills.
+    const skyModule = import('./aerie/constellation.js')
+    skyModule.catch(() => {})
+    let skyBuild = null
+    const buildSky = () =>
+        (skyBuild ??= Promise.all([skyModule, fonts]).then(async ([{ createConstellation }]) => {
+            const built = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
+            built.resize(camera.aspect)
+            await renderer.compileAsync(built.scene, built.camera)
+            parts.constellation = built
+        }))
+
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
     loaders.manager.onProgress = (url, loaded, total) => report(total ? loaded / total : 0)
@@ -373,16 +394,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 scene.add(parts.cards.mesh)
             }
 
-            await fonts
-            parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
-            parts.constellation.resize(camera.aspect)
-
             rig.setShots(shots)
             resizeSprites()
-            // Compile every program before the reveal, so the first moves and the first look
-            // through the telescope do not stall.
+            // Compile every program before the reveal, so the first moves do not stall.
             await renderer.compileAsync(scene, camera)
-            await renderer.compileAsync(parts.constellation.scene, parts.constellation.camera)
+            if (sky) await buildSky()
             renderer.shadowMap.needsUpdate = true
             state.ready = true
             onProgress(1)
@@ -390,6 +406,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             requestRender()
             return { anchors: (name) => anchor(root, name), root, gltf }
         })
+
+    // A failed island never builds the sky.
+    const skyReady = ready.then(buildSky)
+    skyReady.catch(() => {})
 
     const api = {
         ready,

@@ -68,6 +68,8 @@ function boot() {
         canvas,
         reducedMotion: reducedMotion.value,
         start: currentStop(),
+        // A direct visit to /skills opens on the skill sky, so the reveal waits for it.
+        sky: location.pathname.replace(/\/+$/, '') === '/skills',
         onProgress: (value) => {
             progress.value = Math.max(progress.value, value)
         },

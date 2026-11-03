@@ -657,8 +657,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         showWall,
         // The pins on the wall. Each call does nothing until the wall has built.
         wall: {
-            highlight: (id) => {
-                parts.wall?.highlight(id)
+            highlight: (id, reveal = true) => {
+                parts.wall?.highlight(id, reveal)
                 requestRender()
             },
             focus: (id) => {
@@ -669,6 +669,18 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 parts.wall?.unfocus({ instant: state.reduced })
                 requestRender()
             },
+            peek: () => {
+                parts.wall?.peek({ instant: state.reduced })
+                requestRender()
+            },
+            // A group id lights that group and frames it. null shows the whole board.
+            filter: (id) => {
+                parts.wall?.filter(id)
+                requestRender()
+            },
+            // The pin under a client point on the wall, or null. The pointer tag uses it.
+            pinAt: (x, y) => (view === 'wall' ? parts.wall.tap(x, y) : null),
+            screenOf: (id) => parts.wall?.screenOf(id) ?? null,
             // Resolves true once the wall has built, false when it failed.
             // A build that has started already, as on a direct visit, does not wait for the sky.
             built: () => (wallBuild ?? wallReady).then(() => Boolean(parts.wall)),

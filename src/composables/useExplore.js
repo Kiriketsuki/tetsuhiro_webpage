@@ -17,7 +17,10 @@ export function useExplore() {
     const pan = (dx, dy) => rig?.pan(dx, dy)
     // x and y: the client point that the zoom keeps still, where the view supports it.
     const zoom = (factor, x, y) => rig?.zoom(factor, x, y)
-    const tap = (x, y) => rig?.tap?.(x, y)
+    // type: the pointer type of the tap, so a view can treat a finger and a mouse apart.
+    const tap = (x, y, type) => rig?.tap?.(x, y, type)
+    // A mouse over the view with no button down, for pointer tags. Views without tags ignore it.
+    const hover = (x, y) => rig?.hover?.(x, y)
 
-    return { exploring, connect, pan, zoom, tap }
+    return { exploring, connect, pan, zoom, tap, hover }
 }

@@ -52,7 +52,51 @@ export function createLight(small) {
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), new THREE.MeshLambertMaterial({ color: 0x3e3029 }))
     wall.position.z = -0.04
     wall.receiveShadow = true
-    return [lamp, lamp.target, fill, desk, bar, lip, ...rods, top, wall]
+    return { objects: [lamp, lamp.target, fill, desk, bar, lip, ...rods, top, wall], aim: createAim(lamp, fill, desk) }
+}
+
+// The whole board under the lamp, and one group under a narrow pool with the room dark around it.
+const WIDE = { x: 0, y: 0.6, tx: 0, ty: -0.12, angle: 0.95, lamp: 2.4, fill: 0.7, desk: 0.5 }
+const NARROW = { lamp: 2.7, fill: 0.22, desk: 0.12 }
+const AIM_SECONDS = 0.5
+
+// Moves the lamp between the whole board and one group. to(point, instant, radius) aims a pool
+// that covers that radius (metres) round a point on the cork, to(null) opens it to the board. step(dt) eases the lamp there and
+// returns true while it moves, so the shadow map draws again.
+function createAim(lamp, fill, desk) {
+    let from = { ...WIDE }
+    let goal = { ...WIDE }
+    let t = 1
+    const now = () => {
+        const k = t * t * (3 - 2 * t)
+        return Object.fromEntries(Object.keys(goal).map((key) => [key, from[key] + (goal[key] - from[key]) * k]))
+    }
+    const apply = (v) => {
+        lamp.position.set(v.x, v.y, 0.34)
+        lamp.target.position.set(v.tx, v.ty, 0)
+        lamp.target.updateMatrixWorld()
+        lamp.angle = v.angle
+        lamp.intensity = v.lamp
+        fill.intensity = v.fill
+        desk.intensity = v.desk
+    }
+    return {
+        to: (point, instant = false, radius = 0.3) => {
+            from = now()
+            // The lamp hangs 0.32 m up the board and 0.34 m out, so the cone angle that
+            // reaches the radius comes from that distance, with a margin for the soft edge.
+            const angle = Math.min(WIDE.angle, Math.atan((radius * 1.15) / Math.hypot(0.32, 0.34)))
+            goal = point ? { x: point[0], y: point[1] + 0.32, tx: point[0], ty: point[1], ...NARROW, angle } : { ...WIDE }
+            t = instant ? 1 : 0
+            if (instant) apply(goal)
+        },
+        step: (dt) => {
+            if (t >= 1) return false
+            t = Math.min(1, t + dt / AIM_SECONDS)
+            apply(now())
+            return true
+        },
+    }
 }
 
 // A small grey grain that tiles over the cork, so the cork reads as cork up close. It is a

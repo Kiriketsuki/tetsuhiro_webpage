@@ -7,12 +7,13 @@ export const BOARD = { width: 1.48, height: 0.88 }
 // The workshop bay is 1.56 m wide, so the kit board (1.6 m) hangs there at this scale.
 export const BOARD_SCALE = 0.94
 
-// The four groups of the wall. Each one sits in its own part of the board.
+// The four groups of the wall. Each one sits in its own part of the board. short names the
+// group on a phone filter chip.
 export const GROUPS = [
-    { id: 'tools', title: 'Tools I use every day', at: [-0.38, 0.38] },
-    { id: 'fun', title: 'Just for fun', at: [0.32, 0.38] },
-    { id: 'work', title: 'Work', at: [-0.38, -0.07] },
-    { id: '3d', title: '3D', at: [0.32, -0.07] },
+    { id: 'tools', title: 'Tools I use every day', short: 'Tools', at: [-0.38, 0.38] },
+    { id: 'fun', title: 'Just for fun', short: 'Fun', at: [0.32, 0.38] },
+    { id: 'work', title: 'Work', short: 'Work', at: [-0.38, -0.07] },
+    { id: '3d', title: '3D', short: '3D', at: [0.32, -0.07] },
 ]
 
 // kind: hero is a large photo, card is an index card with a small photo, note is a paper note.

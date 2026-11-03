@@ -38,16 +38,27 @@ float fbm( vec2 p ) {
 }
 
 void main() {
+    // Past the round edge the alpha is exactly zero. Normal blending with a zero source alpha
+    // leaves the target unchanged and depth writes are off, so these pixels skip the noise.
+    float edge = 1.0 - smoothstep( 0.5, 1.0, length( vUv - 0.5 ) * 2.0 );
+    if ( edge <= 0.0 ) {
+        gl_FragColor = vec4( 0.0 );
+        return;
+    }
     vec2 p = vWorld.xz / uScale + vec2( 0.004, 0.0025 ) * uTime;
     p += 0.8 * vec2( noise( p * 0.7 ), noise( p * 0.7 + 5.2 ) );
     float d = fbm( p );
     float cloud = smoothstep( uClear * 0.94, uClear * 0.94 + 0.22, d );
+    // A layer with no fog and no cloud here has alpha exactly zero, so it skips the haze work.
+    if ( cloud <= 0.0 && uFog == 0.0 ) {
+        gl_FragColor = vec4( 0.0 );
+        return;
+    }
     vec3 view = normalize( vWorld - cameraPosition );
     vec3 haze = hazeAt( view );
     vec3 top = haze * 1.45 + vec3( 0.03, 0.03, 0.05 );
     vec3 thin = haze + vec3( 1.0, 0.6, 0.26 ) * 0.05;
     vec3 col = mix( thin, top, smoothstep( 0.0, 0.6, cloud ) );
-    float edge = 1.0 - smoothstep( 0.5, 1.0, length( vUv - 0.5 ) * 2.0 );
     gl_FragColor = vec4( applyHaze( col, vWorld ), edge * mix( uFog, 1.0, cloud ) * uOpacity );
 }
 `

@@ -2,6 +2,9 @@ import { HAZE_AT } from './sky.js'
 
 // GLSL that the city and its cloud layers share.
 
+// How far every city pixel mixes into the haze colour along its view, before the distance haze.
+export const CITY_HAZE = 0.45
+
 // The plane vertex shader. It passes the plane UV and the world position.
 export const PLANE_VERTEX = /* glsl */ `
 varying vec2 vUv;
@@ -32,6 +35,11 @@ float hash12( vec2 p ) {
     vec3 p3 = fract( vec3( p.xyx ) * 0.1031 );
     p3 += dot( p3, p3.yzx + 33.33 );
     return fract( ( p3.x + p3.y ) * p3.z );
+}
+vec2 hash22( vec2 p ) {
+    vec3 p3 = fract( vec3( p.xyx ) * vec3( 0.1031, 0.103, 0.0973 ) );
+    p3 += dot( p3, p3.yzx + 33.33 );
+    return fract( ( p3.xx + p3.yz ) * p3.zy );
 }
 float noise( vec2 p ) {
     vec2 i = floor( p );

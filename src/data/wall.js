@@ -1,15 +1,16 @@
 // The evidence wall in the workshop: what is pinned where, and the red strings between the
-// pins. The owner approved this list on 3 November 2026. Positions are in metres on the board
-// face, from its centre, with x to the right and y up. The board is BOARD.width wide.
+// pins. The owner approved this list on 3 November 2026. Positions are in metres on the cork
+// face of Board in corkboard_kit.glb, from its centre, with x to the right and y up. BOARD is
+// that cork face at the kit's own scale.
 
-export const BOARD = { width: 1.6, height: 1.0 }
+export const BOARD = { width: 1.48, height: 0.88 }
 
 // The four groups of the wall. Each one sits in its own part of the board.
 export const GROUPS = [
-    { id: 'tools', title: 'Tools I use every day', at: [-0.42, 0.44] },
-    { id: 'fun', title: 'Just for fun', at: [0.36, 0.44] },
-    { id: 'work', title: 'Work', at: [-0.42, -0.08] },
-    { id: '3d', title: '3D', at: [0.36, -0.08] },
+    { id: 'tools', title: 'Tools I use every day', at: [-0.38, 0.38] },
+    { id: 'fun', title: 'Just for fun', at: [0.32, 0.38] },
+    { id: 'work', title: 'Work', at: [-0.38, -0.07] },
+    { id: '3d', title: '3D', at: [0.32, -0.07] },
 ]
 
 // kind: hero is a large photo, card is an index card with a small photo, note is a paper note.
@@ -25,7 +26,7 @@ export const PINS = [
         stack: ['Claude Code', 'JavaScript', 'Shell'],
         link: 'https://kiriketsuki.github.io/agenKic-hub/',
         page: 'agenkic-hub',
-        at: [-0.6, 0.2],
+        at: [-0.54, 0.17],
         tilt: -3,
     },
     {
@@ -38,7 +39,7 @@ export const PINS = [
         stack: ['OKLCH tokens', 'Hyprland', 'AGS', 'Go'],
         link: 'https://github.com/Kiriketsuki/chrysaki',
         page: 'chrysaki',
-        at: [-0.3, 0.3],
+        at: [-0.27, 0.26],
         tilt: 2,
     },
     {
@@ -51,7 +52,7 @@ export const PINS = [
         stack: ['Shell', 'JavaScript'],
         link: 'https://github.com/Kiriketsuki/chrysaki-claude',
         page: null,
-        at: [-0.36, 0.07],
+        at: [-0.32, 0.06],
         tilt: -6,
     },
     {
@@ -64,7 +65,7 @@ export const PINS = [
         stack: ['Rust', 'Tauri', 'TypeScript'],
         link: 'https://github.com/Kiriketsuki/usaki',
         page: 'usaki',
-        at: [-0.14, 0.12],
+        at: [-0.13, 0.1],
         tilt: 4,
     },
     {
@@ -77,7 +78,7 @@ export const PINS = [
         stack: ['Rust', 'Svelte', 'PostgreSQL'],
         link: 'https://github.com/Kiriketsuki/seeKi',
         page: 'seeki',
-        at: [-0.62, -0.06],
+        at: [-0.56, -0.05],
         tilt: 3,
     },
     {
@@ -90,7 +91,7 @@ export const PINS = [
         stack: ['Svelte', 'TypeScript', 'Firebase'],
         link: 'https://kinopy.day',
         page: 'kinopy',
-        at: [0.58, 0.2],
+        at: [0.52, 0.17],
         tilt: 3,
     },
     {
@@ -103,7 +104,7 @@ export const PINS = [
         stack: ['TypeScript', 'Bun', 'Claude Code mods'],
         link: 'https://tokin.tetsuhiro.dev',
         page: null,
-        at: [0.3, 0.3],
+        at: [0.27, 0.26],
         tilt: -2,
     },
     {
@@ -116,7 +117,7 @@ export const PINS = [
         stack: ['Go', 'Godot 4', 'tmux'],
         link: 'https://kiriketsuki.github.io/agenKic-orKistrator/',
         page: 'agenkic-orkistrator',
-        at: [0.04, 0.26],
+        at: [0.04, 0.22],
         tilt: 2,
     },
     {
@@ -129,7 +130,7 @@ export const PINS = [
         stack: ['Vue', 'Rust', 'Tauri'],
         link: 'https://kiriketsuki.github.io/TrKixel/',
         page: null,
-        at: [0.3, 0.04],
+        at: [0.27, 0.03],
         tilt: -4,
     },
     {
@@ -142,7 +143,7 @@ export const PINS = [
         stack: ['FastAPI', 'websockets', 'MySQL'],
         link: '',
         page: 'autoconnect',
-        at: [-0.36, -0.28],
+        at: [-0.32, -0.24],
         tilt: -2,
     },
     {
@@ -155,7 +156,7 @@ export const PINS = [
         stack: ['Vue', 'Electron', 'Flask'],
         link: '',
         page: 'medicasr',
-        at: [-0.64, -0.34],
+        at: [-0.58, -0.29],
         tilt: 3,
     },
     {
@@ -168,7 +169,7 @@ export const PINS = [
         stack: ['SQL', 'PostgreSQL', 'MongoDB'],
         link: '',
         page: 'teaching',
-        at: [-0.1, -0.38],
+        at: [-0.09, -0.33],
         tilt: 5,
     },
     {
@@ -181,7 +182,7 @@ export const PINS = [
         stack: ['Three.js', 'GLSL', 'Blender', 'Vue'],
         link: 'https://github.com/Kiriketsuki/tetsuhiro_webpage',
         page: null,
-        at: [0.42, -0.26],
+        at: [0.38, -0.22],
         tilt: 2,
     },
     {
@@ -194,7 +195,7 @@ export const PINS = [
         stack: ['Vue', 'Three.js', 'Blender'],
         link: 'https://aetherialverdancy.tetsuhiro.dev',
         page: 'aetherial-verdancy',
-        at: [0.12, -0.32],
+        at: [0.11, -0.28],
         tilt: -3,
     },
     {
@@ -207,7 +208,7 @@ export const PINS = [
         stack: ['Three.js', 'Web Audio'],
         link: '',
         page: null,
-        at: [0.66, -0.38],
+        at: [0.59, -0.33],
         tilt: -5,
     },
 ]

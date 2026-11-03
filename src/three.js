@@ -57,8 +57,8 @@ function eyepiece(toSky, back) {
     })
 }
 
-// The workshop board: the camera flies to the board and the room board dissolves into the
-// lit wall (scene-manager.js enterWall). Leaving plays it in reverse, on to `back`. Before
+// The workshop board: the camera flies to the board, the room light dims, and the wall lamp
+// warms up (scene-manager.js enterWall). Leaving plays it in reverse, on to `back`. Before
 // the wall has built, the camera goes to the workshop and moves on to the board once it can.
 function board(toWall, back) {
     if (toWall === inWall) return

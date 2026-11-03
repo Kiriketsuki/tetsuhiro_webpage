@@ -227,7 +227,10 @@ void main() {
     vec2 p = gl_PointCoord * 2.0 - 1.0;
     float d = dot( p, p );
     float core = exp( -d * 70.0 );
-    float halo = exp( -d * 9.0 ) * 0.45 + exp( -d * 2.5 ) * 0.14;
+    // The wide halo term is still about 0.01 at the edge of the point, and the additive blend
+    // and the grade lift that into a faint square. The window takes the halo to exactly 0
+    // at radius 1, inside the point, for every star size.
+    float halo = ( exp( -d * 9.0 ) * 0.45 + exp( -d * 2.5 ) * 0.14 ) * ( 1.0 - smoothstep( 0.35, 1.0, d ) );
     vec2 a = abs( p );
     float spikes = vBig * ( exp( -a.x * 45.0 ) * ( 1.0 - a.y ) + exp( -a.y * 45.0 ) * ( 1.0 - a.x ) ) * 0.5;
     vec3 tint = mix( vColor, vec3( 1.0 ), uWhiten );

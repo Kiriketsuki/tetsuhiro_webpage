@@ -1,12 +1,12 @@
 import * as THREE from 'three'
 
 // A distance field over the aerie for the camera planner (path-plan.js): for each cell of a
-// 1 m grid, the distance in metres to the nearest surface of the island, the house, the trees
-// and the props. It builds once after the island loads, behind the loading gate, in slices of
+// 1 m grid, the distance in metres to the nearest surface of the aerie, the house, the trees
+// and the props. It builds once after the aerie loads, behind the loading gate, in slices of
 // at most SLICE_MS, so the gate's frames do not stall.
 
 const CELL = 1
-// Free space round the island that the planner may use, in metres.
+// Free space round the aerie that the planner may use, in metres.
 const MARGIN = 14
 // The largest object that counts as part of the aerie, and its greatest distance from the
 // centre. The sky and the city are far larger, and the stars far away.

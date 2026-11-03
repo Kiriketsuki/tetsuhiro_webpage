@@ -6,7 +6,7 @@ import * as THREE from 'three'
 // at load, and on a phone that took about 2.4 s of the load. This sorts the triangles into
 // cells on the ground plane once, so each ray tests only the triangles in the cells it can
 // reach. A vertical ray reaches one cell. A ray in any other direction needs a finite far,
-// and reaches the cells under its whole length. island-look.js casts short wall rays that way.
+// and reaches the cells under its whole length. aerie-look.js casts short wall rays that way.
 // The test itself follows the Raycaster path in Mesh.raycast: the same bounds checks, the
 // same ray in the mesh frame, the same triangle test and the same distance. So each hit is
 // the same to the last bit. The meshes must not move or change after createDropRay.
@@ -52,7 +52,7 @@ function triangleRange(geometry) {
 }
 
 // The grid handles a plain mesh: one material, no groups, no morph targets, no skin and no
-// instances. Every island mesh is one. Any other mesh goes to a Raycaster.
+// instances. Every aerie mesh is one. Any other mesh goes to a Raycaster.
 const plain = (mesh) =>
     mesh.isMesh &&
     !mesh.isSkinnedMesh &&

@@ -28,7 +28,7 @@ const VISIT_FOV = 50
 // With a note open, the thing moves clear of the note: right on a wide screen, where the note
 // sits on the left, and up on a phone, where it sits at the bottom (camera-rig.js shift, tall).
 const NOTE_SHIFT = { shift: [0.16, 0], tall: [0, 0.22] }
-// The grade inside the room. The island light makes the cream walls a flat orange at close
+// The grade inside the room. The aerie light makes the cream walls a flat orange at close
 // range, so the room takes some colour out and darkens a little (uFade darkens by 28 percent
 // at 1). The grade fades in over the first metre past the door, and out again on the way out.
 const ROOM_GRADE = { saturation: 0.64, lift: -0.02, fade: 1, depth: 1 }

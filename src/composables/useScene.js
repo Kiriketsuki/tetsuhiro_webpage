@@ -16,13 +16,13 @@ const whenIdle = (callback) =>
     'requestIdleCallback' in window ? requestIdleCallback(callback, { timeout: 1500 }) : setTimeout(callback, 200)
 
 // App.vue calls this once. The scene loads after the first paint on every
-// route, so a direct visit to any page gets the island at that page's room.
+// route, so a direct visit to any page gets the aerie at that page's room.
 // A route change does not pause it. src/three.js pauses on its own for a hidden tab, a lost
 // context and reduced motion.
 export function useScene() {
     const route = useRoute()
     onMounted(() => {
-        // The island and its decoder start to download now, beside the scene chunk. Before,
+        // The aerie and its decoder start to download now, beside the scene chunk. Before,
         // they waited for the scene chunk to arrive and run.
         preloadScene()
         whenIdle(() => {
@@ -35,7 +35,7 @@ export function useScene() {
                 })
                 .catch((error) => {
                     // A failed chunk must not lock the gate. The visitor gets
-                    // the pages without the island.
+                    // the pages without the aerie.
                     console.error('The scene module did not load.', error)
                     const { ready, progress, loadError } = useWaypoints()
                     loadError.value = 'The aerie did not load. A reload usually sorts it out.'

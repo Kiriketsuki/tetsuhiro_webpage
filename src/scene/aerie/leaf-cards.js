@@ -122,7 +122,7 @@ const CROWN_TILT = 0.8
 const ATLAS_ANISOTROPY = 8
 const DRIFT_SPEED = 0.4
 const DRIFT_TOP = 14
-// Round 19 adds drifting leaves and makes each one larger, so a few read near the island in the
+// Round 19 adds drifting leaves and makes each one larger, so a few read near the aerie in the
 // overview (S6). The 0.28 m leaves vanished at that distance.
 const DRIFT_SIZE = 0.36
 const DRIFT_BOTTOM = -1.5
@@ -739,7 +739,7 @@ function houseBoxes(meshes) {
     return box.isEmpty() ? [] : [box.expandByScalar(HOUSE_MARGIN)]
 }
 
-// Drifting leaves fall slowly around the island and sway. They keep out of the house.
+// Drifting leaves fall slowly around the aerie and sway. They keep out of the house.
 // Returns the mesh and an update.
 function drifting(material, count, box, avoid, random) {
     const mesh = createCardMesh(material, count)
@@ -784,7 +784,7 @@ function drifting(material, count, box, avoid, random) {
     return { mesh, update: place }
 }
 
-// meshes: the island meshes tagged with userData.webMaterial. litterAt: the litter field.
+// meshes: the aerie meshes tagged with userData.webMaterial. litterAt: the litter field.
 // viewpoints: the camera stop positions, so crown cards go only where a stop can see them.
 export function createLeafCards({ meshes, litterAt, uniforms, small = false, viewpoints = [], maxAnisotropy = 1, seed = 4711 }) {
     const counts = small ? COUNTS.phone : COUNTS.desktop

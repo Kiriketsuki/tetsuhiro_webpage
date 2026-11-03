@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the round 13 revision:
 
 The script saves a new revision, island_b_route_r21.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why (the round 10 review of the site look):
 - The flat roof hovered on a pergola of bare posts. Five slim posts in the middle of the stair
@@ -68,7 +68,7 @@ TALL=5.0;TOWER_TOP=12.0
 # The glass screens above this height go.
 SCREEN_TOP=10.7
 # The chamfer on each edge of a frame box, in metres. The site thickens each post about
-# 3.5 times (island-look.js), so the chamfer reads about 4 cm on a 21 cm post.
+# 3.5 times (aerie-look.js), so the chamfer reads about 4 cm on a 21 cm post.
 CHAMFER=.012
 # The ramp: its run direction in plan, the deck top it starts from and the pad rim it ends
 # on, and the ramp parts (boards and skirts) by their box: x from RAMP_X, z above RAMP_Z.

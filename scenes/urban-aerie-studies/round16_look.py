@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the round 15 revision:
 
 The script saves a new revision, island_b_route_r27.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision. Its earlier passes wrote
+overwrites a .blend. export_aerie.py then reads the new revision. Its earlier passes wrote
 island_b_route_r23.blend to r26, which nothing reads now.
 
 What changes, and why (the round 11 review shots):

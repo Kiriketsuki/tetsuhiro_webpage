@@ -47,7 +47,7 @@ const UPSTREAM_FAR = 6
 const MOUTH_SAMPLES = 25
 const MOUTH_PROBE = 0.15
 const RAY_HEIGHT = 2
-// One drop-ray grid per ground array. shapeIsland passes the same array to every water mesh, so
+// One drop-ray grid per ground array. shapeAerie passes the same array to every water mesh, so
 // prepareWater builds the grid once. The ground meshes must not change while the array lives.
 const dropRays = new WeakMap()
 

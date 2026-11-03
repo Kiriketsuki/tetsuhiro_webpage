@@ -1,225 +1,259 @@
 import * as THREE from 'three'
-import { HAZE_AT, hazeUniforms as skyHaze } from './sky.js'
+import { hazeUniforms as skyHaze } from './sky.js'
+import { HAZE_GLSL, NOISE_GLSL, PLANE_VERTEX } from './city-glsl.js'
+import { createCityClouds } from './city-clouds.js'
 
-// The city below the island, drawn by one shader on one flat plane, with no city geometry
-// and no textures. Seen from far above at night, a city reads as a grid of lit streets,
-// blocks with scattered window light, a dark river with lit banks and a few tall towers.
-// The shader draws each of these from the world position, so the city stays sharp at any
-// distance, and the distance haze and a radial fade melt its far edge into the void.
+// The city below the island, after Paris at night, drawn by one shader on one flat plane
+// with no city geometry and no textures. The plan has what a view of Paris from far above
+// shows: small irregular blocks with lit facades round dark courtyards, star places with
+// boulevards out from them, a ring boulevard, the Seine with lit quays, bridges and an
+// island, a golden lattice tower over a long park, and a cluster of high-rises far out on
+// the horizon. Every light has a soft edge that grows with distance, so the city reads as
+// a warm glow seen through the air, not as a crisp map.
 
 const SIZE = 9000
 const CENTRE = [0, -780, -900]
-// The angle of the main street grid, in radians. A second district runs at GRID + 0.6.
-const GRID = 0.35
-// One block, in metres, across and along the grid. Avenues run every 4 blocks across and
-// every 3 blocks along.
-const BLOCK = [80, 60]
-// The downtown core, in world XZ metres. The lights thin out with distance from it.
-const CORE = [-1250, -500]
 // How far every pixel mixes into the haze colour along its view, before the distance haze.
-const CITY_HAZE = 0.3
-// Landmark towers: world X, world Z, half width and height, in metres. Each is a lit
-// prism that the shader finds along the view ray, so a tower leans and shifts against the
-// streets as the camera moves.
-const TOWERS = [
-    [-1300, -450, 17, 190],
-    [-1180, -330, 12, 140],
-    [-1420, -560, 12, 120],
-    [-1150, -580, 11, 105],
-    [-160, -1330, 14, 160],
-    [-40, -1200, 10, 100],
-    [-340, -540, 13, 150],
-    [-700, -420, 11, 110],
+const CITY_HAZE = 0.45
+// The soft edge of every light, in metres: SOFT[0] plus SOFT[1] metres for each metre of
+// distance from the camera.
+const SOFT = [16, 0.016]
+
+// The map frame: u runs along the Seine and n runs across it, toward the overview camera.
+// ORIGIN is the map origin in world XZ metres.
+const ORIGIN = [-700, -1000]
+const ALONG = new THREE.Vector2(0.78, -0.62).normalize()
+const ACROSS = new THREE.Vector2(-ALONG.y, ALONG.x)
+const toWorld = ([u, n]) => [ORIGIN[0] + ALONG.x * u + ACROSS.x * n, ORIGIN[1] + ALONG.y * u + ACROSS.y * n]
+// The Seine: its centre line across the map, its half width, and the island in it.
+const seine = (u) => 120 * Math.sin(u / 700) + 50 * Math.sin(u / 260 + 1)
+const RIVER = 65
+const ISLE = { u: -100, length: 260, width: 22 }
+// The lattice tower stands on the near bank, with its long park out toward the camera.
+const TOWER_U = -650
+const TOWER_N = seine(TOWER_U) + RIVER + 75
+// The tower in stacked square frustums: bottom height, top height, bottom half width and
+// top half width, in metres. It is half the size of the real one, like the whole plan.
+const LATTICE = [
+    [0, 28, 31, 17],
+    [28, 57, 17, 10],
+    [57, 138, 10, 2.6],
+    [138, 162, 1.4, 0.5],
+]
+// Star places: map u, map n, the number of boulevards and their length in metres.
+const PLACES = [
+    [650, 300, 12, 1300],
+    [-250, 480, 8, 900],
+    [-1150, -520, 6, 900],
+    [400, -700, 10, 1100],
+]
+// The ring boulevard round the centre, in metres.
+const PARIS = [-150, 0]
+const RING = 2300
+// The high-rise cluster far out on the horizon: map u, map n, half width and height.
+const HIGH_RISES = [
+    [1950, -1450, 14, 120],
+    [2050, -1380, 11, 95],
+    [1880, -1340, 10, 80],
+    [2120, -1500, 12, 105],
+    [1990, -1580, 9, 70],
 ]
 
-const vertexShader = /* glsl */ `
-varying vec2 vUv;
-varying vec3 vWorld;
-void main() {
-    vUv = uv;
-    vec4 world = modelMatrix * vec4( position, 1.0 );
-    vWorld = world.xyz;
-    gl_Position = projectionMatrix * viewMatrix * world;
-}
-`
-
-// Shared haze: a distance fog toward the haze colour along the view (sky.js HAZE_AT), so
-// the far city melts into the same gradient as the sky dome.
-const HAZE_GLSL = /* glsl */ `
-${HAZE_AT}
-uniform float uHazeDensity;
-vec3 applyHaze( vec3 color, vec3 world ) {
-    vec3 toward = world - cameraPosition;
-    float d = length( toward ) * uHazeDensity;
-    return mix( color, hazeAt( toward / max( length( toward ), 1e-3 ) ), 1.0 - exp( -d * d ) );
-}
-`
+const glslVec2 = ([x, y]) => `vec2( ${x.toFixed(2)}, ${y.toFixed(2)} )`
+const TOWER = toWorld([TOWER_U, TOWER_N])
 
 // band() is the exact cover of a lit band of half width w, at distance d from its centre,
-// over a pixel of width f. A band thinner than a pixel keeps its energy and fades, so the
+// over a soft edge of width f. A band thinner than f keeps its energy and spreads, so the
 // streets far away melt into a soft glow and never alias into a moire.
-// lineAt() repeats the band at each integer of x. Past one cell a pixel the cover becomes
-// the mean of the pattern.
-// segment() gives each side street between two crossings its own brightness, and leaves about
-// one in five dark, so the streets never read as an even grid. Where a pixel covers a block or
-// more ('far'), each random value takes its mean, so the far city does not shimmer as the
-// camera moves. avenue() does the same for each avenue along its whole length, and the
-// avenues dim in the distance ('dim'), so they never draw an even grid toward the horizon.
-// lights() widens a light smaller than a pixel and dims it by the same area.
-// towers() tests the view ray back from the ground point against each tower prism (a slab
-// test) and keeps the hit nearest the camera, which is the largest ray parameter.
+// cells() returns the distance to the nearest border of a jittered Voronoi cell, in cell
+// units, and a random value for the cell. The borders are the streets.
+// frustum() clips the view ray, back from the ground point, against a square frustum and
+// returns the ray parameter where the ray from the camera enters it, or -1. The hit nearest
+// the camera has the largest ray parameter.
 const fragmentShader = /* glsl */ `
 uniform float uTime;
-uniform vec4 uTowers[ ${TOWERS.length} ];
 varying vec2 vUv;
 varying vec3 vWorld;
 ${HAZE_GLSL}
+${NOISE_GLSL}
 
-float hash12( vec2 p ) {
-    vec3 p3 = fract( vec3( p.xyx ) * 0.1031 );
-    p3 += dot( p3, p3.yzx + 33.33 );
-    return fract( ( p3.x + p3.y ) * p3.z );
-}
-float noise( vec2 p ) {
-    vec2 i = floor( p );
-    vec2 f = fract( p );
-    f = f * f * ( 3.0 - 2.0 * f );
-    return mix( mix( hash12( i ), hash12( i + vec2( 1.0, 0.0 ) ), f.x ), mix( hash12( i + vec2( 0.0, 1.0 ) ), hash12( i + vec2( 1.0, 1.0 ) ), f.x ), f.y );
-}
-mat2 turn( float a ) {
-    float c = cos( a ), s = sin( a );
-    return mat2( c, s, -s, c );
-}
+const vec3 GOLD = vec3( 1.0, 0.6, 0.26 );
+const vec2 ALONG = ${glslVec2([ALONG.x, ALONG.y])};
+const vec2 ACROSS = ${glslVec2([ACROSS.x, ACROSS.y])};
+
 float band( float d, float w, float f ) {
     f = max( f, 1e-4 );
     return max( 0.0, min( d + 0.5 * f, w ) - max( d - 0.5 * f, -w ) ) / f;
 }
-float lineAt( float x, float w, float f ) {
-    return mix( band( abs( fract( x + 0.5 ) - 0.5 ), w, f ), 2.0 * w, smoothstep( 0.3, 1.0, f ) );
+float box( vec2 p, vec2 h, float f ) {
+    vec2 d = abs( p ) - h;
+    return 1.0 - smoothstep( -0.5 * f, 0.5 * f, length( max( d, 0.0 ) ) + min( max( d.x, d.y ), 0.0 ) );
 }
-float avenue( float id, float f ) {
-    float h = hash12( vec2( id, 3.3 ) );
-    return mix( step( 0.3, h ) * ( 0.25 + 0.75 * h ), 0.5, smoothstep( 0.3, 1.0, f ) );
+vec2 jitter( vec2 c ) {
+    return vec2( hash12( c ), hash12( c + 17.0 ) ) * 0.8 + 0.1;
 }
-float segment( vec2 id, float far ) {
-    float h = hash12( id );
-    return mix( step( 0.22, h ) * ( 0.35 + 0.65 * h ), 0.58, far );
-}
-// A field of round lights, one jittered light to a cell in a share 'on' of the cells.
-float lights( vec2 c, float on, float pixel, float seed ) {
-    vec2 id = floor( c );
-    float h = hash12( id + seed );
-    float r = 0.18;
-    float re = max( r, 0.5 * pixel );
-    vec2 o = fract( c ) - 0.5 - ( vec2( hash12( id + 4.1 ), hash12( id + 9.7 ) ) - 0.5 ) * 0.5;
-    float lit = step( h, on ) * smoothstep( re + 0.5 * pixel, re - 0.5 * pixel, length( o ) ) * r * r / ( re * re ) * ( 0.6 + 0.4 * sin( uTime * ( 0.3 + h ) + h * 50.0 ) );
-    return mix( lit, on * 3.1416 * r * r * 0.8, smoothstep( 0.4, 1.4, pixel ) );
-}
-
-vec4 towers( vec3 P, float pixelAngle ) {
-    vec3 toCam = cameraPosition - P;
-    mat2 R = turn( ${GRID.toFixed(2)} );
-    vec2 b = R * toCam.xz + 1e-4;
-    float best = -1.0;
-    vec3 colour = vec3( 0.0 );
-    for ( int i = 0; i < ${TOWERS.length}; i ++ ) {
-        vec4 T = uTowers[ i ];
-        vec2 a = R * ( P.xz - T.xy );
-        vec2 t0 = ( -T.z - a ) / b;
-        vec2 t1 = ( T.z - a ) / b;
-        vec2 hi = max( t0, t1 );
-        float tIn = max( max( min( t0.x, t1.x ), min( t0.y, t1.y ) ), 0.0 );
-        float tTop = T.w / toCam.y;
-        float tOut = min( min( hi.x, hi.y ), tTop );
-        if ( tIn > tOut || tOut <= best ) continue;
-        best = tOut;
-        vec2 s = a + b * tOut;
-        float y = toCam.y * tOut;
-        float seed = hash12( T.xy );
-        vec3 glass = mix( vec3( 1.0, 0.74, 0.42 ), vec3( 0.62, 0.78, 1.0 ), step( 0.7, seed ) );
-        float pixel = pixelAngle * length( toCam ) * ( 1.0 - tOut );
-        float blink = step( 0.6, sin( uTime * 2.4 + seed * 20.0 ) );
-        if ( tOut >= tTop - 1e-5 ) {
-            colour = vec3( 0.02, 0.02, 0.03 ) + glass * 0.5 * band( T.z - max( abs( s.x ), abs( s.y ) ), 1.2, pixel )
-                + vec3( 1.0, 0.08, 0.05 ) * 3.0 * blink * band( length( s ), max( 2.5, pixel ), pixel );
-        } else {
-            float side = hi.x < hi.y ? 1.0 : 0.62;
-            float u = hi.x < hi.y ? s.y : s.x;
-            vec2 w = vec2( u / 3.2, y / 3.8 );
-            float f = pixel / 3.2;
-            float on = 0.2 + 0.2 * seed;
-            float pane = step( hash12( floor( w ) + T.xy ), on ) * band( abs( fract( w.x ) - 0.5 ), 0.32, f ) * band( abs( fract( w.y ) - 0.5 ), 0.26, f );
-            pane = mix( pane, on * 0.33, smoothstep( 0.4, 1.4, f ) );
-            float crown = smoothstep( T.w - 14.0, T.w - 10.0, y ) - smoothstep( T.w - 6.0, T.w - 4.0, y );
-            colour = side * ( vec3( 0.008, 0.008, 0.016 ) + glass * ( pane * 1.8 + crown * 2.2 ) );
+vec2 cells( vec2 x ) {
+    vec2 n = floor( x );
+    vec2 f = fract( x );
+    vec2 mg = vec2( 0.0 );
+    vec2 mr = vec2( 0.0 );
+    float md = 8.0;
+    for ( int j = -1; j <= 1; j ++ ) {
+        for ( int i = -1; i <= 1; i ++ ) {
+            vec2 g = vec2( float( i ), float( j ) );
+            vec2 r = g + jitter( n + g ) - f;
+            float d = dot( r, r );
+            if ( d < md ) {
+                md = d;
+                mr = r;
+                mg = g;
+            }
         }
     }
+    md = 8.0;
+    for ( int j = -1; j <= 1; j ++ ) {
+        for ( int i = -1; i <= 1; i ++ ) {
+            vec2 g = mg + vec2( float( i ), float( j ) );
+            vec2 r = g + jitter( n + g ) - f;
+            if ( dot( mr - r, mr - r ) > 1e-5 ) md = min( md, dot( 0.5 * ( mr + r ), normalize( r - mr ) ) );
+        }
+    }
+    return vec2( md, hash12( n + mg + 3.1 ) );
+}
+void clip( float k, float m, inout vec2 r ) {
+    if ( k > 1e-6 ) r.y = min( r.y, m / k );
+    else if ( k < -1e-6 ) r.x = max( r.x, m / k );
+    else if ( m < 0.0 ) r.y = -1.0;
+}
+float frustum( vec2 a, vec2 b, float dy, float y0, float y1, float s0, float s1 ) {
+    float B = ( s1 - s0 ) / ( y1 - y0 );
+    float A = s0 - B * y0;
+    B *= dy;
+    vec2 r = vec2( max( y0 / dy, 0.0 ), y1 / dy );
+    clip( b.x - B, A - a.x, r );
+    clip( -b.x - B, A + a.x, r );
+    clip( b.y - B, A - a.y, r );
+    clip( -b.y - B, A + a.y, r );
+    return r.x <= r.y ? r.y : -1.0;
+}
+vec2 toMap( vec2 d ) {
+    return vec2( dot( d, ALONG ), dot( d, ACROSS ) );
+}
+
+// The lattice tower and the far high-rises, as seen along the view ray through P.
+vec4 landmarks( vec3 P, float pixelAngle ) {
+    vec3 toCam = cameraPosition - P;
+    float dy = toCam.y;
+    vec2 b = toMap( toCam.xz ) + 1e-4;
+    vec2 a = toMap( P.xz - ${glslVec2(TOWER)} );
+    float t = ${LATTICE.map(([y0, y1, s0, s1]) => `frustum( a, b, dy, ${y0.toFixed(1)}, ${y1.toFixed(1)}, ${s0.toFixed(1)}, ${s1.toFixed(1)} )`).reduce((all, next) => `max( ${all}, ${next} )`)};
+    vec3 colour = vec3( 0.0 );
+    float best = -1.0;
+    if ( t > 0.0 ) {
+        best = t;
+        vec2 s = a + b * t;
+        float y = dy * t;
+        float pixel = pixelAngle * length( toCam ) * ( 1.0 - t );
+        bool xFace = abs( s.x ) > abs( s.y );
+        float u = xFace ? s.y : s.x;
+        float hw = ${LATTICE.slice(0, -1).map(([y0, y1, s0, s1]) => `y < ${y1.toFixed(1)} ? mix( ${s0.toFixed(1)}, ${s1.toFixed(1)}, ( y - ${y0.toFixed(1)} ) / ${(y1 - y0).toFixed(1)} ) : `).join('')}1.0;
+        float f = pixel / 5.0;
+        float x1 = abs( fract( ( u + y ) / 5.0 + 0.5 ) - 0.5 );
+        float x2 = abs( fract( ( u - y ) / 5.0 + 0.5 ) - 0.5 );
+        float lattice = 0.5 + 0.5 * mix( max( band( x1, 0.12, f ), band( x2, 0.12, f ) ), 0.45, smoothstep( 0.3, 1.0, f ) );
+        float deck = band( abs( y - 28.0 ), 1.6, pixel ) + band( abs( y - 57.0 ), 1.4, pixel ) + band( abs( y - 138.0 ), 1.2, pixel );
+        float arch = y < 24.0 ? step( abs( u ), 0.6 * hw * sqrt( max( 1.0 - y * y / 576.0, 0.0 ) ) ) : 0.0;
+        float sparkle = step( fract( uTime / 50.0 ), 0.16 ) * step( hash12( floor( vec2( u, y ) / 2.5 ) + floor( uTime * 6.0 ) ), 0.07 );
+        colour = ( GOLD * ( 1.7 * lattice * ( xFace ? 1.0 : 0.75 ) + 1.4 * deck ) + vec3( 1.6 ) * sparkle ) * ( 1.0 - 0.85 * arch )
+            + vec3( 1.0, 0.85, 0.6 ) * 2.5 * step( 156.0, y );
+    }
+    ${HIGH_RISES.map(([u, n, half, height]) => {
+        const [x, z] = toWorld([u, n])
+        return `t = frustum( toMap( P.xz - ${glslVec2([x, z])} ), b, dy, 0.0, ${height.toFixed(1)}, ${half.toFixed(1)}, ${half.toFixed(1)} );
+    if ( t > best ) {
+        best = t;
+        vec2 s = toMap( P.xz - ${glslVec2([x, z])} ) + b * t;
+        vec2 w = vec2( ( abs( s.x ) > abs( s.y ) ? s.y : s.x ) / 3.2, dy * t / 3.8 );
+        float on = step( hash12( floor( w ) + ${u.toFixed(1)} ), 0.3 );
+        colour = vec3( 0.01, 0.012, 0.022 ) + vec3( 0.75, 0.82, 1.0 ) * mix( on, 0.3, 0.6 ) * 0.9;
+    }`
+    }).join('\n    ')}
     return vec4( colour, step( 0.0, best ) );
 }
 
 void main() {
     vec2 p = vWorld.xz;
-    float core = exp( -length( p - vec2( ${CORE[0].toFixed(1)}, ${CORE[1].toFixed(1)} ) ) / 1600.0 );
-    float dens = mix( 0.15, 1.0, core );
+    float fp = length( fwidth( p ) );
+    float soft = max( fp, ${SOFT[0].toFixed(1)} + distance( vWorld, cameraPosition ) * ${SOFT[1].toFixed(4)} );
+    vec2 m = toMap( p - ${glslVec2(ORIGIN)} );
+    float rc = length( m - ${glslVec2(PARIS)} );
+    float dens = mix( 0.4, 1.0, 1.0 - smoothstep( ${(RING - 200).toFixed(1)}, ${(RING + 400).toFixed(1)}, rc ) );
+    float far = smoothstep( 14.0, 34.0, soft );
 
-    // Streets: a grid bent a little by a slow noise, with a second district at another angle.
-    vec2 pw = p + ( vec2( noise( p / 900.0 ), noise( p / 900.0 + 5.2 ) ) - 0.5 ) * 160.0;
-    float alt = step( 0.64, noise( p / 1500.0 + 3.0 ) );
-    vec2 m = turn( ${GRID.toFixed(2)} + alt * 0.6 ) * pw;
-    vec2 q = m / vec2( ${BLOCK[0].toFixed(1)}, ${BLOCK[1].toFixed(1)} );
-    vec2 f = min( fwidth( q ), vec2( 2.0 ) );
-    float far = smoothstep( 0.3, 1.0, max( f.x, f.y ) );
-    float minor = max( lineAt( q.x, 0.06, f.x ) * segment( vec2( floor( q.x + 0.5 ), floor( q.y ) ) + alt * 13.0, far ),
-        lineAt( q.y, 0.08, f.y ) * segment( vec2( floor( q.x ), floor( q.y + 0.5 ) ) + 57.0 + alt * 13.0, far ) );
-    minor *= 1.0 - 0.9 * smoothstep( 0.08, 0.45, max( f.x, f.y ) );
-    vec2 qa = q / vec2( 4.0, 3.0 );
-    vec2 fa = f / vec2( 4.0, 3.0 );
-    float major = max( lineAt( qa.x, 0.03, fa.x ) * avenue( floor( qa.x + 0.5 ) + alt * 5.0, fa.x ),
-        lineAt( qa.y, 0.035, fa.y ) * avenue( floor( qa.y + 0.5 ) + 40.0 + alt * 5.0, fa.y ) );
-    float dim = 1.0 - 0.7 * smoothstep( 0.08, 0.4, max( fa.x, fa.y ) );
-    float spill = max( lineAt( qa.x, 0.08, fa.x ), lineAt( qa.y, 0.1, fa.y ) );
+    // Boulevards out from the star places, and the ring boulevard. The blocks between two
+    // boulevards line up with the nearer one and stretch along it, as the wedge blocks of Paris do.
+    float boulevards = band( abs( rc - ${RING.toFixed(1)} ), 16.0, soft );
+    float nearest = 1e9;
+    float heading = 0.0;
+    ${PLACES.map(([u, n, count, length], i) => `{
+        vec2 d = m - ${glslVec2([u, n])};
+        float k = ${(6.2832 / count).toFixed(4)};
+        float a = atan( d.y, d.x ) - ${(i * 0.7).toFixed(1)};
+        float off = a - k * floor( a / k + 0.5 );
+        boulevards = max( boulevards, band( length( d ) * abs( sin( off ) ), 7.0, soft ) * smoothstep( ${length.toFixed(1)}, ${(length * 0.45).toFixed(1)}, length( d ) ) );
+        boulevards = max( boulevards, band( abs( length( d ) - 55.0 ), 6.0, soft ) );
+        if ( length( d ) < nearest ) {
+            nearest = length( d );
+            heading = a - off + ${(i * 0.7).toFixed(1)};
+        }
+    }`).join('\n    ')}
 
-    // Blocks: parks, dark lots and lit lots, with window lights on a 7 m cell.
-    vec2 cell = floor( q ) + alt * 31.0;
-    float kind = hash12( cell );
-    float park = mix( step( kind, 0.08 ), 0.08, far );
-    float lot = mix( hash12( floor( q * vec2( 3.0, 2.0 ) ) + 11.3 + alt * 7.0 ), 0.5, smoothstep( 0.1, 0.35, max( f.x, f.y ) ) );
-    float lit = dens * ( 0.35 + 0.65 * lot ) * ( 1.0 - park ) * ( 1.0 - minor );
-    vec2 wc = m / 7.0;
-    float pixel = max( fwidth( wc.x ), fwidth( wc.y ) );
-    float glints = lights( wc, 0.6 * lit, pixel, 0.0 );
-    float warm = step( 0.3, hash12( floor( wc ) + 2.3 ) );
+    // Streets on the borders of the stretched cells. Buildings line each street, round a darker courtyard.
+    vec2 dir = vec2( cos( heading ), sin( heading ) );
+    vec2 v = cells( vec2( dot( m, dir ) / 95.0, dot( m, vec2( -dir.y, dir.x ) ) / 48.0 ) );
+    float street = mix( band( v.x * 60.0, 3.0, soft ) * ( 0.6 + 0.4 * v.y ), 0.1, far );
+    float lit = dens * mix( ( 0.55 + 0.45 * v.y ) * smoothstep( 0.42, 0.1, v.x ), 0.32, far );
 
-    vec3 sodium = vec3( 1.0, 0.5, 0.18 );
-    vec3 col = mix( vec3( 0.012, 0.011, 0.022 ), vec3( 0.006, 0.014, 0.01 ), park );
-    col += vec3( 0.16, 0.09, 0.06 ) * lit * lot;
-    col += mix( vec3( 0.7, 0.82, 1.0 ), vec3( 1.0, 0.78, 0.48 ), warm ) * glints * 1.6;
-    float streets = mix( 0.35, 1.0, core );
-    col += sodium * ( minor * ( 1.0 - park * 0.7 ) * 0.12 + ( major * 0.4 + spill * 0.04 ) * dim ) * streets;
+    // Parks: the long park under the tower, a garden across the river, and two large woods.
+    float park = box( m - vec2( ${TOWER_U.toFixed(1)}, ${(TOWER_N + 290).toFixed(1)} ), vec2( 50.0, 225.0 ), soft );
+    park = max( park, box( m - vec2( ${TOWER_U.toFixed(1)}, ${(seine(TOWER_U) - RIVER - 120).toFixed(1)} ), vec2( 110.0, 95.0 ), soft ) );
+    park = max( park, smoothstep( 0.73, 0.8, noise( p / 1100.0 + 9.0 ) ) );
+    lit *= 1.0 - park;
+    street *= 1.0 - 0.8 * park;
 
-    // The river: a dark winding band with lit banks. Only the avenues cross it, as bridges.
-    vec2 rq = turn( -0.5 ) * p;
-    float rx = rq.x - 250.0 * sin( rq.y / 800.0 ) - 100.0 * sin( rq.y / 310.0 + 1.0 ) + 700.0;
-    float fr = fwidth( rx );
-    float river = band( abs( rx ), 75.0, fr );
-    vec3 water = vec3( 0.004, 0.006, 0.016 ) + sodium * 0.03 * smoothstep( 0.55, 0.9, noise( vec2( rx / 5.0, rq.y / 60.0 + uTime * 0.05 ) ) ) * ( 1.0 - smoothstep( 1.0, 4.0, fr ) );
-    col = mix( col, water, river );
-    col += sodium * major * river * streets * 1.4;
-    col += vec3( 1.0, 0.7, 0.4 ) * band( abs( abs( rx ) - 79.0 ), 2.5, fr ) * 1.2 * streets;
+    // Districts: a slow noise and a finer one make some quarters bright and others dim.
+    float district = mix( 0.3, 1.15, 0.6 * smoothstep( 0.25, 0.75, noise( p / 1300.0 + 2.0 ) ) + 0.25 * noise( p / 420.0 ) + 0.15 * noise( p / 150.0 ) );
+    lit *= district;
+    street *= district;
+    boulevards *= mix( 0.55, 1.0, district );
 
-    // A highway on a long curve, with white lights one way and red lights the other.
-    vec2 hq = turn( 1.1 ) * p;
-    float hx = hq.x - 350.0 * sin( hq.y / 1100.0 ) - 300.0;
-    float fh = fwidth( hx );
-    float lane = sign( hx );
-    float cars = lights( vec2( hx / 8.0, hq.y / 14.0 - uTime * 1.2 * lane ), 0.5, max( fh / 8.0, fwidth( hq.y ) / 14.0 ), 5.0 );
-    col += sodium * band( abs( hx ), 14.0, fh ) * 0.9 * streets;
-    col += mix( vec3( 1.0, 0.12, 0.06 ), vec3( 1.0, 0.95, 0.85 ), step( 0.0, lane ) ) * cars * band( abs( hx ), 9.0, fh ) * 2.0;
+    vec2 c = p / 6.0;
+    float glints = 0.0;
+    if ( far < 1.0 ) {
+        float pixel = max( fp, soft * 0.5 ) / 6.0;
+        float h = hash12( floor( c ) );
+        vec2 o = fract( c ) - 0.5 - ( vec2( hash12( floor( c ) + 4.1 ), hash12( floor( c ) + 9.7 ) ) - 0.5 ) * 0.5;
+        float r = max( 0.18, 0.5 * pixel );
+        glints = step( h, 0.5 * lit ) * smoothstep( r + 0.5 * pixel, r - 0.5 * pixel, length( o ) ) * 0.0324 / ( r * r );
+    }
 
-    vec4 tower = towers( vWorld, length( fwidth( normalize( vWorld - cameraPosition ) ) ) );
-    col = mix( col, tower.rgb, tower.a );
+    vec3 col = vec3( 0.012, 0.01, 0.02 ) + vec3( 0.004, 0.008, 0.004 ) * park;
+    col += vec3( 0.26, 0.15, 0.07 ) * lit + GOLD * mix( glints, 0.05 * lit, far ) * 1.4;
+    col += GOLD * ( street * 0.35 * dens + boulevards * 0.38 + 0.35 * exp( -length( p - ${glslVec2(TOWER)} ) / 70.0 ) );
 
-    float alpha = max( 1.0 - smoothstep( 0.55, 1.0, length( vUv - 0.5 ) * 2.0 ), tower.a );
+    // The Seine, with lit quays, bridges every 280 m and the island in the middle.
+    float dn = m.y - ( 120.0 * sin( m.x / 700.0 ) + 50.0 * sin( m.x / 260.0 + 1.0 ) );
+    float isle = ${ISLE.width.toFixed(1)} * smoothstep( ${ISLE.length.toFixed(1)}, ${(ISLE.length * 0.7).toFixed(1)}, abs( m.x - ${ISLE.u.toFixed(1)} ) );
+    float water = band( abs( dn ), ${RIVER.toFixed(1)}, soft ) * ( 1.0 - band( abs( dn ), isle, soft ) );
+    float quays = band( abs( abs( dn ) - ${(RIVER + 4).toFixed(1)} ), 3.0, soft ) + band( abs( abs( dn ) - isle - 2.0 ), 2.5, soft ) * step( 4.0, isle );
+    float bridges = band( abs( fract( m.x / 280.0 + 0.5 ) - 0.5 ) * 280.0, 8.0, soft ) * band( abs( dn ), ${(RIVER + 6).toFixed(1)}, soft );
+    vec3 river = vec3( 0.006, 0.008, 0.02 ) + GOLD * 0.25 * exp( -max( ${RIVER.toFixed(1)} - abs( dn ), 0.0 ) / 22.0 );
+    col = mix( col, river, water ) + GOLD * ( quays * 0.8 + bridges );
+
+    vec4 mark = landmarks( vWorld, length( fwidth( normalize( vWorld - cameraPosition ) ) ) );
+    col = mix( col, mark.rgb, mark.a );
+
+    float alpha = max( 1.0 - smoothstep( 0.55, 1.0, length( vUv - 0.5 ) * 2.0 ), mark.a );
     col = mix( col, hazeAt( normalize( vWorld - cameraPosition ) ), ${CITY_HAZE.toFixed(2)} );
     gl_FragColor = vec4( applyHaze( col, vWorld ), alpha );
 }
@@ -229,16 +263,11 @@ export function createCityBackdrop({ haze, hazeDensity = 1 / 4200 }) {
     const group = new THREE.Group()
     group.name = 'CityBackdrop'
     const time = { value: 0 }
+    const hazeUniforms = { ...skyHaze(), uHaze: { value: haze }, uHazeDensity: { value: hazeDensity } }
     const material = new THREE.ShaderMaterial({
         name: 'city.night',
-        uniforms: {
-            ...skyHaze(),
-            uHaze: { value: haze },
-            uHazeDensity: { value: hazeDensity },
-            uTowers: { value: TOWERS.map((tower) => new THREE.Vector4(...tower)) },
-            uTime: time,
-        },
-        vertexShader,
+        uniforms: { ...hazeUniforms, uTime: time },
+        vertexShader: PLANE_VERTEX,
         fragmentShader,
         transparent: true,
         depthWrite: false,
@@ -249,7 +278,8 @@ export function createCityBackdrop({ haze, hazeDensity = 1 / 4200 }) {
     mesh.position.fromArray(CENTRE)
     mesh.renderOrder = -8
     mesh.name = 'City'
-    group.add(mesh)
+    const clouds = createCityClouds({ hazeUniforms, time, centre: CENTRE })
+    group.add(mesh, ...clouds.meshes)
 
     const update = (seconds) => {
         time.value = seconds
@@ -258,6 +288,7 @@ export function createCityBackdrop({ haze, hazeDensity = 1 / 4200 }) {
     const dispose = () => {
         geometry.dispose()
         material.dispose()
+        clouds.dispose()
     }
 
     return { group, update, dispose }

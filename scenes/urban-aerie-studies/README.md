@@ -1,5 +1,9 @@
 # Urban aerie house studies
 
+## Paris night city under cloud: 3 November 2026
+
+`city-backdrop.js` now draws a city after Paris at half scale. Small blocks follow the nearest boulevard, star places send boulevards out, and a ring boulevard closes the centre. The Seine has lit quays, bridges and an island. A golden lattice tower stands over a long park, and a cluster of high-rises sits far out on the horizon. Every light has a soft edge that grows with distance, and the street fabric melts into its mean glow, so districts, boulevards, the river and the tower carry the shape. `city-clouds.js` adds two drifting cloud and fog layers at -620 m and -340 m, so the city shows through gaps and the layers slide against it as the camera moves. `city-glsl.js` holds the GLSL that both share. Captures: `renders/city-procedural/paris_*.jpg`.
+
 ## Procedural night city: 2 November 2026
 
 The site no longer reads the painted city layers. `city-backdrop.js` draws the city in one shader on one 9 km plane at -780 m, from the world position alone. It draws a bent street grid with a second district at another angle, sodium avenues, lit lots with window points, parks, a winding river with lit banks and avenue bridges, a highway with moving car lights, and eight landmark towers. The shader finds each tower as a prism along the view ray, so the towers lean and shift against the streets as the camera moves. The distance haze and a radial fade melt the far city into the void. The four layer images and `city_layers.json` left `src/assets/city/`, so the scene ships no textures. `export_island_b.py --city-layers` still renders them if a later look wants them back.

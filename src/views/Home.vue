@@ -182,8 +182,8 @@ body {
 
 /*
  * The plants_in_space title: one word top left, one bottom right. The two
- * words frame the island instead of sitting on it. The width cap keeps them
- * close to the island on a wide screen.
+ * words frame the aerie instead of sitting on it. The width cap keeps them
+ * close to the aerie on a wide screen.
  */
 .hero-inner {
     position: relative;

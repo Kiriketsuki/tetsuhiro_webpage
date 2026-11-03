@@ -57,7 +57,7 @@ function boxOf(pin) {
     return { x: pin.at[0], y: pin.at[1], w: w * Math.cos(t) + h * Math.sin(t), h: w * Math.sin(t) + h * Math.cos(t) }
 }
 
-// The backdrop stands in for the dimmed island behind the view: a dark wall and a few warm
+// The backdrop stands in for the dimmed aerie behind the view: a dark wall and a few warm
 // lamps out of focus. It draws once at a quarter of the size, because the blur hides the pixels.
 function backdrop(canvas) {
     const g = canvas?.getContext('2d')

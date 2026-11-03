@@ -1,14 +1,14 @@
 import * as THREE from 'three'
 import photoUrl from '../../assets/about-2025.webp'
 
-// The things the About story needs that the bedroom in island_b.glb does not have: a desk with
+// The things the About story needs that the bedroom in aerie.glb does not have: a desk with
 // a chair, a monitor, a laptop and a teaching notebook under the east window, and the
 // graduation photo on the west wall above the nightstand. Each prop is a few boxes, built at
-// runtime, so the island GLB needs no new export. They take the materials of the island's own
+// runtime, so the aerie GLB needs no new export. They take the materials of the aerie's own
 // Interiors meshes, so the toon light, the glow and the grade treat them as the room.
 //
 // Positions and sizes are metres in the GLB frame (Y up). rot is in degrees about x, y and z.
-// Colours are sRGB hex. THREE.Color turns them into the linear vertex colours the island uses.
+// Colours are sRGB hex. THREE.Color turns them into the linear vertex colours the aerie uses.
 const WOOD = 0x8a5a36
 const OAK = 0xb07a48
 const DARK = 0x2e3036
@@ -54,8 +54,8 @@ const GUITAR = new THREE.Box3(new THREE.Vector3(-4.16, 7.4, -5.2), new THREE.Vec
 
 const degrees = (rot = [0, 0, 0]) => new THREE.Euler(...rot.map((d) => THREE.MathUtils.degToRad(d)))
 
-// One geometry for a list of boxes, with the attributes the island toon material reads.
-// surface is the aSurface family of the island mesh the material comes from.
+// One geometry for a list of boxes, with the attributes the aerie toon material reads.
+// surface is the aSurface family of the aerie mesh the material comes from.
 function boxGeometry(boxes, surface) {
     const positions = []
     const normals = []
@@ -81,7 +81,7 @@ function boxGeometry(boxes, surface) {
     return geometry
 }
 
-// The Interiors mesh of each island material, by its web material name.
+// The Interiors mesh of each aerie material, by its web material name.
 function interiors(scene) {
     const found = {}
     scene.traverse((node) => {
@@ -90,7 +90,7 @@ function interiors(scene) {
     return found
 }
 
-// Collapses every vertex of the island meshes that lies in `box` to the box centre, so the
+// Collapses every vertex of the aerie meshes that lies in `box` to the box centre, so the
 // thing there no longer draws.
 function hide(scene, box) {
     const centre = box.getCenter(new THREE.Vector3())
@@ -111,7 +111,7 @@ function hide(scene, box) {
     })
 }
 
-// Adds the props to the island scene and returns them as one group. A material the GLB lacks
+// Adds the props to the aerie scene and returns them as one group. A material the GLB lacks
 // skips its boxes, so a later GLB that renames a material loses a prop, not the room.
 export function addRoomProps(scene) {
     scene.updateMatrixWorld(true)

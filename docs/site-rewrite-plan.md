@@ -1,4 +1,4 @@
-# Site rewrite plan: urban aerie island (Oct 2026)
+# Site rewrite plan: urban aerie (Oct 2026)
 
 This plan merges two research runs from 25 October 2026. One studied how to load the rooms and move between them. The other audited the current site and set an architecture for the rewrite. A fact-check pass reviewed both runs (124 claims confirmed, 11 corrected). Spot checks against the code also passed.
 
@@ -10,16 +10,16 @@ Do not make three room GLBs. Split by what each piece is:
 
 | Piece | Form | Why |
 |---|---|---|
-| Island, house, workshop room, corkboard frame, telescope body, pad | Main island GLB | The workshop is the first room on the route, so it must be ready first. |
+| Aerie, house, workshop room, corkboard frame, telescope body, pad | Main aerie GLB | The workshop is the first room on the route, so it must be ready first. |
 | Project cards on the corkboard | Generated from `src/data/projects.js` | A new project needs no Blender edit. Text stays in the DOM for SEO and screen readers. |
 | Constellation skill sky | Generated from `src/data/skills.js` in its own `THREE.Scene` | Points, lines and badges cost about 3 draw calls. A GLB would freeze the layout. |
-| Bedroom detail | Hidden group in the main GLB, or one lazy GLB only if it breaks the budget | The island export is only 0.90 MB (desktop) and 0.49 MB (mobile), so a split probably saves little. |
+| Bedroom detail | Hidden group in the main GLB, or one lazy GLB only if it breaks the budget | The aerie export is only 0.90 MB (desktop) and 0.49 MB (mobile), so a split probably saves little. |
 | Write-ups, galleries, links | DOM routes | They load as lazy route chunks already. |
 
 ## Baseline today (measured)
 
 - Entry JS is one chunk: 926,791 B raw, 289 kB gzip. three.js is 154 kB gzip of it, gsap 49 kB.
-- `index.html` loads `src/three.js` as a second module script, so every route pays for the scene and the 2.38 MB `island.glb`.
+- `index.html` loads `src/three.js` as a second module script, so every route pays for the scene and the 2.38 MB `aerie.glb`.
 - The render loop never stops (`src/three.js:85-96`). It keeps the full bloom and MSAA chain running on hidden routes.
 - `firebase.json` has no headers block, so all assets cache for about 1 hour. A `**` rewrite returns HTTP 200 HTML for any missing file.
 - A device without WebGL keeps the enter button disabled forever.
@@ -51,7 +51,7 @@ Every push to master deploys. Each phase must ship on its own.
 - Self-hosted woff2 fonts.
 - Remove `draco_decoder.js`, the unused `vanilla-tilt` and the empty `postcss.config.cjs` from the build.
 
-**Phase 2: boot order and loop control, old island still live.**
+**Phase 2: boot order and loop control, old aerie still live.**
 - Mount Vue first, then `import()` the scene from the Home route on idle.
 - `manualChunks` for three, gsap and vue. The shell drops to about 97 kB gzip.
 - `renderer.setAnimationLoop` with pause and resume on route change and `visibilitychange`.
@@ -68,12 +68,12 @@ Every push to master deploys. Each phase must ship on its own.
 
 Status, 25 October 2026: done. `src/scene/scene-manager.js` holds the API, `src/three.js` is the Vue bridge, `src/data/stops.js` keys the stops by Blender camera name, and `src/data/waypoints.js` maps each Home section to a stop. The loop renders on demand with a 30 fps ambient clock on Home and none on text pages.
 
-**Phase 4: new island swap.**
-- Load `island_b.glb` or the lite file by tier, with one shared flat toon material and a fixed light set.
+**Phase 4: new aerie swap.**
+- Load `aerie.glb` or the lite file by tier, with one shared flat toon material and a fixed light set.
 - Remove the dodecahedron, campfire, triplanar terrain, tree growth and skill badges from the import graph. The files stay in the tree as era record.
 - Point the stops at the pad, workshop, telescope and bedroom anchors.
 
-Status, 25 October 2026: done. The site loads `island_b.glb` (or the lite file on a phone) with the watercolour look from `src/scene/aerie/`. The era scene code, `island.glb`, the dodecahedron faces, the terrain textures and other unused images are deleted. The campfire is a new prop on the lawn.
+Status, 25 October 2026: done. The site loads `aerie.glb` (or the lite file on a phone) with the watercolour look from `src/scene/aerie/`. The era scene code, `aerie.glb`, the dodecahedron faces, the terrain textures and other unused images are deleted. The campfire is a new prop on the lawn.
 
 **Phase 5: rooms carry the story.**
 - Sky-taxi arrival.
@@ -97,8 +97,8 @@ Status, 25 October 2026: first pass done. The gate lift flies a sky-taxi onto th
 |---|---|
 | Shell JS | at most 100 kB gzip |
 | Scene JS, lazy | at most 200 kB gzip |
-| Island GLB, desktop | under 120k tris, under 100 draw calls, at most 1.5 MB |
-| Island GLB, mobile | under 70k tris, at most 900 kB |
+| Aerie GLB, desktop | under 120k tris, under 100 draw calls, at most 1.5 MB |
+| Aerie GLB, mobile | under 70k tris, at most 900 kB |
 | Home first visit before the gate opens | 1.8 MB desktop, 1.2 MB mobile |
 | GPU texture memory | at most 32 MB |
 | Frame time | 16.7 ms mid desktop, 22 ms mid Android |
@@ -109,7 +109,7 @@ Status, 25 October 2026: first pass done. The gate lift flies a sky-taxi onto th
 - The site is a smooth SPA. A direct visit to any route opens the 3D scene at that room. The canvas stays mounted across routes, and a route change becomes a camera move. The loop pauses only on a hidden tab, on context loss and for reduced motion. This replaces the earlier idea that `/projects` loads no GLB.
 - 2022 and 2025 era code is deleted once the Oct 2026 work starts (Phase 4), so the site serves less. The era tags keep the history.
 - Unused files are deleted outright: `lake_mountain.glb`, `wave.glb`, `wave.blend`, `dodecahedron.glb`, the legacy face PNGs, `vanilla-tilt` and the unused `public/` files.
-- The campfire stays, as a prop on the new island. The dodecahedron retires, because the bedroom replaces it.
+- The campfire stays, as a prop on the new aerie. The dodecahedron retires, because the bedroom replaces it.
 - Oct 2026 commits use the real date and go to master. The tag is `era/2026-10`.
 - `MOONSETHDRI.hdr` (368 MB, gitignored) is deleted with the other unused files.
 - No bloom on any tier. Windows, lanterns and pad lights glow through emissive colour and soft glow sprites. This drops the bloom steps from the Phase 6 quality ladder.

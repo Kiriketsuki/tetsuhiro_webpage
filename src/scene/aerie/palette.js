@@ -6,7 +6,7 @@ import { SURFACE } from './toon-material.js'
 // The top-level tables below carry @__PURE__ marks. The scene chunk imports only isLaidRock
 // from here, and the look worker runs the paint, so the bundler can drop the tables there.
 //
-// The albedo palette for the built parts of the island, after the warm colours of Leaf it
+// The albedo palette for the built parts of the aerie, after the warm colours of Leaf it
 // Alone: honey-brown wood, cream plaster, a graphite roof, warm grey stone and brass. The
 // families keep clearly different hues, as the reference does, so the house never reads
 // as one orange-brown mass. It runs once at load on the baked vertex colours. A slow world noise moves each
@@ -51,7 +51,7 @@ const FAMILIES = {
     // Round 20 darkens it to a warm charcoal, because the review read a steel-blue cast on the
     // stair tower roof and its underside (S1, S6, S7).
     web_roof: { palette: [0x66615e, 0x5f5b59], scale: 0.2, amount: 1, keep: 0.15 },
-    // The cliff under the island.
+    // The cliff under the aerie.
     // Round 8 moves the tan a step toward yellow (hue about 38), so the night light keeps it
     // inside the hue 25 to 40 band the review asks for, never maroon.
     // Round 10 turns the tan toward a warm brown with a trace of mauve, and drops the baked
@@ -81,7 +81,7 @@ const FAMILIES = {
     // The pad deck: a mauve slate grey, lighter than the dark matte, so the deck reads as a
     // painted surface with its marking and not as a black hole in the lawn.
     // Round 6 widens the two tones, so the broad 2 m patches read as faint painted wear and
-    // the deck does not read as one flat fill. island-look.js adds the soil mottle on top.
+    // the deck does not read as one flat fill. aerie-look.js adds the soil mottle on top.
     // Round 7 turns the deck from a mauve slate to a warm dark slate. Under the cool moon the
     // mauve read as a saturated navy disc, the strongest cool patch in the frame.
     web_pad_deck: { palette: [0x4e4440, 0x5a4f48], scale: 0.45, amount: 1, keep: 0.3 },
@@ -91,7 +91,7 @@ const FAMILIES = {
     web_pad_stone: { palette: [0xa88e74, 0x9c846c], scale: 0.6, amount: 0.95, keep: 0.3, foot: true },
 }
 // The pad footing (seat_pad_route.py builds it as a faceted bank) takes the cliff paint: the
-// cliff tones with the same moss under the lip (rockMoss), so the island side reads as one
+// cliff tones with the same moss under the lip (rockMoss), so the aerie side reads as one
 // surface that runs on under the pad rim. A grey footing, one band of umber or a separate
 // moss gradient read as a drum under the curb.
 
@@ -113,8 +113,8 @@ function rockMoss() {
 // Each stone, found as a connected part of its mesh, turns olive moss toward its foot and
 // a little lighter toward its top, so a stone reads as a weathered rock with a painted
 // gradient, not as a flat fill. Returns the height in the stone, 0 to 1, per vertex. With
-// skipLargest, the largest part (the cliff under the island) gets -1 and keeps the
-// island-wide moss gradient, and only the boulders on top take the per-stone gradient.
+// skipLargest, the largest part (the cliff under the aerie) gets -1 and keeps the
+// aerie-wide moss gradient, and only the boulders on top take the per-stone gradient.
 function stoneHeights(mesh, skipLargest = false) {
     const position = mesh.geometry.attributes.position
     const heights = new Float32Array(position.count)
@@ -215,7 +215,7 @@ function familyOf(mesh) {
     return isLaidRock(mesh) ? 'web_rock_set' : mesh.userData.webMaterial
 }
 
-// meshes: island meshes tagged with userData.webMaterial by island-look.js.
+// meshes: aerie meshes tagged with userData.webMaterial by aerie-look.js.
 export function applyPalette(meshes) {
     const byFamily = (name) => meshes.filter((mesh) => familyOf(mesh) === name)
     Object.keys(FAMILIES).forEach((name) => {

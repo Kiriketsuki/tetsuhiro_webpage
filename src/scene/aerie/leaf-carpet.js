@@ -176,10 +176,10 @@ function texture(data, name, anisotropy) {
     return out
 }
 
-// Starts the paint in small slices between frames, so it overlaps the island download and
+// Starts the paint in small slices between frames, so it overlaps the aerie download and
 // never blocks the page for more than a slice. The leaves paint in the same order as one
 // whole pass, so the tile comes out the same. finish() paints the leaves that remain at
-// once, so the island can always use the tile the moment it loads. Pass { sliced: false }
+// once, so the aerie can always use the tile the moment it loads. Pass { sliced: false }
 // to paint it all at once.
 // Returns the leaf texture, the shadow texture, finish and a dispose.
 export function createLeafCarpet({ anisotropy = 1, sliced = false } = {}) {

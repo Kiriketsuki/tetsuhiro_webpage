@@ -107,7 +107,7 @@ for (let n = 0; n < 27; n += 1) {
 
 // A* on a coarse grid over the field, from a to b. Returns the centres of the cells on the
 // way, without the two ends, or null when no way exists. It works in whole cells and reads
-// the field once a node, so a plan across the island takes a few milliseconds.
+// the field once a node, so a plan across the aerie takes a few milliseconds.
 function search(field, ends, a, b) {
     const step = field.cell * COARSE
     const [nx, ny, nz] = field.size.map((n) => Math.ceil(n / COARSE))

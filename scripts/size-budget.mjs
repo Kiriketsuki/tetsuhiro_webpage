@@ -17,13 +17,13 @@ const SCENE_SOURCE = 'src/three.js'
 // Baseline on 25 Oct 2026, before Phase 2: one 290 kB entry with three inside.
 // After Phase 2 the shell is 108 kB. gsap is 49 kB of it, because Home needs
 // ScrollTrigger and ScrambleText at once. The plan target is 100 kB.
-// Phase 4 swapped in island_b.glb (0.90 MB), so the model limit is the plan's 1.5 MB.
+// Phase 4 swapped in aerie.glb (0.90 MB), so the model limit is the plan's 1.5 MB.
 const LIMITS = {
     shellJs: 110_000,
     sceneJs: 200_000,
     // November 2026: the skill logos moved out of the shell into their own chunk, about
     // 17 kB for 21 logos, which loads when the first skill card opens in the sky. The skill
-    // sky is its own chunk of about 9 kB that loads after the island. The shell got about
+    // sky is its own chunk of about 9 kB that loads after the aerie. The shell got about
     // 9 kB lighter. The limit was 8 kB.
     lazyChunk: 20_000,
     shellCss: 8_000,

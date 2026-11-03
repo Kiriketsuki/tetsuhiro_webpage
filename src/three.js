@@ -91,7 +91,7 @@ function board(toWall, back) {
 }
 
 // Leaves the sky or the wall at once, under a crossfade, so the next move starts from the
-// island. A route from the sky to the wall, or back, takes this path.
+// aerie. A route from the sky to the wall, or back, takes this path.
 function leaveViewNow() {
     if (!inSky && !inWall) return
     crossfade()
@@ -126,7 +126,7 @@ function bedroom(on, other, cut = false) {
 // No WebGL, or the scene failed to build. The canvas shows a CSS night sky instead, and
 // the gate still opens, so the pages stay usable.
 function fallBack(error) {
-    console.error('The island cannot render here.', error)
+    console.error('The aerie cannot render here.', error)
     canvas?.classList.add('scene-fallback')
     loadError.value = 'This browser cannot draw the aerie. The pages still work.'
     progress.value = 1
@@ -174,7 +174,7 @@ function boot() {
             ready.value = true
         })
         .catch((error) => {
-            console.error('island_b.glb failed to load', error)
+            console.error('aerie.glb failed to load', error)
             loadError.value = 'The aerie did not load. A reload usually sorts it out.'
             progress.value = 1
             ready.value = true

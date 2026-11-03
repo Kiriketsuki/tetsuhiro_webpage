@@ -40,7 +40,7 @@ const facts = [
                 Polytechnic. I enjoy it a lot.
             </p>
 
-            <dl class="rows hidden text-sm sm:grid">
+            <dl class="rows facts hidden text-sm sm:grid">
                 <template v-for="[key, value] in facts" :key="key">
                     <dt>{{ key }}</dt>
                     <dd>{{ value }}</dd>
@@ -70,6 +70,14 @@ const facts = [
 </template>
 
 <style scoped>
+/* A short desktop screen cannot hold the whole card above the nav strip, so the facts give way.
+   The About room keeps them under "All facts". */
+@media (max-height: 820px) {
+    .facts {
+        display: none;
+    }
+}
+
 .portrait {
     border: 1px solid var(--color-rose);
     padding: 3px;

@@ -61,7 +61,8 @@ watch(() => props.point.id, focusHeading)
     font-family: var(--font-display);
     font-size: clamp(1.9rem, 3.2vw, 2.6rem);
     line-height: 1;
-    color: var(--color-text-strong);
+    /* A pane title is gold italic in night glass (docs/design-system.md). .frame h2 sets the italic. */
+    color: var(--color-gold, var(--color-text-strong));
     outline: none;
 }
 
@@ -110,7 +111,7 @@ watch(() => props.point.id, focusHeading)
 }
 
 .note-step:focus-visible {
-    outline: 3px solid var(--color-rose);
+    outline: 2px solid var(--color-action-text, var(--color-rose));
     outline-offset: 2px;
 }
 

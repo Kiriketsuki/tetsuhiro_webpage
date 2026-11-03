@@ -256,16 +256,17 @@ onBeforeUnmount(() => {
     pointer-events: auto;
 }
 
-/* The way out: its own plate, near the top, with a large target on a phone. */
+/* The way out: its own plate, near the top, with a large target on a phone. The controls follow
+   the night glass rules (docs/design-system.md): square corners, a brass ring on deep glass, and a
+   blonde focus ring. Each night glass token falls back to the older palette until it lands. */
 .room-back {
     display: inline-flex;
     min-height: 3rem;
     align-items: center;
     gap: 0.6rem;
     padding: 0 1.1rem;
-    border: 1px solid var(--color-rose);
-    border-radius: 999px;
-    background: color-mix(in oklch, var(--color-bg-base) 88%, transparent);
+    border: 1px solid var(--color-brass, var(--color-rose));
+    background: var(--color-glass-deep, color-mix(in oklch, var(--color-bg-base) 88%, transparent));
     color: var(--color-text-strong);
     font: 600 0.78rem/1 var(--font-label);
     letter-spacing: 0.12em;
@@ -280,7 +281,7 @@ onBeforeUnmount(() => {
 .room-back:focus-visible,
 .room-chip:focus-visible,
 .room-tag:focus-visible {
-    outline: 3px solid var(--color-rose);
+    outline: 2px solid var(--color-action-text, var(--color-rose));
     outline-offset: 3px;
 }
 
@@ -310,9 +311,8 @@ onBeforeUnmount(() => {
 .room-chip {
     min-height: 2.75rem;
     padding: 0 1rem;
-    border: 1px solid color-mix(in oklch, var(--color-text-strong) 35%, transparent);
-    border-radius: 999px;
-    background: color-mix(in oklch, var(--color-bg-base) 80%, transparent);
+    border: 1px solid var(--color-brass-dim, color-mix(in oklch, var(--color-text-strong) 35%, transparent));
+    background: var(--color-glass-deep, color-mix(in oklch, var(--color-bg-base) 80%, transparent));
     color: var(--color-text-strong);
     font: 600 0.72rem/1 var(--font-label);
     letter-spacing: 0.1em;
@@ -326,8 +326,9 @@ onBeforeUnmount(() => {
     list-style: none;
 }
 
-/* A lit dot on the thing, with its name beside it. */
+/* A lit dot on the thing, with its name beside it. The dot is a lamp, so it stays round. */
 .room-tag {
+    --lamp: var(--color-action, var(--color-amber));
     position: fixed;
     z-index: 25;
     display: flex;
@@ -362,15 +363,14 @@ onBeforeUnmount(() => {
     height: 0.85rem;
     flex: none;
     border-radius: 50%;
-    background: var(--color-amber);
-    box-shadow: 0 0 0 0.3rem color-mix(in oklch, var(--color-amber) 30%, transparent), 0 0 1.1rem var(--color-amber);
+    background: var(--lamp);
+    box-shadow: 0 0 0 0.3rem color-mix(in oklch, var(--lamp) 30%, transparent), 0 0 1.1rem var(--lamp);
 }
 
 .room-tag .name {
     padding: 0.35rem 0.6rem;
-    border: 1px solid color-mix(in oklch, var(--color-amber) 55%, transparent);
-    border-radius: 3px;
-    background: color-mix(in oklch, var(--color-bg-base) 85%, transparent);
+    border: 1px solid var(--color-brass-dim, color-mix(in oklch, var(--color-amber) 55%, transparent));
+    background: var(--color-glass-deep, color-mix(in oklch, var(--color-bg-base) 85%, transparent));
     color: var(--color-text-strong);
     font: 600 0.68rem/1 var(--font-label);
     letter-spacing: 0.1em;
@@ -415,7 +415,7 @@ onBeforeUnmount(() => {
 .plain-title {
     font-family: var(--font-display);
     font-size: 1.6rem;
-    color: var(--color-text-strong);
+    color: var(--color-gold, var(--color-text-strong));
 }
 
 @media (max-width: 767px) {

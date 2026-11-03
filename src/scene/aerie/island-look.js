@@ -521,9 +521,12 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
         return p ? { x: p.x, y: p.y, z: p.z, radius } : null
     }).filter(Boolean)
 
-    const detail = (detailBuild ?? createDetailTexture({ anisotropy, sliced: false })).finish()
-    const carpet = (carpetBuild ?? createLeafCarpet({ anisotropy })).finish()
-    const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail, carpet })
+    // The two texture builds keep their slices running while the worker shapes the island, and
+    // finish only after its reply. The uniforms hold the texture objects, so they need no
+    // finished data yet, and nothing renders or compiles before the finish below.
+    const detail = detailBuild ?? createDetailTexture({ anisotropy, sliced: false })
+    const carpet = carpetBuild ?? createLeafCarpet({ anisotropy })
+    const uniforms = createToonUniforms({ moonDirection: moon, bounces, detail: detail.texture, carpet })
     const opaque = createToonMaterial(uniforms, {}, { key: 'aerie-toon-v3-ao', defines: { AERIE_AO: '' } })
     opaque.name = 'aerie.toon'
     const time = { value: 0 }
@@ -574,9 +577,17 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
     })
 
     const own = worker ? null : createLookWorker()
-    const shaped = await (worker ?? own)
-        .shape({ meshes, opaque, water, lip, telescope: anchorPosition(gltf, TELESCOPE.anchor), bounces, spots })
-        .finally(() => own?.dispose())
+    let shaped
+    try {
+        shaped = await (worker ?? own)
+            .shape({ meshes, opaque, water, lip, telescope: anchorPosition(gltf, TELESCOPE.anchor), bounces, spots })
+            .finally(() => own?.dispose())
+    } finally {
+        // Both finish calls run once the reply or the failure arrives. On a failure they also
+        // stop the slice timers. Each call builds the same bytes as an early finish.
+        detail.finish()
+        carpet.finish()
+    }
 
     if (water.length) {
         const material = createWaterMaterial({ pond: shaped.pond, time, mouth: shaped.waterMouth })
@@ -602,7 +613,7 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
     }
     const dispose = () => {
         materials.forEach((material) => material.dispose())
-        detail.dispose()
+        detail.texture.dispose()
         carpet.dispose()
         shadows?.userData.dispose()
     }

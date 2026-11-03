@@ -11,11 +11,11 @@ import { createLeafCarpet } from './aerie/leaf-carpet.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
 import { createCityBackdrop } from './aerie/city-backdrop.js'
 import { createSky, NIGHT_SKY, ISLAND_HAZE_DENSITY } from './aerie/sky.js'
-import { CAMPFIRE_BOUNCE } from './aerie/toon-material.js'
+import { CAMPFIRE_BOUNCE, SURFACE } from './aerie/toon-material.js'
+import { softenGeometry } from './aerie/soft-normals.js'
 import { createLeafCards } from './aerie/leaf-cards.js'
 import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
-import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
@@ -498,6 +498,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         return module
     })
     moveModule.catch(() => {})
+    // The campfire and its kit of seats load in their own chunk beside the island. A failed
+    // campfire leaves the lawn bare and the rest of the island as it is.
+    const campfireBuild = import('./aerie/campfire.js').then(async (module) => ({ module, kit: await module.loadCampfireKit(loaders.gltf) }))
+    campfireBuild.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -595,9 +599,18 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             scene.add(parts.leaves.group)
             await nextTask()
 
-            const spot = anchor(root, 'Anchor_Campfire') ?? findCampfireSpot(root)
+            const fire = await campfireBuild.catch((error) => {
+                console.error('The campfire did not load.', error)
+                return null
+            })
+            const spot = fire && (anchor(root, 'Anchor_Campfire') ?? fire.module.findCampfireSpot(root))
             if (spot) {
-                parts.campfire = createCampfire({ position: spot, bounce: look.uniforms.uToonBounce.value[CAMPFIRE_BOUNCE] })
+                parts.campfire = fire.module.createCampfire({
+                    position: spot,
+                    kit: fire.kit,
+                    toon: { material: look.materials[0], surface: SURFACE, soften: softenGeometry },
+                    bounce: look.uniforms.uToonBounce.value[CAMPFIRE_BOUNCE],
+                })
                 scene.add(parts.campfire.group)
             }
             const glows = parts.campfire ? [...look.glowSpots, parts.campfire.glowSpot] : look.glowSpots

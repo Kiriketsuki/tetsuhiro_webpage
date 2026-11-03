@@ -92,14 +92,6 @@ export const projects = [
         group: 'recent',
     },
     {
-        id: 'tokin',
-        title: 'toKin',
-        stack: 'TypeScript, Bun, Claude Code mods',
-        year: '2026',
-        role: 'Solo, Tetsuhiro Development',
-        group: 'recent',
-    },
-    {
         id: 'trkixel',
         title: 'TrKixel',
         stack: 'Vue, Rust, Tauri',

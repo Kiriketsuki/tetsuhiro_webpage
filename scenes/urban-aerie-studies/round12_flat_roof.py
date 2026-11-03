@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the round 11 revision:
 
 The script saves a new revision, island_b_route_r18.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why: the user dislikes the pitched slate gable of round 11 and asks for a flat
 modern look. The gable over the tower top becomes one flat membrane slab on the same footprint

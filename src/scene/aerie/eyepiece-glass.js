@@ -120,7 +120,7 @@ void main() {
 }
 `
 
-// Returns the disc. It adds itself to `parent`, in the glTF frame of the island.
+// Returns the disc. It adds itself to `parent`, in the glTF frame of the aerie.
 export function eyepieceGlass(parent) {
     const uniforms = { uEye: { value: new THREE.Vector3() } }
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE), new THREE.ShaderMaterial({ name: 'scope.glass', uniforms, vertexShader, fragmentShader }))

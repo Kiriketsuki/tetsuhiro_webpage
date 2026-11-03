@@ -4,7 +4,7 @@ import { bulbColor, filament } from './light-switch.js'
 // The light of the workshop wall at night. The brass picture light is a long bar above the
 // board, so it washes the cork evenly from side to side, brightest just under the bar and
 // dimmer toward the bottom. A dim cool fill keeps the shadows blue grey and not black,
-// which gives the split tone of the island: warm light, cool shade.
+// which gives the split tone of the aerie: warm light, cool shade.
 //
 // One spot light draws the wash and the shadows. A spot alone lights a round pool, so the
 // spot throws its light through a mask (SpotLight.map). The mask divides out the angle at

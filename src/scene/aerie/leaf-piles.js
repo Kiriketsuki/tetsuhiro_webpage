@@ -9,7 +9,7 @@ import { createDropRay, cellMask } from './drop-ray.js'
 // mound turns its top to the sky and its sides away, so the pile reads as a heap with depth
 // and not as flat decals on the grass. leaf-cards.js then drops loose leaf cards on top.
 //
-// The piles take the shared opaque island material, so they add one draw and no program.
+// The piles take the shared opaque aerie material, so they add one draw and no program.
 
 // Piles per tree, and how far from the trunk, as a share of the crown radius.
 const PER_TREE = 3
@@ -108,7 +108,7 @@ function geometryOf(triangles) {
     return geometry
 }
 
-// meshes: the island meshes after island-look.js has tagged them. litterAt: the litter field
+// meshes: the aerie meshes after aerie-look.js has tagged them. litterAt: the litter field
 // from autumn.js. blocked(x, z): true on the path, the water and the pad (leaf-cards.js).
 // Returns the pile mesh, or null when no tree has room for a pile.
 export function createLeafPiles({ meshes, material, litterAt, blocked, seed = 2207 }) {

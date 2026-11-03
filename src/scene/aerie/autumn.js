@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { srgb, noise3, field, along, meanLuma, lumaRatio, paintVertices } from './field-noise.js'
 import { SURFACE } from './toon-material.js'
 
-// Autumn for the island, after the warm palette of Leaf it Alone: amber, rust and gold
+// Autumn for the aerie, after the warm palette of Leaf it Alone: amber, rust and gold
 // crowns, an olive-gold lawn with bright leaf litter under the trees, and olive-mustard
 // planting. It runs once at load on the baked vertex colours. A slow world noise picks
 // each region's tone, so a crown turns as one patch, never as single faces. Each crown
@@ -40,7 +40,7 @@ const CROWN = [0xb04a1a, 0xc65e1c, 0xd97e1e, 0xe39c26, 0xecbe3c].map(srgb)
 // Round 10 moves the lawn to hue about 44 at a higher saturation. The round 9 lawn still read
 // olive green and muddy in S7 and S10, and the review asked for olive-gold.
 const LAWN = [0x8a7230, 0x947c34, 0x9c8838].map(srgb)
-// The island side walls under the lawn lip: olive moss just under the lip, through a damp
+// The aerie side walls under the lawn lip: olive moss just under the lip, through a damp
 // umber, to a warm tan earth further down, where the cliff rock takes over.
 // Round 8 keeps the whole bank in olive moss tones. Its umber middle sampled maroon under the
 // night fill, and the cliff below now carries the moss to tan gradient (palette.js).
@@ -417,7 +417,7 @@ function paintLawn(meshes, litterAt) {
     })
 }
 
-// meshes: island meshes tagged with userData.webMaterial by island-look.js. Returns the
+// meshes: aerie meshes tagged with userData.webMaterial by aerie-look.js. Returns the
 // litter field, for the litter cards.
 export function applyAutumn(meshes) {
     const byFamily = (name) => meshes.filter((mesh) => mesh.userData.webMaterial === name)

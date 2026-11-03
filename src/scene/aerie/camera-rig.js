@@ -83,7 +83,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
     let driftDistance = 1
     const scratch = { right: new THREE.Vector3(), up: new THREE.Vector3(), dir: new THREE.Vector3(), last: new THREE.Vector3(), lastLook: new THREE.Vector3() }
     // createMove and moveProgress from camera-move.js. The scene manager loads that module as
-    // its own chunk beside the island and hands it over with setMoves. Until then a move cuts.
+    // its own chunk beside the aerie and hands it over with setMoves. Until then a move cuts.
     let moves = null
     // The clearance field (clearance.js) that the planner steers by, once it is built.
     let field = null

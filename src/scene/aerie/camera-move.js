@@ -25,10 +25,15 @@ const CRANE = 5
 // The look points sit this far ahead of their camera points, in metres. A look point far
 // away from its camera point would swing the view faster than the camera moves.
 const LOOK_DISTANCE = 10
-// A story leg: the camera rides `up` metres above and `back` metres behind the walk spline
-// and looks LOOK_AHEAD metres ahead on it. LEG_SAMPLES are the shares of the walk that give
+// A story leg (src/data/route.js): the camera rides FOLLOW_UP metres above and FOLLOW_BACK
+// metres behind the walk spline, a drone follow, unless the leg sets `up` and `back`. It
+// looks LOOK_AHEAD metres ahead on the spline. LEG_SAMPLES are the shares of the walk that give
 // the follow frames between the two shots.
+const FOLLOW_BACK = 5
+const FOLLOW_UP = 4
 const LOOK_AHEAD = 3
+// The most route empties one leg can have in the GLB.
+const MAX_ROUTE_POINTS = 99
 const LEG_SAMPLES = [0.5]
 // A move that starts in mid-air, when it takes over from another one, skips a follow frame
 // that is a detour of more than DETOUR times the straight distance. A scroll back up passes
@@ -68,6 +73,39 @@ export function moveProgress(tau, v0 = 0) {
     if (tau < a) return a * (v0 * (tau / a) + (cruise - v0) * rampArea(tau / a))
     if (tau <= 1 - b) return (a * (v0 + cruise)) / 2 + (tau - a) * cruise
     return 1 - b * cruise * rampArea((1 - tau) / b)
+}
+
+// The points of one leg from the GLB empties Route_<from>_<to>_01, _02 and on, or null when
+// the GLB has fewer than two of them.
+function routeEmpties(from, to, anchorAt) {
+    const points = []
+    for (let i = 1; i <= MAX_ROUTE_POINTS; i += 1) {
+        const point = anchorAt(`Route_${from}_${to}_${String(i).padStart(2, '0')}`)
+        if (!point) break
+        points.push(point)
+    }
+    return points.length >= 2 ? points : null
+}
+
+// Builds one leg per direction for each pair of neighbouring stops in `route`, keyed
+// `<from>><to>`. anchorAt(name) returns the world position of a GLB node, or null. The
+// Blender empties of a leg win over its fallback points. The leg the other way plays the
+// same camera path backward, so a scroll up retraces the scroll down. A follow camera that
+// walked the spline backward would sit on the other side of the walker, where the house
+// stands on some legs.
+export function legsFromRoute(route, anchorAt = () => null) {
+    return Object.fromEntries(
+        Object.entries(route).flatMap(([key, leg]) => {
+            const [from, to] = key.split('>')
+            const points = routeEmpties(from, to, anchorAt) ?? leg.points.map((point) => new THREE.Vector3(...point))
+            const curve = createWalkCurve(points)
+            const forward = { curve, length: curve.length, back: leg.back ?? FOLLOW_BACK, up: leg.up ?? FOLLOW_UP, reverse: false }
+            return [
+                [key, forward],
+                [`${to}>${from}`, { ...forward, reverse: true }],
+            ]
+        })
+    )
 }
 
 // The look point LOOK_DISTANCE metres from `position` toward `target`.

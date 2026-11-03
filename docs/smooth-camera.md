@@ -43,6 +43,10 @@ and the quality governor never changed tier.
    1 ms. A ray test on the house triangles took up to 200 ms, which was a visible hitch.
 7. **Small fixes.** The pointer drift applies during a move. The lens fade keeps its level
    when a move takes over. The governor waits for the end of a move to change tier.
+8. **Its own chunk.** The move code (`camera-move.js` and `walk-curve.js`, 1.96 kB gzip)
+   loads beside the island, like the skill sky. The new city had left the scene chunk 0.6 kB
+   under its 200 kB budget. Until the chunk arrives, a move cuts, and the loading gate
+   still covers the scene then.
 
 ## Measurements
 

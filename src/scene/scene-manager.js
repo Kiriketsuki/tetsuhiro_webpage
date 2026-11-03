@@ -17,7 +17,7 @@ import { createStars } from './aerie/stars.js'
 import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
-import { createCameraRig, shotsFromStops, legsFromRoute } from './aerie/camera-rig.js'
+import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
@@ -97,8 +97,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         return solids.some((box) => !ends.some((end) => box.containsPoint(end)) && ray.intersectBox(box, hit) && a.distanceTo(hit) <= length)
     }
     const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start, blocked })
-    // The story legs between neighbouring stops. The GLB route empties replace them once it loads.
-    let legs = legsFromRoute(route)
+    // The story legs between neighbouring stops (camera-move.js). They build once the move
+    // chunk and the GLB with its route empties are in. Until then every move cuts.
+    let legs = {}
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
     const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, constellation: null, wall: null, roomBoard: null }
@@ -473,6 +474,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const skyFonts = Promise.all(SKY_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
     const skyModule = import('./aerie/constellation.js')
     skyModule.catch(() => {})
+    // The camera moves sit in their own chunk too, so the scene chunk stays in its budget. They
+    // arrive long before the island, and the rig cuts until they do, behind the loading gate.
+    const moveModule = import('./aerie/camera-move.js').then((module) => {
+        rig.setMoves(module)
+        return module
+    })
+    moveModule.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -596,8 +604,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 
+            // Without the move chunk, a failed download, every move cuts.
+            const moves = await moveModule.catch(() => null)
             rig.setShots(shots)
-            legs = legsFromRoute(route, (name) => anchor(root, name))
+            legs = moves ? moves.legsFromRoute(route, (name) => anchor(root, name)) : {}
             solids = []
             root.traverse((node) => {
                 if (node.isMesh && /^(House|Glass)/.test(node.name)) solids.push(new THREE.Box3().setFromObject(node).expandByScalar(HOUSE_MARGIN))

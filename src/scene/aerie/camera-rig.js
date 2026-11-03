@@ -1,7 +1,5 @@
 import * as THREE from 'three'
 import { fitFov, MAX_FOV } from './framing.js'
-import { createWalkCurve } from './walk-curve.js'
-import { createMove, moveProgress } from './camera-move.js'
 
 // Moves the camera between named stops. It owns no loop: the scene manager calls update()
 // each frame and reads `moving` to decide whether the frame needs a render.
@@ -24,12 +22,6 @@ const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
 const TAKE_OVER = 0.6
 // The shape of the fading part: it leaves at full speed and comes back to rest at TAKE_OVER.
 const fadeOut = (t) => (t >= TAKE_OVER ? 0 : t * (1 - t / TAKE_OVER) ** 2)
-// A story leg (src/data/route.js). The camera rides FOLLOW_UP metres above and FOLLOW_BACK
-// metres behind the walk spline, a drone follow (camera-move.js).
-const FOLLOW_BACK = 5
-const FOLLOW_UP = 4
-// The most route empties one leg can have in the GLB.
-const MAX_ROUTE_POINTS = 99
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 
@@ -63,39 +55,6 @@ export function shotsFromStops(stops, cameras = [], anchorAt = () => null) {
     )
 }
 
-// The points of one leg from the GLB empties Route_<from>_<to>_01, _02 and on, or null when
-// the GLB has fewer than two of them.
-function routeEmpties(from, to, anchorAt) {
-    const points = []
-    for (let i = 1; i <= MAX_ROUTE_POINTS; i += 1) {
-        const point = anchorAt(`Route_${from}_${to}_${String(i).padStart(2, '0')}`)
-        if (!point) break
-        points.push(point)
-    }
-    return points.length >= 2 ? points : null
-}
-
-// Builds one leg per direction for each pair of neighbouring stops in `route`, keyed
-// `<from>><to>`. anchorAt(name) returns the world position of a GLB node, or null. The
-// Blender empties of a leg win over its fallback points. The leg the other way plays the
-// same camera path backward, so a scroll up retraces the scroll down. A follow camera that
-// walked the spline backward would sit on the other side of the walker, where the house
-// stands on some legs.
-export function legsFromRoute(route, anchorAt = () => null) {
-    return Object.fromEntries(
-        Object.entries(route).flatMap(([key, leg]) => {
-            const [from, to] = key.split('>')
-            const points = routeEmpties(from, to, anchorAt) ?? leg.points.map((point) => new THREE.Vector3(...point))
-            const curve = createWalkCurve(points)
-            const forward = { curve, length: curve.length, back: leg.back ?? FOLLOW_BACK, up: leg.up ?? FOLLOW_UP, reverse: false }
-            return [
-                [key, forward],
-                [`${to}>${from}`, { ...forward, reverse: true }],
-            ]
-        })
-    )
-}
-
 // blocked(a, b, ends) says if the aerie lies on the straight line from a to b, for a move
 // between the two points `ends`. An arc between two stops rises until it finds nothing
 // (camera-move.js).
@@ -122,6 +81,9 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     const drift = new THREE.Vector3()
     let driftDistance = 1
     const scratch = { right: new THREE.Vector3(), up: new THREE.Vector3(), dir: new THREE.Vector3(), last: new THREE.Vector3(), lastLook: new THREE.Vector3() }
+    // createMove and moveProgress from camera-move.js. The scene manager loads that module as
+    // its own chunk beside the island and hands it over with setMoves. Until then a move cuts.
+    let moves = null
 
     const frameOf = (shot) => ({ sx: shot.shift[0], sy: shot.shift[1], tx: shot.tall[0], ty: shot.tall[1], zoom: shot.zoom, tzoom: shot.tallZoom, fov: shot.fov })
 
@@ -175,7 +137,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     // second, from one small step.
     const startVelocity = (move, v0, path, start) => {
         const tau = 1e-3
-        const point = path.pointAtParameter(move.parameterAt(moveProgress(tau, v0)), new THREE.Vector3())
+        const point = path.pointAtParameter(move.parameterAt(moves.moveProgress(tau, v0)), new THREE.Vector3())
         return point.sub(start).divideScalar(tau * move.duration)
     }
 
@@ -187,7 +149,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     const goTo = (id, options = {}) => {
         const { duration = null, leg = null } = typeof options === 'number' ? { duration: options } : options
         if (!all[id]) return
-        if (duration !== null && duration <= 0) {
+        if (!moves || (duration !== null && duration <= 0)) {
             jump(id)
             return
         }
@@ -199,14 +161,14 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         const travelFrom = tween ? Math.sin(Math.PI * tween.s) : 0
         const coast = velocity.lengthSq() + lookVelocity.lengthSq() > 1e-6 ? { position, look: baseLook.clone(), velocity: velocity.clone(), lookVelocity: lookVelocity.clone(), brake: false } : null
         const midway = Boolean(coast)
-        let move = createMove({ position, target: from, shot, leg, duration, blocked, midway })
+        let move = moves.createMove({ position, target: from, shot, leg, duration, blocked, midway })
         let v0 = 0
         const along = move.camPath.tangentAt(0, new THREE.Vector3()).dot(velocity)
         if (coast && along < 0) {
             // The coast covers half its start speed times TAKE_OVER before it stops.
             const stop = position.clone().addScaledVector(velocity, TAKE_OVER / 2)
             const stopLook = coast.look.clone().addScaledVector(lookVelocity, TAKE_OVER / 2)
-            move = createMove({ position: stop, target: stopLook, shot, leg, duration, blocked, midway })
+            move = moves.createMove({ position: stop, target: stopLook, shot, leg, duration, blocked, midway })
             coast.brake = true
         } else if (coast) {
             // The new path takes the speed along it, and the rest of the motion fades out.
@@ -255,7 +217,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     const step = (delta) => {
         tween.age += delta
         tween.tau = THREE.MathUtils.clamp((tween.age - tween.delay) / tween.duration, 0, 1)
-        const s = moveProgress(tween.tau, tween.v0)
+        const s = moves.moveProgress(tween.tau, tween.v0)
         tween.s = s
         const shot = all[tween.id]
         Object.keys(frame).forEach((key) => {
@@ -348,6 +310,10 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     }
 
     const resize = () => applyLens()
+    // module: the camera-move.js module.
+    const setMoves = (module) => {
+        moves = module
+    }
     sidePanels.addEventListener('change', applyLens)
     jump(start)
 
@@ -361,6 +327,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         setPointer,
         setShots,
         addShot,
+        setMoves,
         resize,
         get current() {
             return current

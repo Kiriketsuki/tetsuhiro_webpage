@@ -365,7 +365,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     // A case folder is open: the top row of pins moves into sight above it. unfocus goes back.
     const peek = ({ instant = false } = {}) => {
-        if (small) return
+        // With one group under the lamp the view already frames it, so it stays.
+        if (small || lit) return
         before ??= view.snapshot()
         view.peekTop(instant || reduced)
         changed()
@@ -379,8 +380,12 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     // One group under a narrow lamp, framed on screen. null opens the lamp to the whole board
     // and goes back to the overview.
+    let lit = null
     const filter = (id) => {
         const members = [...items.values()].filter((item) => item.source.group === id)
+        lit = members.length ? id : null
+        // The lamp moves, so its shadow map draws again, also when the move is instant.
+        shadowDirty = true
         if (!members.length) {
             light.aim.to(null, reduced)
             view.go(view.home, reduced)

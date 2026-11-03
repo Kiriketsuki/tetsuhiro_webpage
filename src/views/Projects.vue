@@ -40,7 +40,7 @@
                     <router-link
                         :ref="(el) => (links[pin.id] = el?.$el)"
                         :to="`/projects/${pin.page}`"
-                        @focus="mark(pin.id, 'key')"
+                        @focus="keyFocus(pin.id)"
                         @blur="mark(null, 'key')"
                     >
                         {{ pin.title }}, {{ pin.year }}
@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ExplorePad from '../components/ExplorePad.vue'
 import ProjectList from '../components/ProjectList.vue'
@@ -122,6 +122,16 @@ const mark = (pinId, source) => {
 }
 watch(wall.hovered, (pinId) => mark(pinId, 'mouse'))
 
+// The last input, so focus that returns to a link after a pointer closes a case marks no pin.
+let keyboard = false
+const onKeyInput = () => (keyboard = true)
+const onPointerInput = () => (keyboard = false)
+window.addEventListener('keydown', onKeyInput, true)
+window.addEventListener('pointerdown', onPointerInput, true)
+const keyFocus = (pinId) => {
+    if (keyboard) mark(pinId, 'key')
+}
+
 // The tag follows its pin while the view moves, once per frame.
 const tag = ref(null)
 let frame = 0
@@ -167,17 +177,21 @@ watch(wall.picked, (tap) => {
 // keyboard focus to the pin's link.
 watch(
     [id, onWall],
-    ([next, shown], [previous] = []) => {
+    ([next, shown], [previous, wasShown] = []) => {
         if (!shown) return
         if (next) {
             marked.value = null
             wall.highlight(pinOf(next)?.id ?? null, false)
-            if (!previous) wall.peek()
+            // A first case, or a case that was open before the wall had built (a direct visit).
+            if (!previous || !wasShown) wall.peek()
         } else if (previous) {
             wall.highlight(null)
             wall.unfocus()
-            const target = links[pinOf(previous)?.id] ?? document.querySelector('.wall-actions a')
-            target?.focus({ preventScroll: true })
+            // The links leave inert and the wall links show again only after the next render.
+            nextTick(() => {
+                const target = links[pinOf(previous)?.id] ?? document.querySelector('.wall-actions a')
+                target?.focus({ preventScroll: true })
+            })
         }
     },
     { immediate: true },
@@ -193,6 +207,8 @@ const close = () => {
 const follow = (page) => router.replace(`/projects/${page}`)
 
 onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeyInput, true)
+    window.removeEventListener('pointerdown', onPointerInput, true)
     cancelAnimationFrame(frame)
     wall.highlight(null)
     if (group.value) wall.filter(null)

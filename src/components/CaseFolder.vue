@@ -14,7 +14,11 @@ const emit = defineEmits(['close', 'open'])
 
 const project = computed(() => withPage(findProject(props.id)))
 const pin = computed(() => PINS.find((p) => p.page === props.id) ?? null)
-const caseNumber = computed(() => String(PINS.findIndex((p) => p.page === props.id) + 1).padStart(2, '0'))
+// A project with no pin on the wall (one that opened from a link) has no case number.
+const caseNumber = computed(() => {
+    const at = PINS.findIndex((p) => p.page === props.id)
+    return at < 0 ? '' : `Case ${String(at + 1).padStart(2, '0')} · `
+})
 const stack = computed(() => project.value.stack.split(', '))
 const prints = computed(() => {
     const p = project.value
@@ -97,6 +101,10 @@ const guard = (e) => {
     e.stopPropagation()
     e.preventDefault()
 }
+// The second click of a double click on a pin lands on the dim, so the dim waits too.
+const onDim = () => {
+    if (performance.now() - born > 400) emit('close')
+}
 
 // A new case starts on its first print, at the top, with its title in focus for screen readers.
 const arrive = async () => {
@@ -116,10 +124,11 @@ watch(() => props.id, arrive)
 </script>
 
 <template>
-    <div class="case-dim" aria-hidden="true" @pointerdown="emit('close')"></div>
+    <div class="case-dim" aria-hidden="true" @pointerdown="onDim"></div>
     <section
         class="case"
         :class="{ single: !prints.length }"
+        :inert="box >= 0"
         role="dialog"
         aria-modal="true"
         aria-labelledby="case-title"
@@ -128,7 +137,7 @@ watch(() => props.id, arrive)
         @click.capture="guard"
     >
         <nav class="case-tabs" aria-label="Linked cases">
-            <span class="case-tab is-open">Case {{ caseNumber }} &middot; {{ project.title }}</span>
+            <span class="case-tab is-open">{{ caseNumber }}{{ project.title }}</span>
             <button
                 v-for="link in linked"
                 :key="link.pin.id"
@@ -365,6 +374,9 @@ watch(() => props.id, arrive)
 
 .print {
     flex: 0 0 100%;
+    /* min-width 0 keeps each print at the strip width, so a long caption never widens it. */
+    min-width: 0;
+    overflow: hidden;
     margin: 0;
     padding: 0 0.25rem 0.5rem;
     scroll-snap-align: center;

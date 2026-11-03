@@ -561,9 +561,17 @@ function litter(grounds, count, litterAt, sizes, random, emit, blocked = () => f
 // The ground the litter keeps clear of: the flagstone path, the water and the arrival pad.
 // Returns a test on a grid of cells LITTER_CLEAR wide. Every triangle marks the cells it
 // covers and their neighbours.
+// A cell index packs into one number key. The offset keeps the key of a negative cell positive.
+const CELL_SHIFT = 1e6
+const cellKey = (cx, cz) => (cx + CELL_SHIFT) * 2 * CELL_SHIFT + (cz + CELL_SHIFT)
+
+// The cells within one cell of a sample count as blocked. The samples go into one set first,
+// and the ring of cells round each one is added at the end. That is the same set of cells as
+// a ring added at each sample, for a ninth of the set writes, and the number keys skip the
+// string building that took most of the time.
 function clearZones(meshes) {
     const cell = LITTER_CLEAR
-    const cells = new Set()
+    const samples = new Set()
     const a = new THREE.Vector3()
     const b = new THREE.Vector3()
     const c = new THREE.Vector3()
@@ -579,14 +587,18 @@ function clearZones(meshes) {
             for (let i = 0; i <= steps; i += 1) {
                 for (let j = 0; j <= steps - i; j += 1) {
                     q.copy(a).multiplyScalar(1 - (i + j) / steps).addScaledVector(b, i / steps).addScaledVector(c, j / steps)
-                    const cx = Math.floor(q.x / cell)
-                    const cz = Math.floor(q.z / cell)
-                    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) cells.add(`${cx + dx},${cz + dz}`)
+                    samples.add(cellKey(Math.floor(q.x / cell), Math.floor(q.z / cell)))
                 }
             }
         }
     })
-    return (x, z) => cells.has(`${Math.floor(x / cell)},${Math.floor(z / cell)}`)
+    const cells = new Set()
+    samples.forEach((key) => {
+        const cx = Math.floor(key / (2 * CELL_SHIFT)) - CELL_SHIFT
+        const cz = (key % (2 * CELL_SHIFT)) - CELL_SHIFT
+        for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) cells.add(cellKey(cx + dx, cz + dz))
+    })
+    return (x, z) => cells.has(cellKey(Math.floor(x / cell), Math.floor(z / cell)))
 }
 const CLEAR_OF = ['web_flagstone', 'web_water']
 // The pad and the walkway meshes (Paths: the bridge, the lookout deck, its step and its

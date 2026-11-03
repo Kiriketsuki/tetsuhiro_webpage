@@ -4,6 +4,7 @@ import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
+import { createLookWorker } from './aerie/look-client.js'
 import { createDetailTexture } from './aerie/detail-texture.js'
 import { createLeafCarpet } from './aerie/leaf-carpet.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
@@ -324,6 +325,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // downloads. The site fonts load at the same time, for the card atlas and the skill sky.
     const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
     const carpetBuild = createLeafCarpet({ sliced: true })
+    // The look worker loads beside the island, so it is ready when the island arrives.
+    const lookWorker = createLookWorker()
     const fonts = Promise.all(FONTS.map((font) => document.fonts.load(font))).catch(() => {})
 
     // The skill sky sits in its own chunk. Its download starts now, beside the island, and it
@@ -361,7 +364,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             report(0)
         })
         .then(async (gltf) => {
-            const look = await applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild })
+            const look = await applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild, worker: lookWorker }).finally(() => lookWorker.dispose())
             parts.look = look
             lookControl = createLookControl(look.uniforms)
             lookControl.apply(lookSet, pipeline.grade.uniforms)
@@ -423,7 +426,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             return { anchors: (name) => anchor(root, name), root, gltf }
         })
 
-    // A failed island never builds the sky.
+    // A failed island never needs the look worker, and never builds the sky.
+    ready.catch(() => lookWorker.dispose())
     const skyReady = ready.then(buildSky)
     skyReady.catch(() => {})
 

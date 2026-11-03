@@ -112,8 +112,6 @@
       }
       .ga-branch {
         background-image: url(/gate/branch-s0.webp);
-        transform-origin: 50% 20%;
-        animation: ga-breeze 8s ease-in-out infinite alternate;
       }
       /* Autumn spreads along the branch from left to right as the load grows. */
       .ga-autumn {
@@ -121,26 +119,24 @@
         -webkit-mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
         mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
       }
-      /* Name.vue swings .ga-nudge on a hover or a tap. .ga-lantern keeps its own slow swing. */
+      /* Name.vue swings .ga-nudge on a hover or a tap. At rest the lantern and the branch hold
+         still: a turned layer is resampled on every frame, and that softens the ribs and the
+         paper grain. The idle life comes from the glow, the sky and the drifting leaves. */
       .ga-nudge,
       .ga-lantern {
         position: absolute;
         inset: 0;
         transform-origin: 50% 21.5%;
-        will-change: transform;
-      }
-      .ga-lantern {
-        animation: ga-swing 6s ease-in-out infinite alternate;
       }
       /* The lantern layers are a tight crop at a finer scale than the branch, so the lantern,
          the sharp middle of the picture, keeps its ribs crisp. scripts/gate-matte.py prints
          this box. */
       .ga-paper {
         inset: auto;
-        left: 37.42%;
+        left: 37.38%;
         top: 20.51%;
-        width: 25.16%;
-        height: 74.03%;
+        width: 25.23%;
+        height: 74.08%;
         background-image: url(/gate/lantern-s0.webp);
       }
       .ga-lit {
@@ -191,6 +187,21 @@
         background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
         opacity: 0;
       }
+      /* Once the lamp is lit, a leaf now and then lets go of the branch and drifts down. */
+      .ga-drift {
+        left: var(--x);
+        top: var(--y);
+        width: 6.5%;
+        aspect-ratio: 1;
+        background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        opacity: 0;
+      }
+      .is-lit .ga-drift {
+        animation: ga-drift var(--t) linear var(--d) infinite;
+      }
+      .is-open .ga-drift {
+        display: none;
+      }
       .is-open .ga-leaf {
         animation: ga-fall 3.6s cubic-bezier(0.4, 0, 0.7, 1) var(--d) both;
       }
@@ -212,18 +223,15 @@
         55% { opacity: 1; }
         80% { opacity: 0.9; transform: scale(1.012); }
       }
-      @keyframes ga-breeze {
-        from { transform: rotate(-0.35deg); }
-        to { transform: rotate(0.4deg) translateY(1px); }
+      @keyframes ga-drift {
+        0%, 62% { opacity: 0; transform: translate(0, 0) rotate(var(--r)) rotateX(0deg); }
+        66%, 92% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-1.5rem, 60vh) rotate(calc(var(--r) + 200deg)) rotateX(480deg); }
       }
       @keyframes ga-bloom {
         0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
         35% { opacity: 1; }
         100% { opacity: 1; transform: translate(-50%, -50%) scale(9); }
-      }
-      @keyframes ga-swing {
-        from { transform: rotate(-1.4deg); }
-        to { transform: rotate(1.4deg); }
       }
       @keyframes ga-fall {
         0% { opacity: 1; transform: translate(0, 0) rotate(var(--r)) rotateX(0deg); }
@@ -460,6 +468,8 @@
             <i class="ga-img ga-paper ga-lit"></i>
           </div>
         </div>
+        <i class="ga-drift" style="--x:17.9%;--y:11.9%;--s:2;--r:40deg;--t:13s;--d:-4s"></i>
+        <i class="ga-drift" style="--x:71.2%;--y:22.2%;--s:3;--r:-110deg;--t:17s;--d:-12s"></i>
         <i class="ga-flare"></i>
         <i class="ga-bloom"></i>
         <i class="ga-leaf" style="--x:3.5%;--y:22.9%;--s:0;--r:143deg;--d:0.84s"></i>

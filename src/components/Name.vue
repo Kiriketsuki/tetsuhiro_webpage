@@ -107,12 +107,13 @@ const onHover = (event) => {
     if (event.pointerType === 'mouse') swing(event)
 }
 
-// The button takes focus as soon as it works, so Enter goes straight in. Nothing else happens at
-// ready: the lantern stays lit until the visitor goes in.
+// The button takes focus as soon as it works, so Enter goes straight in. At ready the lantern
+// stays lit until the visitor goes in, and a leaf now and then drifts down (is-lit).
 watch(
     ready,
     async (value) => {
         if (!value) return
+        art?.classList.add('is-lit')
         await nextTick()
         enter.value?.focus({ preventScroll: true })
     },

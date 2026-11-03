@@ -27,7 +27,7 @@ const rows = computed(() => [
                 <img :src="project.cover" :alt="project.coverAlt" decoding="async" fetchpriority="high" />
             </figure>
 
-            <aside class="frame flex flex-col gap-4 p-5 pt-8">
+            <aside class="frame flex flex-col gap-4 p-5">
                 <span class="frame-legend">spec</span>
                 <dl class="rows text-sm">
                     <template v-for="[key, value] in rows" :key="key">

@@ -1,6 +1,6 @@
 <template>
     <div class="stop" :data-side="sideOf('contact')">
-        <article class="frame flex w-full max-w-[25rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
+        <article class="frame flex w-full max-w-[25rem] flex-col gap-5 p-6 sm:p-8">
             <span class="frame-legend">05 / by the fire</span>
             <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
                 Say hello

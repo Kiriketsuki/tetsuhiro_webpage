@@ -298,9 +298,8 @@ onBeforeUnmount(() => {
 
 .chip {
     padding: 0.4rem 0.7rem;
-    border: 1px solid color-mix(in oklch, var(--color-text-strong) 35%, transparent);
-    border-radius: 999px;
-    background: color-mix(in oklch, var(--color-bg-base) 70%, transparent);
+    border: 1px solid var(--color-brass-dim);
+    background: var(--color-glass-deep);
     color: var(--color-text-strong);
     font: 600 0.72rem/1 var(--font-label);
     letter-spacing: 0.03em;
@@ -309,13 +308,13 @@ onBeforeUnmount(() => {
 }
 
 .chip[aria-pressed='true'] {
-    border-color: oklch(0.94 0.025 80);
-    background: oklch(0.94 0.025 80);
-    color: oklch(0.24 0.02 60);
+    border-color: var(--color-action);
+    background: var(--color-action);
+    color: var(--color-bg-base);
 }
 
 .chip:focus-visible {
-    outline: 3px solid var(--color-rose);
+    outline: 2px solid var(--color-action-text);
     outline-offset: 2px;
 }
 
@@ -354,9 +353,8 @@ onBeforeUnmount(() => {
     bottom: 4.25rem;
     left: -9999px;
     padding: 0.4rem 0.7rem;
-    border: 2px solid var(--color-rose);
-    border-radius: 4px;
-    background: var(--color-bg-raised);
+    border: 1px solid var(--color-brass);
+    background: var(--color-glass-deep);
     color: var(--color-text-strong);
     font: 600 0.8rem/1.3 var(--font-label);
     white-space: nowrap;

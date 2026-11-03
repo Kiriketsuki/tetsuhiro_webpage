@@ -9,7 +9,7 @@
                     <div class="flex flex-col items-start gap-4">
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
-                        <p class="hero-chapter">01 / arrival</p>
+                        <p class="hero-chapter">01 / arrival &middot; 1&deg;17&prime;N 103&deg;51&prime;E</p>
                         <button type="button" class="action hero-scene" @click="sceneOnly = true">
                             just the aerie
                         </button>
@@ -213,7 +213,7 @@ body {
 
 .hero-chapter {
     padding-left: 0.3rem;
-    color: var(--color-text-faint);
+    color: var(--color-brass);
     font-family: var(--font-label);
     font-size: clamp(0.6rem, 0.75vw, 0.7rem);
     letter-spacing: 0.16em;

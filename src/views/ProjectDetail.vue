@@ -18,7 +18,7 @@ const rows = computed(() => [
 <template>
     <main class="case">
         <header class="case-head">
-            <p class="label text-rose">04 / projects</p>
+            <p class="label text-rose">02 / projects</p>
             <h1 class="case-title">{{ project.title }}</h1>
         </header>
 

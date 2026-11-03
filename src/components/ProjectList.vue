@@ -14,7 +14,7 @@
         </nav>
 
         <header class="flex w-full max-w-6xl flex-col gap-4">
-            <p class="label text-rose">04 / projects</p>
+            <p class="label text-rose">02 / projects</p>
             <h1 class="font-slab text-[clamp(2.75rem,8vw,6rem)] leading-none text-text-strong">
                 Things I have made
             </h1>

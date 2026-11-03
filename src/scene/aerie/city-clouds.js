@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { HAZE_GLSL, NOISE_GLSL, PLANE_VERTEX } from './city-glsl.js'
 import { bake } from './city-map.js'
 
-// Cloud and fog layers between the island and the city. Each layer is one flat plane of
+// Cloud and fog layers between the aerie and the city. Each layer is one flat plane of
 // slow drifting cloud over a thin even fog. The layers sit at different heights, so they
 // slide against each other and against the city as the camera moves, and the city shows
 // only through the gaps. Thin cloud takes a warm glow from the city below it. Thick cloud

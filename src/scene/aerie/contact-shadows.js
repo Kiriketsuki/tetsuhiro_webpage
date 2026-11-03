@@ -26,7 +26,7 @@ const PROP_SPAN = [0.3, 2.6]
 // Round 18 lowers the height cut from 0.45 m to 0.3 m. The low round shrub balls on the pad lobe
 // stand about 0.44 m tall, so they got no shadow and read pasted on (S9, S10).
 const SHRUB_HEIGHT = 0.3
-// Round 16 drops a disc whose rim would hang past the lawn edge. A disc at the island lip drew
+// Round 16 drops a disc whose rim would hang past the lawn edge. A disc at the aerie lip drew
 // a dark vertical smudge down the cliff edge on the phone shots (S5, S7). The lawn must lie
 // under each of the four rim points, within RIM_DROP metres of the centre height.
 const RIM_DROP = 0.25
@@ -107,7 +107,7 @@ export function propSpots(meshes, isBoulder, blocked) {
         })
 }
 
-// root: the loaded island scene, with world matrices up to date. shrubSpots: the shadows under
+// root: the loaded aerie scene, with world matrices up to date. shrubSpots: the shadows under
 // the shrubs and boulders, from propSpots. The look worker runs propSpots, so the page gets
 // them as a list. Returns the shadow mesh, or null when it holds no shadow.
 export function createContactShadows(root, shrubSpots = []) {

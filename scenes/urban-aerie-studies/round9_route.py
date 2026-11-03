@@ -8,7 +8,7 @@ Run it from this folder with background Blender on the route revision:
 
 The script saves a new revision, island_b_route_r13.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why (the round 8 review):
 - The footing under the pad still read as a stone drum: its top band stood straight down for
@@ -24,7 +24,7 @@ What changes, and why (the round 8 review):
 - The deck stood 0.12 m above the path. The whole deck, with its frame, rails and bench, drops
   to the path level, so the path, the step and the deck run flush.
 - Empties named Shadow_* mark the feet of the props on the terrace and along the route. The
-  site lays a soft contact shadow under each one (export_island_b.py copies them).
+  site lays a soft contact shadow under each one (export_aerie.py copies them).
 """
 from pathlib import Path
 import sys,json,math,hashlib

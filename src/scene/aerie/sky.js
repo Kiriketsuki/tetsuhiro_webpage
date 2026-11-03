@@ -47,7 +47,7 @@ float hazeGlow( float y ) {
     return exp( -pow( ( y + 0.02 ) / ( y > -0.02 ? 0.09 : 0.1 ), 2.0 ) ) * 0.4;
 }
 vec3 hazeAt( vec3 d ) {
-    // Round 17 narrows the ramp, so the haze below the island darkens visibly toward the
+    // Round 17 narrows the ramp, so the haze below the aerie darkens visibly toward the
     // bottom of the overview frame (S6) and does not read as one flat purple.
     vec3 base = mix( uHazeDeep, uHaze, smoothstep( -0.36, 0.0, d.y ) );
     return mix( base, uHazeBand, hazeGlow( d.y ) );
@@ -59,12 +59,12 @@ export const hazeUniforms = () => ({
     uHazeDeep: { value: NIGHT_SKY.hazeDeep },
 })
 
-// The island haze: an exponential squared fog in the haze colour. At this density the far
-// rim of the island, about 60 m from the overview camera, loses about a tenth of its colour.
-// A thicker haze washed the warm albedo toward the haze colour and flattened the island.
-// Round 6 thins it a little more, so the island in S6 keeps the saturation of its lawn and
+// The aerie haze: an exponential squared fog in the haze colour. At this density the far
+// rim of the aerie, about 60 m from the overview camera, loses about a tenth of its colour.
+// A thicker haze washed the warm albedo toward the haze colour and flattened the aerie.
+// Round 6 thins it a little more, so the aerie in S6 keeps the saturation of its lawn and
 // crowns against the lighter mauve haze.
-export const ISLAND_HAZE_DENSITY = 0.0038
+export const AERIE_HAZE_DENSITY = 0.0038
 
 const RADIUS = 9000
 

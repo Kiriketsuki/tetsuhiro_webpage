@@ -5,7 +5,7 @@ import { homeProjects, monogram, projects } from '../data/projects.js'
 import { sections, sideOf, useWaypoints } from '../composables/useWaypoints.js'
 
 // The pictures wait until the visitor is through the gate and one section before
-// this one, so the island gets the bandwidth first.
+// this one, so the aerie gets the bandwidth first.
 const PRELOAD_FROM = sections.indexOf('projects') - 1
 const { active, entered } = useWaypoints()
 const showImages = ref(false)

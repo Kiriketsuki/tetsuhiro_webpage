@@ -7,7 +7,7 @@ import { createLight, corkGrain, haloTexture } from './wall-light.js'
 import { FILAMENT_FLOOR, bulbColor } from './light-switch.js'
 
 // The evidence wall in the workshop, the Projects view. scene-manager.js loads this module
-// in its own chunk after the island, like the skill sky, and draws the scene through the same
+// in its own chunk after the aerie, like the skill sky, and draws the scene through the same
 // pipeline. The board, the papers, the pins, the tape and the red yarn are kit meshes. The
 // brass picture light is one masked spot light with a shadow map (wall-light.js), so every
 // sheet and every string casts a soft shadow on the cork. The scene is still, so it needs frames only while the view
@@ -99,7 +99,7 @@ function joinMeshes(meshes, material) {
     return out
 }
 
-// loaders: the scene's loaders, so the kit shares the Draco decoder with the island.
+// loaders: the scene's loaders, so the kit shares the Draco decoder with the aerie.
 // request: asks the manager for a frame, for the sharp pages after the view comes to rest.
 export async function createWall({ loaders, small, reducedMotion, anisotropy, pixelRatio = 1, request = () => {} }) {
     const scene = new THREE.Scene()
@@ -466,12 +466,12 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
     }
 
     // A copy of the board, its papers and the brass lamp for the workshop wall, in the board's
-    // own metres. It shares the geometry and the atlas, with unlit materials, because the island
+    // own metres. It shares the geometry and the atlas, with unlit materials, because the aerie
     // has no lights. The workshop shows it from across the room, so it takes no sharp pages.
     // The lamp of the copy is off. Its lip takes a faint amber glow as the room dims for the
     // lamp switch, so it matches the wall lamp at the dark point.
     // The copy merges into one mesh per material. The workshop is in frame from many stops,
-    // and one mesh per sheet, pin and strand cost the island about 80 draw calls. The merged
+    // and one mesh per sheet, pin and strand cost the aerie about 80 draw calls. The merged
     // geometry is its own, so the sharp pages and the yarn rebuilds never reach it.
     const roomCopy = () => {
         board.updateMatrixWorld(true)

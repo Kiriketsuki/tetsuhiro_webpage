@@ -259,7 +259,9 @@ const uniforms = createToonUniforms({
     warmStrength: 2.2,
 })
 const toon = createToonMaterial(uniforms)
-const pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[0] })
+// The msaa4 tier: the ink and the lens, but no glow pass. The glow pass put a soft halo on the
+// bright paper edge, and the gate draws its own glow in CSS.
+const pipeline = createPipeline({ renderer, scene, camera, tier: TIERS[1] })
 createLookControl(uniforms).apply(SITE_LOOK, pipeline.grade.uniforms)
 // The gate sky has no vignette, and a vignette would break the matte.
 pipeline.grade.uniforms.uVignette.value = 0

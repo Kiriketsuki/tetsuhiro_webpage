@@ -95,7 +95,7 @@
       .ga-islets {
         animation: ga-bob 9s ease-in-out infinite alternate;
       }
-      /* The frames are 1024 by 784. The lantern hook sits at 50% 21.5%, the middle of the
+      /* The frames keep a 1024 by 784 shape. The lantern hook sits at 50% 21.5%, the middle of the
          paper at 50% 55.9%. */
       .ga-art {
         left: 50%;
@@ -132,7 +132,15 @@
       .ga-lantern {
         animation: ga-swing 6s ease-in-out infinite alternate;
       }
+      /* The lantern layers are a tight crop at a finer scale than the branch, so the lantern,
+         the sharp middle of the picture, keeps its ribs crisp. scripts/gate-matte.py prints
+         this box. */
       .ga-paper {
+        inset: auto;
+        left: 37.42%;
+        top: 20.51%;
+        width: 25.16%;
+        height: 74.03%;
         background-image: url(/gate/lantern-s0.webp);
       }
       .ga-lit {

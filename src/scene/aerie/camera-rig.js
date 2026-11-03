@@ -23,7 +23,10 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 // Builds one shot per stop from the GLB cameras, matched by name. A stop with a `tallView`
 // takes that view on a screen without side panels (a portrait phone), where the text sits
 // under the picture and the landscape view cannot hold its subject.
-export function shotsFromStops(stops, cameras = []) {
+// anchorAt(name) returns the world position of a GLB anchor, or null. A stop's `focus` names
+// an anchor or gives a point, and the lens keeps that point sharp. Without it the lens
+// focuses on the look-at point.
+export function shotsFromStops(stops, cameras = [], anchorAt = () => null) {
     const byName = new Map(cameras.map((camera) => [camera.name, camera]))
     const portrait = !window.matchMedia(SIDE_PANELS).matches
     return Object.fromEntries(
@@ -31,15 +34,18 @@ export function shotsFromStops(stops, cameras = []) {
             const fallback = portrait && stop.tallView ? stop.tallView : stop.fallback
             const camera = stop.camera && !(portrait && stop.tallView) ? byName.get(stop.camera) : null
             const frame = { shift: stop.shift ?? [0, 0], tall: stop.tall ?? [0, 0], zoom: stop.zoom ?? 1, tallZoom: stop.tallZoom ?? stop.zoom ?? 1 }
+            const focusOf = (target) => (Array.isArray(stop.focus) ? new THREE.Vector3(...stop.focus) : (stop.focus && anchorAt(stop.focus)) || target.clone())
             if (!camera) {
-                return [id, { position: new THREE.Vector3(...fallback.position), target: new THREE.Vector3(...fallback.target), fov: fallback.fov, ...frame }]
+                const target = new THREE.Vector3(...fallback.target)
+                return [id, { position: new THREE.Vector3(...fallback.position), target, focus: focusOf(target), fov: fallback.fov, ...frame }]
             }
             camera.updateMatrixWorld(true)
             const position = camera.getWorldPosition(new THREE.Vector3())
             const direction = camera.getWorldDirection(new THREE.Vector3())
             // The look-at point sits along the view line, at the fallback distance.
             const distance = new THREE.Vector3(...fallback.position).distanceTo(new THREE.Vector3(...fallback.target))
-            return [id, { position, target: position.clone().addScaledVector(direction, distance), fov: camera.fov, ...frame }]
+            const target = position.clone().addScaledVector(direction, distance)
+            return [id, { position, target, focus: focusOf(target), fov: camera.fov, ...frame }]
         })
     )
 }
@@ -50,6 +56,9 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
     let tween = null
     let lookReturn = null
     const target = new THREE.Vector3()
+    // The point the lens keeps sharp. It stays on the subject while the view pans.
+    const focusPoint = new THREE.Vector3()
+    const forward = new THREE.Vector3()
     const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1, tzoom: 1, fov: 35 }
     const look = { x: 0, y: 0, dolly: 0 }
     const pointer = { x: 0, y: 0, sx: 0, sy: 0 }
@@ -89,6 +98,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         tween = null
         Object.assign(look, { x: 0, y: 0, dolly: 0 })
         Object.assign(frame, frameOf(all[id]))
+        focusPoint.copy(all[id].focus)
         applyLens()
         place()
     }
@@ -105,7 +115,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
             id,
             t: 0,
             duration,
-            from: { position: camera.position.clone(), target: target.clone(), frame: { ...frame } },
+            from: { position: camera.position.clone(), target: target.clone(), focus: focusPoint.clone(), frame: { ...frame } },
             to: frameOf(shot),
             lift: Math.min(MAX_LIFT, camera.position.distanceTo(shot.position) * LIFT_PER_METRE),
         }
@@ -138,6 +148,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         camera.position.lerpVectors(tween.from.position, shot.position, t)
         camera.position.y += Math.sin(Math.PI * t) * tween.lift
         target.lerpVectors(tween.from.target, shot.target, t)
+        focusPoint.lerpVectors(tween.from.focus, shot.focus, t)
         camera.lookAt(target)
         if (tween.t >= 1) {
             tween = null
@@ -197,9 +208,13 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         get current() {
             return current
         },
-        // The distance from the camera to the point it looks at, for the lens focus.
+        // 0 at rest, rising to 1 in the middle of a move between stops, for the lens fade.
+        get travel() {
+            return tween ? Math.sin(Math.PI * ease(tween.t)) : 0
+        },
+        // The view depth of the stop's focus point, in metres, for the lens.
         get focus() {
-            return camera.position.distanceTo(target)
+            return Math.max(0.5, focusPoint.clone().sub(camera.position).dot(camera.getWorldDirection(forward)))
         },
         // True while anything moves the camera, so the frame needs a render.
         get moving() {

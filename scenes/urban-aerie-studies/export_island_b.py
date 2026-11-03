@@ -2,12 +2,14 @@
 
 Run it from this folder with background Blender. Never run it inside the open source file.
 
-    blender --factory-startup -b island_b_route_r34.blend --python export_island_b.py -- [--replace] [--no-compress]
+    blender --factory-startup -b island_b_route_r35.blend --python export_island_b.py -- [--replace] [--no-compress]
 
 The painted city layers for the site come from a second mode, which also works on a copy:
 
-    blender --factory-startup -b island_b_route_r34.blend --python export_island_b.py -- --city-layers
+    blender --factory-startup -b island_b_route_r35.blend --python export_island_b.py -- --city-layers
 
+island_b_route_r35.blend comes from round21_telescope.py, which reads island_b_route_r34.blend and builds a
+finer brass refractor on the telescope terrace, aligned for the look through its eyepiece.
 island_b_route_r34.blend comes from round20_glass.py, which reads island_b_route_r33.blend and takes the
 frame and the glass screens of the stair tower back from island_b_route_r20.blend.
 island_b_route_r33.blend comes from round19_look.py, which reads island_b_route_r30.blend. Its earlier
@@ -84,11 +86,13 @@ SITE=ROOT.parent.parent
 # lawn rises along the south side of the paving, and the wedge west of the pad drops into a rock cleft.
 # Round 20 reads r34: the glass stair tower comes back. The slim steel frame and every glass screen
 # return from r20, and the timber rafters and beams under the flat roof go.
-SOURCE=ROOT/'island_b_route_r34.blend'
+# Round 21 reads r35: a finer brass refractor whose eyepiece faces the telescope stop, so the camera
+# can end on its optical axis.
+SOURCE=ROOT/'island_b_route_r35.blend'
 SCENE='Island_B_Cozy_Interiors'
 WEB_SCENE='Island_B_Web'
-WORK=ROOT/'island_b_route_r34_web_export.blend'
-REPORT=ROOT/'island_b_route_r34_web_export_report.json'
+WORK=ROOT/'island_b_route_r35_web_export.blend'
+REPORT=ROOT/'island_b_route_r35_web_export_report.json'
 # The site imports its models from src/assets/models with a ?url import, so the GLBs sit beside island.glb.
 MODELS=SITE/'src'/'assets'/'models'
 OUT_DESKTOP=MODELS/'island_b.glb'
@@ -169,6 +173,8 @@ FAMILY=[
     ('Water',('Pond_Stream_and_Waterfall',)),
     ('Rock',('Shore_Stones','Stream_Banks','Bridge_Abutments')),
     ('Paths',('Flagstone','Footbridge','Bridge_Beams','Rail_Bearing','Lookout_Access_Step','City_Lookout')),
+    # The slim telescope (round21_telescope.py) is a family of its own, so the desktop GLB can leave it out.
+    ('Scope_Lod1',('SS_TL_Scope_Lod1',)),
     ('Props',('SS_TL_','Path_Lanterns','Handmade_Wear')),
     ('Interiors',('SS_CI_',)),
     ('House',('DR_','SS_NA_')),
@@ -178,7 +184,9 @@ FAMILY=[
 # coherent patches, never as per-part random speckle. 'desktop' and 'lod1' give the fraction each stage keeps.
 # The interior detail meshes hold books, tools and small desk items. The mobile GLB drops all of them.
 THIN={1:('Folded_Leaves',dict(desktop=.55,lod1=.08)),2:('Angular_Meadow',dict(desktop=1,lod1=.27)),3:('Ground_Planting',dict(desktop=1,lod1=.5)),
-      4:('Interior_Detail',dict(desktop=1,lod1=0))}
+      4:('Interior_Detail',dict(desktop=1,lod1=0)),5:('SS_TL_Telescope',dict(desktop=1,lod1=0))}
+# The mobile GLB swaps the 4,700-triangle telescope (group 5) for this slim one, and the desktop GLB leaves it out.
+LOD1_ONLY='Scope_Lod1'
 THIN_FREQUENCY=1.1;THIN_SEED=Vector((5.3,1.9,8.1))
 
 CAMERAS=[  # (name, source camera, aim object or None)
@@ -754,7 +762,12 @@ def build():
     for ob in copies:settle_colours(ob)
     mapping=remap_materials(copies,web_materials())
     families=build_families(scene,copies,coll)
+    # The slim telescope stands where the full one stands, so each bakes its AO without the other.
+    slim=next((o for o in families if o.name==LOD1_ONLY),None)
+    families=[o for o in families if o is not slim]
     ao=bake_ao(scene,families)
+    # A fake user keeps the unlinked slim telescope through the save of the work copy.
+    if slim:ao['lod1_only']=bake_ao(scene,[slim])['meshes'];slim.use_fake_user=True;coll.objects.unlink(slim)
     city_centre,city_counts=city_boxes()
     details={k:face_anchor(*v) for k,v in FACE_ANCHORS.items()};details['Anchor_Campfire']=campfire_anchor(src)
     cameras=add_cameras(scene,coll);anchors=add_anchors(coll,waterfall,city_centre,details)
@@ -776,6 +789,7 @@ def build():
     # Mobile LOD: no flowers, far fewer leaves, thinner meadow and planting.
     flowers=bpy.data.objects.get('Flowers')
     if flowers:bpy.data.objects.remove(flowers)
+    if slim:coll.objects.link(slim)
     lod=[o for o in coll.objects if o.type=='MESH']
     report['lod1_thinned_faces']=thin(lod,'lod1')
     for ob in lod:compact_slots(ob.data)

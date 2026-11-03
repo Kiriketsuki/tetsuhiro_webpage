@@ -43,7 +43,7 @@ export function createLookControl(uniforms) {
         grade.uInk.value = on('ink')
         grade.uDof.value = on('lens')
         grade.uSplit.value = on('split')
-        grade.uVignette.value = set.has('split') ? 0.34 : GRADE.vignette
+        grade.uVignette.value = set.has('split') ? 0.27 : GRADE.vignette
     }
     return { apply }
 }

@@ -20,24 +20,24 @@ let route = 'Home'
 let wanted = false
 let inSky = false
 
-// The telescope eyepiece: the canvas closes to a small circle, the picture swaps to the
-// skill sky, and the circle opens again. Reduced motion swaps at once.
-const EYEPIECE = { close: 0.55, open: 0.8 }
-function eyepiece(toSky) {
+// The telescope eyepiece: the camera flies up to the eyepiece, an iris closes, and it opens
+// on the skill sky (scene-manager.js lookThrough). Leaving plays it in reverse, on to `back`.
+// Reduced motion swaps at once, under a still of the old frame that fades out.
+function eyepiece(toSky, back) {
     if (toSky === inSky) return
     inSky = toSky
     if (reducedMotion.value) {
-        manager.showSky(toSky)
-        return
+        // The canvas keeps no drawing buffer, so the still copies a frame drawn just now.
+        manager.renderNow()
+        const still = document.createElement('canvas')
+        still.className = canvas.className
+        Object.assign(still, { width: canvas.width, height: canvas.height })
+        still.style.cssText = `visibility:visible;opacity:${getComputedStyle(canvas).opacity}`
+        still.getContext('2d').drawImage(canvas, 0, 0)
+        canvas.after(still)
+        gsap.to(still, { opacity: 0, duration: 0.6, onComplete: () => still.remove() })
     }
-    const mask = { r: 150 }
-    const clip = () => {
-        canvas.style.clipPath = `circle(${mask.r}% at 50% 50%)`
-    }
-    gsap.timeline({ onComplete: () => (canvas.style.clipPath = '') })
-        .to(mask, { r: 0, duration: EYEPIECE.close, ease: 'power2.in', onUpdate: clip })
-        .call(() => manager.showSky(toSky))
-        .to(mask, { r: 150, duration: EYEPIECE.open, ease: 'power2.out', onUpdate: clip })
+    manager.lookThrough(toSky, back)
 }
 
 // No WebGL, or the scene failed to build. The canvas shows a CSS night sky instead, and
@@ -100,7 +100,7 @@ function boot() {
     watch(explore.exploring, (value) => {
         if (value && currentStop() === 'telescope') eyepiece(true)
         if (!value) {
-            if (inSky && route === 'Home') eyepiece(false)
+            if (route === 'Home') eyepiece(false, currentStop())
             manager.release()
         }
     })
@@ -110,6 +110,7 @@ function boot() {
         window.addEventListener('mousemove', (e) => {
             manager.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1)
         })
+        document.documentElement.addEventListener('mouseleave', () => manager.clearPointer())
     }
 
     // Handy in the console while tuning shots. Not in the build.
@@ -133,12 +134,18 @@ export function setRoute(name, { cut = false } = {}) {
     route = name
     // Text pages dim the scene, so its twinkle and water are not worth the frames there.
     manager?.setAmbientFps(name === 'Home' ? 30 : 0)
-    manager?.goTo(currentStop(), cut ? { duration: 0 } : undefined)
-    // The skills page sits over the skill sky, with every star already lit.
+    // The skills page sits over the skill sky. A direct visit opens on it with every star lit.
+    // A route change into or out of it is the move through the eyepiece.
     const sky = name === 'Skills'
-    if (manager && sky !== inSky) {
+    if (!manager) return
+    if (cut) {
+        manager.goTo(currentStop(), { duration: 0 })
         inSky = sky
         manager.ready.then(() => manager.showSky(sky, { reveal: false }))
+    } else if (sky !== inSky) {
+        manager.ready.then(() => eyepiece(sky, currentStop()))
+    } else {
+        manager.goTo(currentStop())
     }
 }
 

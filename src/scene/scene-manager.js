@@ -31,12 +31,16 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 const AMBIENT_FPS = 30
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
+// The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
+// the iris close and open, and how early the iris starts to close before the camera stops.
+const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
 // The board size when Anchor_Corkboard gives a position but no size, in metres.
 const BOARD_SIZE = { width: 1.0, height: 0.7 }
 const MOBILE = '(max-width: 767px)'
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
-// The city haze density: the painted city layers lose a little over half their colour.
+// The city haze density: the city loses about a fifth of its colour at the bottom of the
+// overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer.
@@ -66,6 +70,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let fade = null
     // 'island' or 'sky'. The sky is the telescope's view of the skills.
     let view = 'island'
+    // The move through the eyepiece while it runs: { t, on, legs, close, swap, end }.
+    let scope = null
     const loaders = createLoaders()
     const clock = new THREE.Clock(false)
     let seconds = 0
@@ -74,7 +80,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let tierIndex = tier ?? startTier(small)
     let pipeline = null
     // The look options in force (look-options.js). A new pipeline takes them again.
-    let lookSet = SITE_LOOK
+    // A phone has no cursor, and the lens costs too much at a phone pixel ratio.
+    let lookSet = small ? new Set([...SITE_LOOK].filter((name) => name !== 'lens')) : SITE_LOOK
+    // The pointer in uv, or null without one. The lens clears its blur a little around it.
+    let cursor = null
+    const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), clear: 0, last: performance.now(), shown: -1 }
     let lookControl = null
     let submits = []
 
@@ -102,11 +112,36 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         onStep: (next) => buildPipeline(next),
     })
 
+    // The lens follows the stop's focus point. It fades out during a move between stops, so the
+    // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
+    // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
+    // lens is, so the ring fades with it.
+    const updateLens = () => {
+        const now = performance.now()
+        const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
+        lensCursor.last = now
+        const uniforms = pipeline.grade.uniforms
+        const dof = lookSet.has('lens') && uniforms.uDepthOn.value && !scope ? 1 - Math.min(1, rig.travel * 1.6) : 0
+        uniforms.uDof.value = dof
+        uniforms.uFocus.value = rig.focus
+        if (cursor) lensCursor.uv.lerp(cursor, k)
+        lensCursor.clear += ((cursor ? 0.4 : 0) - lensCursor.clear) * k
+        uniforms.uCursor.value.copy(lensCursor.uv)
+        uniforms.uCursorClear.value = lensCursor.clear
+        uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.clear * 2.5, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.clear * 2.5)
+        uniforms.uVignette.value = (lookSet.has('split') ? 0.27 : 0.22) + 0.04 * dof
+        const shown = Math.round(dof * 20) / 20
+        if (shown !== lensCursor.shown) {
+            lensCursor.shown = shown
+            document.documentElement.style.setProperty('--aerie-lens', String(shown))
+        }
+    }
+
     const render = () => {
         renderer.info.reset()
         hooks.before?.()
         const begin = performance.now()
-        pipeline.grade.uniforms.uFocus.value = rig.focus
+        updateLens()
         pipeline.render()
         submits.push(performance.now() - begin)
         if (submits.length > 120) submits = submits.slice(-60)
@@ -114,9 +149,45 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         state.dirty = false
     }
 
-    // The skill sky reveal and the bedroom fade. Returns true while either needs frames.
+    // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
+    // order. Without it they all show at once.
+    const showSky = (on, { reveal = true } = {}) => {
+        if (!parts.constellation) return
+        view = on ? 'sky' : 'island'
+        if (on) {
+            parts.constellation.open()
+            if (!reveal || state.reduced) parts.constellation.showAll()
+            pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+        } else {
+            pipeline.setView(scene, camera)
+        }
+        requestRender()
+    }
+
+    // Steps the move through the eyepiece. Each leg starts the camera on its way when its time
+    // comes. The iris closes, the picture swaps while it is shut, and the iris opens again.
+    const stepScope = (delta) => {
+        const s = scope
+        s.t += delta
+        while (s.legs.length && s.t >= s.legs[0][0]) {
+            const [, id, duration] = s.legs.shift()
+            rig.goTo(id, duration)
+        }
+        if (!s.swapped && s.t >= s.swap) {
+            s.swapped = true
+            showSky(s.on)
+        }
+        const k = s.t < s.swap ? (s.t - s.close) / SCOPE.close : 1 - (s.t - s.swap) / SCOPE.open
+        pipeline.grade.uniforms.uIris.value = THREE.MathUtils.smoothstep(k, 0, 1)
+        if (s.t >= s.swap + SCOPE.open && !s.legs.length) scope = null
+        return true
+    }
+
+    // The eyepiece move, the skill sky reveal and the bedroom fade. Returns true while any of
+    // them needs frames.
     const advanceEffects = (delta) => {
-        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) : false
+        const scoping = scope ? stepScope(delta) : false
+        const revealing = view === 'sky' ? parts.constellation.update(delta, seconds) || scoping : scoping
         if (!fade) return revealing
         fade.t += delta
         const k = fade.t / fade.duration
@@ -231,12 +302,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The parts that need no download draw first, so the night sky shows at once.
     parts.sky = createSky()
     parts.stars = createStars({ small, pixelRatio: renderer.getPixelRatio() })
-    parts.city = createCityBackdrop({
-        textureLoader: loaders.texture,
-        haze: NIGHT_SKY.haze,
-        hazeDensity: CITY_HAZE_DENSITY,
-        maxAnisotropy: Math.min(4, renderer.capabilities.getMaxAnisotropy()),
-    })
+    parts.city = createCityBackdrop({ haze: NIGHT_SKY.haze, hazeDensity: CITY_HAZE_DENSITY, pixelRatio: () => renderer.getPixelRatio() })
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
 
@@ -262,8 +328,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const moon = anchor(root, 'Anchor_Moon') ?? MOON_FALLBACK
             const shadow = createMoonShadow({ direction: moon, small })
             scene.add(root, shadow, shadow.target)
-            const shots = shotsFromStops(stops, gltf.cameras)
-            const viewpoints = Object.values(shots).map((shot) => shot.position)
+            const shots = shotsFromStops(stops, gltf.cameras, (name) => anchor(root, name))
+            // The eyepiece looks only at the sky, so its shot places no crown cards.
+            const viewpoints = Object.entries(shots).filter(([id]) => id !== 'eyepiece').map(([, shot]) => shot.position)
             parts.leaves = createLeafCards({
                 meshes: look.meshes,
                 litterAt: look.litterAt,
@@ -361,17 +428,32 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             else rig.zoom(factor)
             requestRender()
         },
-        // Swaps the picture between the island and the skill sky. `reveal` lights the stars
-        // up in order. Without it they all show at once.
-        showSky: (on, { reveal = true } = {}) => {
-            if (!parts.constellation) return
-            view = on ? 'sky' : 'island'
+        showSky,
+        // The look through the telescope. The camera flies up to the eyepiece (by way of the
+        // terrace from any other stop), the iris closes, and it opens on the skill sky. Off
+        // plays it in reverse and flies on to the stop `back`. Reduced motion swaps at once,
+        // and src/three.js crossfades the frame.
+        lookThrough: (on, back = 'telescope') => {
+            const iris = pipeline.grade.uniforms.uIris
+            // A visitor who leaves while the iris still opens on the sky gets a close from
+            // where the blades are, not a jump back to fully open.
+            const from = iris.value
+            iris.value = 0
+            scope = null
+            if (on === (view === 'sky') || state.reduced) {
+                if (on !== (view === 'sky')) showSky(on)
+                if (!on) api.goTo(back)
+                return
+            }
+            const { fly, close } = SCOPE
             if (on) {
-                parts.constellation.open()
-                if (!reveal || state.reduced) parts.constellation.showAll()
-                pipeline.setView(parts.constellation.scene, parts.constellation.camera)
+                const lead = ['telescope', 'eyepiece'].includes(rig.current) ? 0 : 1.6
+                const shut = lead + fly - SCOPE.overlap
+                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1) }
             } else {
-                pipeline.setView(scene, camera)
+                const legs = [[close, 'eyepiece', 0], [close, 'telescope', fly]]
+                if (back !== 'telescope') legs.push([close + fly, back, 1.6])
+                scope = { t: close * from, on, close: 0, swap: close, legs }
             }
             requestRender()
         },
@@ -381,6 +463,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         },
         setPointer: (x, y) => {
             if (!state.reduced) rig.setPointer(x, y)
+            cursor = new THREE.Vector2((x + 1) / 2, 1 - (y + 1) / 2)
+            requestRender()
+        },
+        // The pointer left the page: the cursor patch fades out.
+        clearPointer: () => {
+            cursor = null
+            requestRender()
         },
         requestRender,
         // Draws one frame at once, even in a hidden tab, for the lab's still captures.

@@ -42,6 +42,8 @@ const stripShaderComments = () => ({
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [vue(), tailwindcss(), stripShaderComments()],
+    // The look worker is its own bundle, so it needs the shader comment strip of its own.
+    worker: { plugins: () => [stripShaderComments()] },
     build: {
         // scripts/size-budget.mjs reads the manifest to tell the shell from the lazy chunks.
         manifest: true,

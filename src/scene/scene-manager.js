@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { islandUrl, isSmallScreen } from './assets.js'
+import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
@@ -46,14 +46,16 @@ const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
 // The city haze density: the city loses about a fifth of its colour at the bottom of the
 // overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
-// The faces that corkboard.js draws its card text with. A canvas draws with a fallback font
-// while its face is still loading, so each font names the weight the canvas asks for.
-const FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
+// The faces that corkboard.js draws its card text with, and the faces of the skill sky
+// overlay. A canvas draws with a fallback font while its face is still loading, so each font
+// names the weight the canvas asks for.
+const CARD_FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
+const SKY_FONTS = ['30px "JetBrains Mono"', 'italic 42px "Instrument Serif"']
 
 // hooks.before and hooks.after run around each render, for the lab's GPU timer.
 export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
     const small = isSmallScreen()
-    const useLod = lod ?? (small ? 1 : 0)
+    const useLod = lod ?? islandLod()
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
     renderer.toneMapping = THREE.NoToneMapping
     // The scene draws into a linear half-float target, and the composite pass encodes sRGB
@@ -315,12 +317,16 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     buildPipeline(tierIndex)
 
     // The painted detail texture and the leaf carpet build in small slices while the island
-    // downloads. The card atlas fonts load at the same time.
+    // downloads. The fonts and the skill sky chunk load at the same time, so the build after
+    // the download does not wait on them one after the other.
     const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
     const carpetBuild = createLeafCarpet({ sliced: true })
     // The look worker loads beside the island, so it is ready when the island arrives.
     const lookWorker = createLookWorker()
-    const fonts = Promise.all(FONTS.map((font) => document.fonts.load(font))).catch(() => {})
+    const fonts = Promise.all(CARD_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
+    const skyFonts = Promise.all(SKY_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
+    const skyModule = import('./aerie/constellation.js')
+    skyModule.catch(() => {})
 
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
@@ -382,8 +388,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             }
 
             // The skill sky is its own chunk, so it stays out of the scene budget.
-            await Promise.all([document.fonts.load('30px "JetBrains Mono"'), document.fonts.load('italic 42px "Instrument Serif"')]).catch(() => {})
-            const { createConstellation } = await import('./aerie/constellation.js')
+            await skyFonts
+            const { createConstellation } = await skyModule
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 
@@ -543,6 +549,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             canvas.removeEventListener('webglcontextlost', onLost)
             canvas.removeEventListener('webglcontextrestored', onRestored)
             rig.dispose()
+            // A dispose during the load stops the worker and the carpet slices too.
+            lookWorker.dispose()
+            carpetBuild.dispose()
             Object.values(parts).forEach((part) => part?.dispose?.())
             pipeline?.dispose()
             disposeLoaders(loaders)

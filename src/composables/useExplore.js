@@ -15,7 +15,8 @@ export function useExplore() {
     }
 
     const pan = (dx, dy) => rig?.pan(dx, dy)
-    const zoom = (factor) => rig?.zoom(factor)
+    // x and y: the client point that the zoom keeps still, where the view supports it.
+    const zoom = (factor, x, y) => rig?.zoom(factor, x, y)
     const tap = (x, y) => rig?.tap?.(x, y)
 
     return { exploring, connect, pan, zoom, tap }

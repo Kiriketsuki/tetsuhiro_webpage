@@ -4,6 +4,8 @@
 // that cork face at the kit's own scale.
 
 export const BOARD = { width: 1.48, height: 0.88 }
+// The workshop bay is 1.56 m wide, so the kit board (1.6 m) hangs there at this scale.
+export const BOARD_SCALE = 0.94
 
 // The four groups of the wall. Each one sits in its own part of the board.
 export const GROUPS = [
@@ -51,7 +53,7 @@ export const PINS = [
         line: 'Chrysaki in Claude Code: model, usage, context and git on four lines.',
         stack: ['Shell', 'JavaScript'],
         link: 'https://github.com/Kiriketsuki/chrysaki-claude',
-        page: null,
+        page: 'statusline',
         at: [-0.32, 0.06],
         tilt: -6,
     },
@@ -103,7 +105,7 @@ export const PINS = [
         line: 'An incremental game about the first AI company. It also runs inside Claude Code.',
         stack: ['TypeScript', 'Bun', 'Claude Code mods'],
         link: 'https://tokin.tetsuhiro.dev',
-        page: null,
+        page: 'tokin',
         at: [0.27, 0.26],
         tilt: -2,
     },
@@ -117,7 +119,7 @@ export const PINS = [
         stack: ['Go', 'Godot 4', 'tmux'],
         link: 'https://kiriketsuki.github.io/agenKic-orKistrator/',
         page: 'agenkic-orkistrator',
-        at: [0.04, 0.22],
+        at: [0.04, 0.15],
         tilt: 2,
     },
     {
@@ -129,7 +131,7 @@ export const PINS = [
         line: 'A pixel art editor where every pixel is a triangle.',
         stack: ['Vue', 'Rust', 'Tauri'],
         link: 'https://kiriketsuki.github.io/TrKixel/',
-        page: null,
+        page: 'trkixel',
         at: [0.27, 0.03],
         tilt: -4,
     },
@@ -181,7 +183,7 @@ export const PINS = [
         line: 'This site: a night island built in Blender and drawn in Three.js.',
         stack: ['Three.js', 'GLSL', 'Blender', 'Vue'],
         link: 'https://github.com/Kiriketsuki/tetsuhiro_webpage',
-        page: null,
+        page: 'island',
         at: [0.38, -0.22],
         tilt: 2,
     },
@@ -207,7 +209,7 @@ export const PINS = [
         line: 'A floating island that moves with the music. The first island.',
         stack: ['Three.js', 'Web Audio'],
         link: '',
-        page: null,
+        page: 'resonant-respite',
         at: [0.59, -0.33],
         tilt: -5,
     },

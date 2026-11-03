@@ -32,6 +32,10 @@ const NOTE_SHIFT = { shift: [0.16, 0], tall: [0, 0.22] }
 // range, so the room takes some colour out and darkens a little (uFade darkens by 28 percent
 // at 1). The grade fades in over the first metre past the door, and out again on the way out.
 const ROOM_GRADE = { saturation: 0.64, lift: -0.02, fade: 1, depth: 1 }
+// The share of that grade depth at which the tags show on the way in.
+const SHOW_DEPTH = 0.5
+// How close the door move must come to the first view before the room takes the camera.
+const ARRIVED = { distance: 0.04, degrees: 2 }
 
 const toRadians = THREE.MathUtils.degToRad
 // The way a yaw and pitch look, in degrees. Yaw 0 looks straight back (-z), positive to the left.
@@ -161,15 +165,27 @@ export function createRoom(manager, door) {
         return true
     }
 
+    // True once the camera stands within ARRIVED.distance metres of the stand and looks within
+    // ARRIVED.degrees of its first view.
+    const arrived = () =>
+        camera.position.distanceTo(STAND.position) < ARRIVED.distance &&
+        camera.getWorldDirection(new THREE.Vector3()).angleTo(direction(STAND.yaw, STAND.pitch)) < toRadians(ARRIVED.degrees)
+
     // The loop runs while the camera is in the room or the grade still has to fade out.
     const loop = (now) => {
         const delta = Math.min(0.1, last ? (now - last) / 1000 : 0)
         last = now
         frame = 0
-        let dirty = grade(depth())
-        // The door move in belongs to the rig. The view takes over once it ends. rig.moving is
-        // also true while the mouse drift settles, so the test reads the move itself.
-        if (inside && !rig.moveDuration) {
+        const k = depth()
+        let dirty = grade(k)
+        // The tags show once the camera is half way through the grade, so they never float over
+        // the walls outside. The door move eases out slowly at its end.
+        if (inside && k >= SHOW_DEPTH && !room.shown.value) room.shown.value = true
+        // The door move in belongs to the rig. The view takes over once it ends, or once the
+        // camera stands at the stand and faces the first view, because a long move eases out
+        // over its last seconds. rig.moving is also true while the mouse drift settles, so the
+        // test reads the move itself.
+        if (inside && (!rig.moveDuration || arrived())) {
             view ??= copyOf(STAND)
             if (!room.shown.value) room.shown.value = true
             dirty = ease(delta) || dirty

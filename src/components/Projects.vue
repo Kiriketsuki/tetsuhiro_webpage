@@ -2,17 +2,17 @@
 import { computed, ref, watch } from 'vue'
 import ProjectRow from './ProjectRow.vue'
 import { homeProjects, monogram, projects } from '../data/projects.js'
-import { sideOf, useWaypoints } from '../composables/useWaypoints.js'
+import { sections, sideOf, useWaypoints } from '../composables/useWaypoints.js'
 
-// The pictures wait until the visitor gets to the skills section, one before
-// this one. They are most of a megabyte, and the island needs the bandwidth first.
-const PRELOAD_FROM = 2
-const { active } = useWaypoints()
+// The pictures wait until the visitor is through the gate and one section before
+// this one, so the island gets the bandwidth first.
+const PRELOAD_FROM = sections.indexOf('projects') - 1
+const { active, entered } = useWaypoints()
 const showImages = ref(false)
 watch(
-    active,
-    (section) => {
-        if (section >= PRELOAD_FROM) showImages.value = true
+    [active, entered],
+    ([section, through]) => {
+        if (through && section >= PRELOAD_FROM) showImages.value = true
     },
     { immediate: true }
 )

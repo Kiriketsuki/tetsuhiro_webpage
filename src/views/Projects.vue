@@ -5,7 +5,7 @@
             <template #top>
                 <header class="wall-head" :class="{ 'case-open': id }">
                     <p class="label">
-                        <span class="text-rose">04 / projects</span>
+                        <span class="text-rose">02 / projects</span>
                         <span class="text-text-muted">&middot; {{ hint }}</span>
                     </p>
                     <h1 class="font-slab text-[clamp(1.9rem,5vw,3.25rem)] leading-none text-text-strong">Things I have made</h1>

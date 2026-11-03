@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { bulbColor, filament } from './light-switch.js'
 
 // The light of the workshop wall at night. The brass picture light is a long bar above the
 // board, so it washes the cork evenly from side to side, brightest just under the bar and
@@ -18,6 +19,13 @@ const LAMP = { at: [0, 0.66, 0.8], aim: [0, 0.1, 0], angle: 1, penumbra: 0.06 }
 // peaks at about 80 percent of full white, so the lamp never clips a card to a flat white.
 const PEAK = 2.4
 const MASK = 128
+// The share of the steady fill and desk light that matches the room at the dark point of the
+// lamp switch, for each share of room light. The board under the fill and desk light alone
+// matches the room copy at the board stop with its exposure at about 0.042 (lamp probe,
+// November 2026: 0.048 on a desktop, 0.037 on a phone). The full switch dims the room to that
+// share, so the fill stays steady and only the lamp warms. The shallower reduced motion
+// switch keeps the fill steady too, and its longer still blend covers the gap at the swap.
+const DARK_MATCH = 24
 const smooth = THREE.MathUtils.smoothstep
 
 // The wash on the cork plane, 1 under the middle of the bar. It falls to about 0.32 at the
@@ -66,6 +74,8 @@ function washMask(lamp) {
 }
 
 // The wall draws the shadow map only when a pin lifts, so its size costs memory, not frame time.
+// Returns the objects for the scene, the fixture that the room copy shows too, and setLamp,
+// which sets the light of the lamp for the lamp switch (light-switch.js).
 export function createLight(small) {
     // A decay of 0 leaves all the falloff to the mask.
     const lamp = new THREE.SpotLight(WARM, 1, 0, LAMP.angle, LAMP.penumbra, 0)
@@ -113,7 +123,24 @@ export function createLight(small) {
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), new THREE.MeshLambertMaterial({ color: 0x3e3029 }))
     wall.position.z = -0.04
     wall.receiveShadow = true
-    return [lamp, lamp.target, fill, desk, bar, lip, ...rods, top, wall]
+    // The steady state. setLamp(1) gives these values back exactly.
+    const steady = { lamp: lamp.intensity, fill: fill.intensity, desk: desk.intensity, color: lamp.color.clone(), lip: lip.material.color.clone() }
+    // light: the lamp from 0 (off) to 1 (steady). dark: the dark point of the switch, which
+    // sets the fill and the desk light that the lamp starts from. The light rises a little
+    // slower than the level at first, so the filament shows before the board lights.
+    const setLamp = (light, dark) => {
+        const k = light ** 1.4
+        // The fill never starts above its steady value, so no part of the wall gets darker
+        // while the lamp warms. The still blend at the swap covers a shallower dark point.
+        const start = Math.min(1, dark * DARK_MATCH)
+        const ambient = start + (1 - start) * k
+        lamp.intensity = steady.lamp * k
+        bulbColor(lamp.color, steady.color, light)
+        fill.intensity = steady.fill * ambient
+        desk.intensity = steady.desk * ambient
+        bulbColor(lip.material.color, steady.lip, light).multiplyScalar(filament(light))
+    }
+    return { objects: [lamp, lamp.target, fill, desk, bar, lip, ...rods, top, wall], fixture: [bar, lip, ...rods], lip, setLamp }
 }
 
 // A small grey grain that tiles over the cork, so the cork reads as cork up close. It is a

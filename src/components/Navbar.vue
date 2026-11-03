@@ -13,9 +13,10 @@ const { active, entered, goTo } = useWaypoints()
 const onHome = computed(() => route.name === 'Home')
 const shown = computed(() => entered.value || (route.name && !onHome.value))
 
-// plants_in_space had two links on each side. Skills is the middle stop of
-// the five, so it takes the middle, under the mark.
-const items = ['Welcome', 'About', 'Skills', 'Projects', 'Contact']
+// plants_in_space had two links on each side. The items follow the walk across the aerie
+// (src/data/waypoints.js). About, the bedroom, is the highest room of the house and the
+// middle stop of the five, so it takes the middle, under the mark.
+const items = ['Welcome', 'Projects', 'About', 'Skills', 'Contact']
 const left = [0, 1]
 const right = [3, 4]
 const middle = 2

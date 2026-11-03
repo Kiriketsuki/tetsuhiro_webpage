@@ -1,7 +1,7 @@
 <template>
     <div class="stop" :data-side="sideOf('contact')">
         <article class="frame flex w-full max-w-[25rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
-            <span class="frame-legend">05 / contact</span>
+            <span class="frame-legend">05 / by the fire</span>
             <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
                 Say hello
             </h2>
@@ -26,6 +26,10 @@
             </dl>
 
             <a href="mailto:limzh.jovian@gmail.com" class="action">Send an email</a>
+            <p class="font-body text-sm italic text-text-body">
+                That is the end of the walk. Stay by the fire for a while: the city down there
+                keeps its lights on all night.
+            </p>
             <p class="font-label text-[0.65rem] leading-relaxed tracking-wider text-text-faint">
                 <span class="block">v{{ version }}</span>
             </p>

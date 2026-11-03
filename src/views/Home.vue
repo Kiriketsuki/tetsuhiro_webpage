@@ -9,6 +9,7 @@
                     <div class="flex flex-col items-start gap-4">
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
+                        <p class="hero-chapter">01 / arrival</p>
                         <button type="button" class="action hero-scene" @click="sceneOnly = true">
                             just the aerie
                         </button>
@@ -18,14 +19,14 @@
                     </div>
                 </div>
             </section>
+            <section class="snap-section h-svh w-full projects">
+                <Projects />
+            </section>
             <section class="snap-section h-svh w-full about">
                 <About />
             </section>
             <section class="snap-section h-svh w-full skills">
                 <Skills />
-            </section>
-            <section class="snap-section h-svh w-full projects">
-                <Projects />
             </section>
             <section class="snap-section h-svh w-full contact">
                 <Contact />
@@ -196,6 +197,16 @@ body {
     color: var(--color-sand);
     font-family: var(--font-label);
     font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 0 var(--color-bg-base);
+}
+
+.hero-chapter {
+    padding-left: 0.3rem;
+    color: var(--color-text-faint);
+    font-family: var(--font-label);
+    font-size: clamp(0.6rem, 0.75vw, 0.7rem);
     letter-spacing: 0.16em;
     text-transform: uppercase;
     text-shadow: 1px 1px 0 var(--color-bg-base);

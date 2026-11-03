@@ -14,7 +14,7 @@ const facts = [
 <template>
     <div class="stop" :data-side="sideOf('about')">
         <article class="frame frame-rose flex w-full max-w-[25rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
-            <span class="frame-legend">02 / about</span>
+            <span class="frame-legend">03 / up the tower</span>
 
             <div class="flex items-end gap-5">
                 <img

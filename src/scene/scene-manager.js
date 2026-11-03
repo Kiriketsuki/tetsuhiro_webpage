@@ -25,7 +25,7 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 // It has no Vue import, so the site shell and the lab both drive it.
 //
 // It renders on demand. A frame draws when the camera moves, when something asks for one,
-// or on the ambient clock (twinkle, mist and water) at AMBIENT_FPS. Reduced motion draws
+// or on the ambient clock (twinkle and water) at AMBIENT_FPS. Reduced motion draws
 // single frames only.
 
 const AMBIENT_FPS = 30
@@ -352,8 +352,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
             const top = anchor(root, 'Anchor_Waterfall_Top')
             const base = anchor(root, 'Anchor_Waterfall_Base')
-            if (top && base) {
-                parts.waterfall = createWaterfall({ top, base, haze: NIGHT_SKY.haze })
+            // The ribbon starts on the stream mouth that applyIslandLook found. The two anchors
+            // only build a fallback mouth when the water mesh gave none.
+            if (look.waterMouth || (top && base)) {
+                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base })
                 scene.add(parts.waterfall.group)
             }
 

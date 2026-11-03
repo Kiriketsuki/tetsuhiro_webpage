@@ -1,199 +1,219 @@
 import * as THREE from 'three'
+import { WATER_COLORS } from './water.js'
 
-// The waterfall off the island rim, rebuilt here instead of exported. A low ribbon arcs out
-// from the stream spill and falls to Anchor_Waterfall_Base. Streaks scroll down it, and it
-// thins out into a mist cloud, so the water never lands. The city haze takes it from there.
+// The waterfall off the island rim. One ribbon starts on the open stream mouth that
+// prepareWater (water.js) finds, so it is as wide as the stream you see and lies at the same
+// angle. The water leaves the lip level, arcs out over the soil rim on a ballistic path and
+// falls. It uses the stream palette, the same crest and the same dash speed at the lip, and
+// its streaks stretch as the water speeds up. The top 20 percent is opaque and the tail
+// fades out below the island underside, so the fall never lands. There is no mist and no
+// noise tap.
 
-const SEGMENTS = 14
-const ACROSS = 2
-const TOP_WIDTH = 1.15
-const BOTTOM_WIDTH = 3.2
-// How far the arc pushes out past the straight line from the top to the base, in metres.
-const ARC = 1.6
-const MIST_PUFFS = 26
+// Metres below the lip at each row after the first. The rows sit close at the rim, where the
+// sheet turns over, and far apart lower down, where it falls almost straight.
+const ROW_DROP = [0, 0.08, 0.25, 0.55, 1, 1.7, 2.8, 4.4, 6.8, 10.2, 15.2, 22]
+// The full drop, in metres. The island underside ends about 17 m below the lip, so the tail
+// fades out just past it.
+const DROP = 22
+// The horizontal speed at the lip, in m/s, and gravity. The face under the mouth bulges about
+// 0.32 m out at 0.6 m below the lip. This path is 0.58 m out there, so it clears the face.
+const PUSH = 1.3
+const GRAVITY = 9.8
+// The sheet leaves the lip this far out, in metres, before it starts to drop. The crest
+// stays level over the grass corners at each end of the mouth.
+const LIP_OUT = 0.12
+// The first row starts this far upstream, over the end of the stream, and every row sits
+// this far higher than the water. The stream crest hides the overlap.
+const START_IN = 0.06
+const LIFT = 0.02
+// The bottom width as a share of the mouth width.
+const NARROW = 0.85
+// The half width of the fallback mouth, in metres, when prepareWater found no mouth edge.
+// The open mouth measures about 2.5 m.
+const FALLBACK_HALF = 1.25
 
 const ribbonVertex = /* glsl */ `
+#include <common>
+#include <fog_pars_vertex>
 varying vec2 vUv;
-varying vec3 vWorld;
 void main() {
     vUv = uv;
-    vec4 world = modelMatrix * vec4( position, 1.0 );
-    vWorld = world.xyz;
-    gl_Position = projectionMatrix * viewMatrix * world;
+    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
 }
 `
 
-// Streaks come from a smooth noise along the ribbon.
 const ribbonFragment = /* glsl */ `
+#include <common>
+#include <fog_pars_fragment>
 uniform float uTime;
-uniform vec3 uColor;
+uniform float uLength;
+uniform float uWidth;
+uniform vec3 uDeep;
+uniform vec3 uMid;
+uniform vec3 uShallow;
+uniform vec3 uDash;
 uniform vec3 uFoam;
 varying vec2 vUv;
-varying vec3 vWorld;
 
-float hash( vec2 p ) {
-    return fract( sin( dot( p, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
+float waterHash( float n ) {
+    return fract( sin( n * 127.1 + 311.7 ) * 43758.5453 );
 }
-float noise( vec2 p ) {
-    vec2 i = floor( p );
-    vec2 f = fract( p );
-    f = f * f * ( 3.0 - 2.0 * f );
-    return mix( mix( hash( i ), hash( i + vec2( 1, 0 ) ), f.x ), mix( hash( i + vec2( 0, 1 ) ), hash( i + vec2( 1, 1 ) ), f.x ), f.y );
+// A step with an edge about one pixel wide, so the toon lines do not alias.
+float aaStep( float edge, float x, float w ) {
+    return smoothstep( edge - w, edge + w, x );
 }
 
 void main() {
+    // fall runs 0 at the lip to 1 at the tail. d is metres below the lip, x metres across.
     float fall = vUv.y;
-    // fall runs 0 at the lip to 1 at the base. Subtracting time moves each streak toward a
-    // larger fall, so the water runs down.
-    vec2 p = vec2( vUv.x * 7.0, fall * 9.0 - uTime * 1.6 );
-    float streak = noise( p ) * 0.65 + noise( p * vec2( 2.0, 2.7 ) + 3.1 ) * 0.35;
-    float edge = smoothstep( 0.0, 0.22, vUv.x ) * smoothstep( 1.0, 0.78, vUv.x );
-    // Solid at the lip, thinning out over the lower half into mist.
-    float body = 1.0 - smoothstep( 0.35, 0.95, fall );
-    float alpha = edge * body * ( 0.45 + 0.55 * streak );
-    vec3 color = mix( uColor, uFoam, smoothstep( 0.55, 0.9, streak ) * ( 1.0 - fall * 0.6 ) );
+    float d = fall * uLength;
+    float x = vUv.x * uWidth;
+    float edge = min( x, uWidth - x );
+    // The flow phase. At the lip it runs 0.45 per metre and slides at 0.32 per second, as on
+    // the stream, so the water leaves the lip at 0.71 m/s. The phase per metre falls with d,
+    // so every mark stretches and speeds up as it falls.
+    float q = 0.45 * d / ( 1.0 + 0.12 * d );
+    float wq = fwidth( q ) * 0.75 + 1e-4;
+
+    // Flat body: MID at the lip, as the end of the stream, and DEEP lower down.
+    vec3 color = mix( uMid, uDeep, smoothstep( 0.2, 0.6, fall ) );
+
+    // Broad bands: wide lanes of the shallow colour that slide down at half speed, so the
+    // sheet shows its flow between the streaks.
+    float broad = x * 0.8;
+    float broadSeed = waterHash( floor( broad ) + 31.0 );
+    float band = 1.0 - aaStep( 0.12 + 0.12 * broadSeed, abs( fract( broad ) - 0.5 ), fwidth( broad ) * 0.75 + 1e-4 );
+    float bandAlong = fract( q * 0.5 - uTime * 0.16 + broadSeed * 5.0 );
+    band *= aaStep( 0.25, bandAlong, wq ) * ( 1.0 - aaStep( 0.95, bandAlong, wq ) );
+    color = mix( color, uShallow, band * 0.5 );
+
+    // Streaks: thin lanes with their own offset, length and phase, as on the stream.
+    float lanes = x * 2.2;
+    float laneSeed = waterHash( floor( lanes ) );
+    float lane = 1.0 - aaStep( 0.06, abs( fract( lanes ) - 0.3 - 0.4 * laneSeed ), fwidth( lanes ) * 0.75 + 1e-4 );
+    float along = fract( q - uTime * 0.32 + laneSeed * 7.0 );
+    float streak = lane * aaStep( 0.5 - 0.2 * laneSeed, along, wq ) * ( 1.0 - aaStep( 0.97, along, wq ) );
+    color = mix( color, uDash, streak * 0.6 );
+
+    // The crest: solid foam where the sheet turns over the rim, the same crest that ends the
+    // stream. Just below it the streaks turn to foam, as white water.
+    float wd = fwidth( d ) * 0.75 + 1e-4;
+    float crest = 1.0 - aaStep( 0.08, d, wd );
+    float white = streak * ( 1.0 - aaStep( 0.45, d, wd ) );
+    color = mix( color, uFoam, max( crest, white ) );
+    // The sides fall a step darker than the middle, so the sheet reads as a curved body of
+    // water and not as a flat card.
+    color *= 0.75 + 0.25 * smoothstep( 0.0, 0.5, edge );
+
+    // The lower sheet takes the fog colour before it fades, so it sinks into the haze under
+    // the island. The grade lifts the water blues, and without this the tail read as a lit beam.
+    #ifdef USE_FOG
+    color = mix( color, fogColor, smoothstep( 0.15, 0.7, fall ) * 0.75 );
+    #endif
+    // Opaque over the top 20 percent, then a fade into the haze. A slow wave across the
+    // sheet ends it at different heights, so the tail has no flat edge.
+    float alpha = 1.0 - smoothstep( 0.2, 0.8, fall + 0.05 * sin( x * 3.1 ) );
+    // The sides ripple a little as the sheet falls, so its edges do not read as cut card.
+    float ripple = 0.04 * ( 1.0 + sin( d * 2.2 - uTime * 3.0 + x ) );
+    alpha *= aaStep( ripple, edge, fwidth( edge ) * 0.75 + 1e-4 );
     gl_FragColor = vec4( color, alpha );
+    #include <fog_fragment>
 }
 `
 
-const mistVertex = /* glsl */ `
-attribute float aSize;
-attribute float aSeed;
-uniform float uScale;
-uniform float uTime;
-varying float vAlpha;
-void main() {
-    float phase = fract( uTime * ( 0.035 + aSeed * 0.03 ) + aSeed );
-    vec3 p = position;
-    p.y += phase * 6.0;
-    p.xz += vec2( sin( aSeed * 40.0 ), cos( aSeed * 23.0 ) ) * phase * 4.0;
-    vec4 view = modelViewMatrix * vec4( p, 1.0 );
-    gl_Position = projectionMatrix * view;
-    gl_PointSize = clamp( aSize * ( 0.7 + phase * 0.8 ) * uScale / -view.z, 1.0, 320.0 );
-    vAlpha = sin( phase * 3.14159 );
-}
-`
-
-const mistFragment = /* glsl */ `
-uniform vec3 uColor;
-uniform float uOpacity;
-varying float vAlpha;
-void main() {
-    vec2 p = gl_PointCoord * 2.0 - 1.0;
-    float r2 = dot( p, p );
-    float puff = exp( -r2 * 3.2 ) * ( 1.0 - smoothstep( 0.75, 1.0, r2 ) );
-    gl_FragColor = vec4( uColor, puff * vAlpha * uOpacity );
-}
-`
-
-function ribbonGeometry(top, base) {
-    const down = base.clone().sub(top)
-    const out = new THREE.Vector3(down.x, 0, down.z)
+// Builds a straight mouth from the two anchors when the water mesh gave none. It is square
+// to the line from the top to the base.
+function fallbackMouth(top, base) {
+    const out = new THREE.Vector3(base.x - top.x, 0, base.z - top.z)
     if (out.lengthSq() < 1e-6) out.set(0, 0, 1)
     out.normalize()
-    const side = new THREE.Vector3().crossVectors(out, new THREE.Vector3(0, 1, 0)).normalize()
+    const side = new THREE.Vector3(-out.z, 0, out.x)
+    return {
+        a: top.clone().addScaledVector(side, -FALLBACK_HALF),
+        b: top.clone().addScaledVector(side, FALLBACK_HALF),
+        normal: out,
+    }
+}
+
+// Two columns, one per mouth end, and one row per drop: 26 vertices and 24 triangles. The
+// mouth bows by about 2 cm, so two columns follow it.
+function ribbonGeometry({ a, b, normal }) {
+    const across = new THREE.Vector3(b.x - a.x, 0, b.z - a.z)
+    const width = across.length()
+    across.normalize()
+    const centre = new THREE.Vector3((a.x + b.x) / 2, Math.max(a.y, b.y) + LIFT, (a.z + b.z) / 2)
+    const rows = [
+        { out: -START_IN, drop: 0 },
+        ...ROW_DROP.map((drop) => ({ out: LIP_OUT + PUSH * Math.sqrt((2 * drop) / GRAVITY), drop })),
+    ]
     const positions = []
     const uvs = []
-    for (let j = 0; j <= SEGMENTS; j += 1) {
-        const t = j / SEGMENTS
-        // The arc leaves the lip fast and then drops almost straight.
-        const centre = top.clone().lerp(base, t * t).addScaledVector(out, ARC * Math.sin(Math.min(1, t * 1.6) * Math.PI * 0.5))
-        const width = THREE.MathUtils.lerp(TOP_WIDTH, BOTTOM_WIDTH, t)
-        for (let i = 0; i <= ACROSS; i += 1) {
-            const u = i / ACROSS
-            const p = centre.clone().addScaledVector(side, (u - 0.5) * width)
-            positions.push(p.x, p.y, p.z)
-            uvs.push(u, t)
-        }
-    }
+    rows.forEach(({ out, drop }) => {
+        const fall = drop / DROP
+        const half = 0.5 * width * (1 - (1 - NARROW) * fall)
+        ;[0, 1].forEach((u) => {
+            const p = centre.clone().addScaledVector(across, (u * 2 - 1) * half).addScaledVector(normal, out)
+            positions.push(p.x, p.y - drop, p.z)
+            uvs.push(u, fall)
+        })
+    })
     const index = []
-    const row = ACROSS + 1
-    for (let j = 0; j < SEGMENTS; j += 1) {
-        for (let i = 0; i < ACROSS; i += 1) {
-            const a = j * row + i
-            index.push(a, a + row, a + 1, a + 1, a + row, a + row + 1)
-        }
+    for (let j = 0; j < rows.length - 1; j += 1) {
+        const k = j * 2
+        index.push(k, k + 2, k + 1, k + 1, k + 2, k + 3)
     }
     const geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
     geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
     geometry.setIndex(index)
     geometry.computeBoundingSphere()
-    return { geometry, out }
+    return { geometry, width }
 }
 
-function mistGeometry(base, out) {
-    const positions = new Float32Array(MIST_PUFFS * 3)
-    const sizes = new Float32Array(MIST_PUFFS)
-    const seeds = new Float32Array(MIST_PUFFS)
-    for (let i = 0; i < MIST_PUFFS; i += 1) {
-        const seed = (i * 0.61803398875) % 1
-        const spread = 2 + seed * 6
-        const angle = i * 2.399963
-        positions[i * 3] = base.x + Math.cos(angle) * spread + out.x * 2
-        positions[i * 3 + 1] = base.y + 4 - seed * 10
-        positions[i * 3 + 2] = base.z + Math.sin(angle) * spread + out.z * 2
-        sizes[i] = 7 + seed * 9
-        seeds[i] = seed
-    }
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
-    geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1))
-    geometry.computeBoundingSphere()
-    return geometry
-}
-
-export function createWaterfall({ top, base, haze }) {
+// mouth is the open mouth line from prepareWater ({ a, b, normal }). Without it, top and base
+// (Anchor_Waterfall_Top and Anchor_Waterfall_Base) build a straight fallback mouth.
+export function createWaterfall({ mouth = null, top = null, base = null }) {
     const group = new THREE.Group()
     group.name = 'Waterfall'
     const time = { value: 0 }
-    const { geometry, out } = ribbonGeometry(top, base)
-    const ribbon = new THREE.Mesh(
-        geometry,
-        new THREE.ShaderMaterial({
-            name: 'aerie.waterfall',
-            uniforms: {
-                uTime: time,
-                uColor: { value: new THREE.Color(0x2f4a52) },
-                uFoam: { value: new THREE.Color(0x9fb8bf) },
-            },
-            vertexShader: ribbonVertex,
-            fragmentShader: ribbonFragment,
-            transparent: true,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-        })
-    )
+    const { geometry, width } = ribbonGeometry(mouth ?? fallbackMouth(top, base))
+    const material = new THREE.ShaderMaterial({
+        name: 'aerie.waterfall',
+        uniforms: {
+            ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+            uTime: time,
+            uLength: { value: DROP },
+            uWidth: { value: width },
+            uDeep: { value: new THREE.Color(WATER_COLORS.deep) },
+            uMid: { value: new THREE.Color(WATER_COLORS.mid) },
+            uShallow: { value: new THREE.Color(WATER_COLORS.shallow) },
+            uDash: { value: new THREE.Color(WATER_COLORS.dash) },
+            uFoam: { value: new THREE.Color(WATER_COLORS.foam) },
+        },
+        vertexShader: ribbonVertex,
+        fragmentShader: ribbonFragment,
+        // Only the tail and the rippled sides have alpha below 1. A blended layer only raises
+        // the target alpha, so it never turns ink on (toon-material.js).
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: true,
+    })
+    const ribbon = new THREE.Mesh(geometry, material)
     ribbon.renderOrder = 2
-    const scale = { value: 1 }
-    const mist = new THREE.Points(
-        mistGeometry(base, out),
-        new THREE.ShaderMaterial({
-            name: 'aerie.waterfall.mist',
-            // Round 13 thins the mist and keeps it at the haze value. A puff near the phone lens read
-            // as a pink blotch at the lower left of the phone overview (S6).
-            uniforms: { uTime: time, uScale: scale, uColor: { value: haze.clone().multiplyScalar(1.1) }, uOpacity: { value: 0.07 } },
-            vertexShader: mistVertex,
-            fragmentShader: mistFragment,
-            transparent: true,
-            depthWrite: false,
-        })
-    )
-    mist.renderOrder = 3
-    group.add(ribbon, mist)
+    group.add(ribbon)
 
     const update = (seconds) => {
         time.value = seconds
     }
-    const resize = (bufferHeight, camera) => {
-        scale.value = bufferHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2))
-    }
+    // The ribbon has no screen-sized sprite, so a resize changes nothing. scene-manager.js
+    // still calls it with the other sprite layers.
+    const resize = () => {}
     const dispose = () => {
-        group.traverse((node) => {
-            node.geometry?.dispose()
-            node.material?.dispose()
-        })
+        geometry.dispose()
+        material.dispose()
     }
     return { group, update, resize, dispose }
 }

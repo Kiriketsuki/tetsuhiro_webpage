@@ -28,6 +28,10 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 // single frames only.
 
 const AMBIENT_FPS = 30
+// The longest the reveal waits for compileAsync, in milliseconds. compileAsync polls each
+// program until the driver reports it ready, and a lost WebGL context never reports, so the
+// gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
+const COMPILE_WAIT_MS = 8000
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
@@ -377,8 +381,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
-            await renderer.compileAsync(scene, camera)
-            await renderer.compileAsync(parts.constellation.scene, parts.constellation.camera)
+            const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
+            await compiled(scene, camera)
+            await compiled(parts.constellation.scene, parts.constellation.camera)
             renderer.shadowMap.needsUpdate = true
             state.ready = true
             onProgress(1)

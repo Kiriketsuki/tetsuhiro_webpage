@@ -44,9 +44,10 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
 </script>
 
 <style scoped>
-/* A plate of night glass, like the skill cards in sky-overlay.css, with the gold hairline of
-   the chart grid. The back control sits first in it, so it is close and easy to find. The
-   plate takes no pointer events, so a drag that starts on it still moves the sky. */
+/* A plate of night glass, like the skill cards in sky-overlay.css, with a brass hairline. The
+   back control sits first in it, so it is close and easy to find. The plate takes no pointer
+   events, so a drag that starts on it still moves the sky. Each night glass token has the old
+   value as a fallback, so the plate keeps its colours on a build without those tokens. */
 .sky-head {
     position: relative;
     display: flex;
@@ -54,13 +55,13 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
     flex-direction: column;
     align-items: flex-start;
     padding: 0.75rem 1.25rem 1rem 0.75rem;
-    border: 1px solid rgb(232 192 137 / 0.28);
+    border: 1px solid var(--color-brass-dim, rgb(232 192 137 / 0.28));
     border-radius: 1rem;
     background:
         radial-gradient(circle at 86% 24%, rgb(255 255 255 / 0.7) 0 0.6px, transparent 1.2px),
         radial-gradient(circle at 70% 78%, rgb(255 255 255 / 0.45) 0 0.5px, transparent 1px),
         radial-gradient(120% 100% at 100% 0%, rgb(163 131 227 / 0.16), transparent 65%),
-        rgb(7 10 31 / 0.72);
+        var(--color-glass, rgb(7 10 31 / 0.72));
     box-shadow: 0 0.75rem 2rem rgb(2 4 16 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.06);
     backdrop-filter: blur(10px);
     pointer-events: none;
@@ -73,9 +74,9 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
     gap: 0.6rem;
     margin-bottom: 0.75rem;
     padding: 0 1rem;
-    border: 1px solid var(--color-teal-action-hover);
+    border: 1px solid var(--color-action, #14b8a6);
     border-radius: 999px;
-    background: rgb(13 148 136 / 0.22);
+    background: color-mix(in oklab, var(--color-action, #0d9488) 20%, transparent);
     color: var(--color-text-strong);
     font-family: var(--font-label);
     font-size: 0.75rem;
@@ -86,17 +87,17 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
 }
 
 .sky-arrow {
-    color: var(--color-teal-action-hover);
+    color: var(--color-action-text, #14b8a6);
     font-size: 1rem;
     letter-spacing: 0;
 }
 
 .sky-back:hover {
-    background: rgb(13 148 136 / 0.4);
+    background: color-mix(in oklab, var(--color-action, #0d9488) 36%, transparent);
 }
 
 .sky-back:focus-visible {
-    outline: 2px solid var(--color-teal-action-hover);
+    outline: 2px solid var(--color-action, #14b8a6);
     outline-offset: 3px;
 }
 

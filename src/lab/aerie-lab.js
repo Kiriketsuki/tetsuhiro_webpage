@@ -6,7 +6,7 @@ import { LOOK_OPTIONS, SITE_LOOK } from '../scene/aerie/look-options.js'
 import { NIGHT_SKY } from '../scene/aerie/sky.js'
 import { createGpuTimer } from './gpu-timer.js'
 
-// Dev-only lab for the cozy night look on the urban aerie island, after the art style of
+// Dev-only lab for the cozy night look on the urban aerie, after the art style of
 // Leaf it Alone. Open /lab/aerie.html on the dev server. The live site does not load this file.
 // Query options: ?lod=0|1 picks the GLB, ?tier=0..5 pins a tier, ?still renders one frame,
 // ?cam=<stop id> picks the start stop.
@@ -109,7 +109,7 @@ function setLooks(set) {
     control.apply(set, manager.pipeline.grade.uniforms)
     return true
 }
-// Void colour trials for the sky, the haze and the space under the island. ?void=<name>
+// Void colour trials for the sky, the haze and the space under the aerie. ?void=<name>
 // picks one at load. plum is the site colour. The lab writes the shared NIGHT_SKY colours, so
 // the sky, the haze, the city veil and the fog all follow.
 const VOIDS = {
@@ -241,7 +241,7 @@ function writeHud() {
     gpuMs = gpu.poll() ?? gpuMs
     const tier = manager.tier
     hud.textContent = [
-        `aerie lab  ${manager.lod === 1 ? 'island_b_lod1.glb' : 'island_b.glb'}  ${currentStop}  look ${[...looks].join('+') || 'base'}`,
+        `aerie lab  ${manager.lod === 1 ? 'aerie_lod1.glb' : 'aerie.glb'}  ${currentStop}  look ${[...looks].join('+') || 'base'}`,
         `tier ${tier.name}  msaa ${tier.samples}  dpr ${tier.pixelRatio}  ${reducedMotion ? 'still' : 'on demand'}`,
         `renders ${((frames * 1000) / (now - last)).toFixed(0)}/s  cpu submit ${manager.submitMs.toFixed(2)} ms  gpu ${gpuMs === null ? 'n/a' : gpuMs.toFixed(2) + ' ms'}`,
         `calls ${info.render.calls}  tris ${info.render.triangles}  points ${info.render.points}`,

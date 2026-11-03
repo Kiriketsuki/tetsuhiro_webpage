@@ -1,18 +1,18 @@
 import * as THREE from 'three'
 import { WATER_COLORS } from './water.js'
 
-// The waterfall off the island rim. One ribbon starts on the open stream mouth that
+// The waterfall off the aerie rim. One ribbon starts on the open stream mouth that
 // prepareWater (water.js) finds, so it is as wide as the stream you see and lies at the same
 // angle. The water leaves the lip level, arcs out over the soil rim on a ballistic path and
 // falls. It uses the stream palette, the same crest and the same dash speed at the lip, and
 // its streaks stretch as the water speeds up. The top 20 percent is opaque and the tail
-// fades out below the island underside, so the fall never lands. There is no mist and no
+// fades out below the aerie underside, so the fall never lands. There is no mist and no
 // noise tap.
 
 // Metres below the lip at each row after the first. The rows sit close at the rim, where the
 // sheet turns over, and far apart lower down, where it falls almost straight.
 const ROW_DROP = [0, 0.08, 0.25, 0.55, 1, 1.7, 2.8, 4.4, 6.8, 10.2, 15.2, 22]
-// The full drop, in metres. The island underside ends about 17 m below the lip, so the tail
+// The full drop, in metres. The aerie underside ends about 17 m below the lip, so the tail
 // fades out just past it.
 const DROP = 22
 // The horizontal speed at the lip, in m/s, and gravity. The face under the mouth bulges about
@@ -108,7 +108,7 @@ void main() {
     color *= 0.75 + 0.25 * smoothstep( 0.0, 0.5, edge );
 
     // The lower sheet takes the fog colour before it fades, so it sinks into the haze under
-    // the island. The grade lifts the water blues, and without this the tail read as a lit beam.
+    // the aerie. The grade lifts the water blues, and without this the tail read as a lit beam.
     #ifdef USE_FOG
     color = mix( color, fogColor, smoothstep( 0.15, 0.7, fall ) * 0.75 );
     #endif

@@ -81,7 +81,8 @@ export function createToonUniforms({ moonDirection, bounces = [], warmStrength =
         const spot = bounces[i]
         return spot ? new THREE.Vector4(spot.x, spot.y, spot.z, spot.radius) : new THREE.Vector4(0, -1e4, 0, 0)
     })
-    return {
+    const preview = import.meta.env.DEV ? (new URLSearchParams(location.search).get('walls') ?? '0,0').split(',').map(Number) : [0, 0]
+    const u = {
         uToonMoonDir: { value: moonDirection.clone().normalize() },
         // Round 9 drops the moon by about 35 percent and the fill by about 30 percent. The review
         // read the walls and the wood of S3 and S4 almost as bright as the lit windows, and asked
@@ -104,10 +105,14 @@ export function createToonUniforms({ moonDirection, bounces = [], warmStrength =
         uToonCel: { value: 0 },
         uToonShadeTint: { value: new THREE.Color(0.78, 0.74, 1.0) },
         uToonDetail: { value: detail },
+        // PREVIEW: x picks the outer wall treatment, y the wallpaper. 0 keeps the current walls.
+        uToonWall: { value: new THREE.Vector2(preview[0] || 0, preview[1] || 0) },
         uToonCarpet: { value: carpet?.texture ?? null },
         uToonCarpetShadow: { value: carpet?.shadow ?? null },
         uToonCarpetTones: { value: CARPET_TONES.map((hex) => new THREE.Color(hex)) },
     }
+    if (import.meta.env.DEV && typeof window !== 'undefined') (window.__toonUniforms ??= []).push(u)
+    return u
 }
 
 const VERTEX_PARS = /* glsl */ `
@@ -211,6 +216,10 @@ uniform float uToonRimSpread;
 uniform float uToonCel;
 uniform vec3 uToonShadeTint;
 uniform sampler2D uToonDetail;
+uniform vec2 uToonWall;
+float toonHash( float n ) { return fract( sin( n * 78.233 ) * 43758.5453 ); }
+// 1 inside a line of half width w at distance d, with a one pixel soft edge aa.
+float toonLine( float d, float w, float aa ) { return 1.0 - smoothstep( w - aa, w + aa, d ); }
 
 // Per surface family, in SURFACE order: metres per detail tile along u (the board length)
 // and v, the channel to read (R wood boards, G mottle, B paving, A leaf clumps) and the
@@ -456,9 +465,77 @@ if ( toonSurface == ${SURFACE.plaster} || toonTimbered ) {
     // Round 19 doubles the grain and adds soft vertical brush strokes, about 0.1 m wide, so a
     // 300 px crop of the wall shows painted variation (S1, S4).
     toonAlbedo *= 0.94 + 0.12 * texture2D( uToonDetail, toonPlane / 0.25 + 0.29 ).g;
-    toonAlbedo *= 0.93 + 0.14 * texture2D( uToonDetail, toonPlane / vec2( 0.12, 0.9 ) + 0.47 ).g;
+    if ( ( toonTimbered ? uToonWall.x : uToonWall.y ) < 0.5 ) toonAlbedo *= 0.93 + 0.14 * texture2D( uToonDetail, toonPlane / vec2( 0.12, 0.9 ) + 0.47 ).g;
     // Round 20 drops the round 17 value mottle at 1.4 m and the umber wear patches. The review
     // read them as a large dirty wash stain on the wall (S4). The even grain and the strokes stay.
+}
+// PREVIEW wall treatments. toonPx is metres per pixel, so each line keeps a one pixel soft edge
+// and a pattern fades to its mean where its cell spans only a few pixels.
+vec2 wq = toonPlane;
+float toonPx = max( length( fwidth( wq ) ), 1e-4 );
+bool toonUpright = toonAxis.y < max( toonAxis.x, toonAxis.z );
+if ( toonSurface == ${SURFACE.plaster} && toonUpright && uToonWall.y > 0.5 ) {
+    float wall = uToonWall.y;
+    float fl = wq.y < 4.0 ? 1.07 : wq.y < 7.2 ? 4.26 : 7.41;
+    float h = wq.y - fl;
+    vec3 paper = toonAlbedo;
+    float ink = 0.0;
+    vec3 inkColor = vec3( 0.0 );
+    if ( wall < 1.5 ) {
+        // Seigaiha: rows of wave fans, each lower row in front of the row above it.
+        float R = 0.2;
+        float rowH = R * 0.5;
+        float j0 = floor( wq.y / rowH );
+        float ring = 0.0;
+        float found = 0.0;
+        for ( int k = 3; k >= 0; k -- ) {
+            float j = j0 - float( k );
+            float off = mod( j, 2.0 ) * R;
+            float cx = floor( ( wq.x - off ) / ( 2.0 * R ) + 0.5 ) * 2.0 * R + off;
+            float d = length( vec2( wq.x - cx, wq.y - j * rowH ) );
+            if ( found < 0.5 && d < R ) {
+                found = 1.0;
+                float r = d / R * 3.0;
+                ring = toonLine( abs( fract( r ) - 0.5 ) * R / 3.0, 0.009, toonPx );
+                ring = max( ring, toonLine( R - d, 0.007, toonPx ) );
+            }
+        }
+        ink = ring;
+        inkColor = vec3( 0.42, 0.5, 0.46 );
+        ink = mix( ink, 0.3, smoothstep( 0.012, 0.03, toonPx ) );
+    } else if ( wall < 2.5 ) {
+        // Asanoha: an equilateral triangle grid, each triangle split by spokes from its centre.
+        float L = 0.32;
+        vec2 p = wq / L;
+        vec2 g = vec2( p.x - p.y * 0.57735, p.y * 1.1547 );
+        vec2 f = fract( g );
+        vec3 w = f.x > f.y ? vec3( 1.0 - f.x, f.x - f.y, f.y ) : vec3( 1.0 - f.y, f.y - f.x, f.x );
+        float lo = min( w.x, min( w.y, w.z ) );
+        float hi = max( w.x, max( w.y, w.z ) );
+        float mid = 1.0 - lo - hi;
+        float d = min( lo, ( mid - lo ) * 0.58 ) * L * 0.866;
+        ink = toonLine( d, 0.007, toonPx );
+        inkColor = vec3( 0.56, 0.3, 0.2 );
+        ink = mix( ink, 0.22, smoothstep( 0.01, 0.025, toonPx ) );
+        paper *= vec3( 1.04, 0.98, 0.86 );
+    } else {
+        // Stripe: two muted bands, a fine pin line at each edge.
+        float s = wq.x / 0.18;
+        float band = step( 0.5, fract( s ) );
+        float e = abs( fract( s * 2.0 ) - 0.5 ) * 0.09;
+        paper = mix( paper * vec3( 1.04, 0.98, 0.84 ), paper * vec3( 0.84, 0.9, 0.8 ), mix( band, 0.5, smoothstep( 0.01, 0.03, toonPx ) ) );
+        ink = toonLine( 0.045 - e, 0.003, toonPx ) * ( 1.0 - smoothstep( 0.004, 0.01, toonPx ) );
+        inkColor = vec3( 0.52, 0.34, 0.22 );
+    }
+    paper = mix( paper, inkColor * dot( paper, vec3( 0.333 ) ) * 1.6, ink );
+    // A honey wood wainscot under a dark chair rail, about 0.9 m up from the room floor.
+    float boards = 0.9 + 0.2 * toonHash( floor( wq.x / 0.14 ) );
+    boards *= 0.85 + 0.3 * texture2D( uToonDetail, vec2( wq.x / 0.06, wq.y / 0.8 ) ).g;
+    float seam = toonLine( ( 0.5 - abs( fract( wq.x / 0.14 ) - 0.5 ) ) * 0.14, 0.004, toonPx );
+    vec3 wains = vec3( 0.62, 0.42, 0.26 ) * boards * ( 1.0 - 0.4 * seam );
+    float under = 1.0 - smoothstep( 0.86 - toonPx, 0.86 + toonPx, h );
+    float rail = toonLine( abs( h - 0.89 ), 0.035, toonPx );
+    toonAlbedo = mix( mix( paper, wains, under ), vec3( 0.34, 0.22, 0.14 ), rail );
 }
 // The outer walls read as the warm cream plaster of the store page cottages. Round 13 drops
 // the painted timber posts and braces: under the cladding boards they read as hard dark
@@ -468,6 +545,56 @@ if ( toonTimbered ) {
     // The outer walls take back some of the yellow of the indoor plaster cut, so they read
     // as a warm cream and not as mustard.
     toonAlbedo *= vec3( 1.08, 1.1, 1.2 );
+    float wall = uToonWall.x;
+    float top = wq.y < 4.05 ? 3.91 : wq.y < 7.3 ? 7.21 : 10.36;
+    if ( wall > 0.5 && wall < 1.5 ) {
+        // Board and batten: upright boards 0.3 m wide, a raised batten over each joint with a
+        // soft shade line on one side.
+        float bu = wq.x / 0.3;
+        float bf = fract( bu );
+        float board = 0.92 + 0.16 * toonHash( floor( bu ) );
+        board *= 0.88 + 0.24 * texture2D( uToonDetail, vec2( wq.x / 0.07, wq.y / 1.4 ) ).g;
+        float d = min( bf, 1.0 - bf ) * 0.3;
+        float batten = toonLine( d, 0.032, toonPx );
+        float shade = toonLine( abs( bf * 0.3 - 0.05 ), 0.018, toonPx );
+        float fade = 1.0 - smoothstep( 0.01, 0.025, toonPx );
+        toonAlbedo *= board * mix( 1.0, ( 1.0 + 0.12 * batten ) * ( 1.0 - 0.32 * shade ), fade );
+    } else if ( wall < 2.5 && wall > 0.5 ) {
+        // Lime plaster: broad trowel strokes in two crossing directions, each stroke a soft
+        // field with a firm lifted edge, picked by a broad mottle.
+        vec2 a = mat2( 0.8, 0.6, -0.6, 0.8 ) * wq;
+        vec2 b = mat2( 0.8, -0.6, 0.6, 0.8 ) * wq;
+        float t1 = texture2D( uToonDetail, a / vec2( 2.2, 0.5 ) + 0.13 ).g;
+        float t2 = texture2D( uToonDetail, b / vec2( 2.2, 0.5 ) + 0.61 ).g;
+        float pick = smoothstep( 0.4, 0.6, texture2D( uToonDetail, wq / 2.4 + 0.37 ).g );
+        float t = mix( t1, t2, pick );
+        float stroke = smoothstep( 0.42, 0.56, t );
+        float edge = toonLine( abs( t - 0.56 ), 0.01, fwidth( t ) );
+        toonAlbedo *= vec3( 1.06, 1.04, 1.0 ) * ( 0.95 + 0.06 * stroke + 0.05 * edge );
+    } else if ( wall > 0.5 ) {
+        // Cedar shingles: courses 0.2 m tall, staggered, each shingle its own value, a dark
+        // shade under the butt of the course above and a fine gap between shingles.
+        float row = floor( wq.y / 0.2 );
+        float rf = fract( wq.y / 0.2 );
+        float su = wq.x / 0.16 + toonHash( row ) ;
+        float sf = fract( su );
+        float sh = toonHash( floor( su ) + row * 17.0 );
+        float v = 0.84 + 0.24 * sh;
+        v *= 0.88 + 0.24 * texture2D( uToonDetail, vec2( wq.x / 0.04, wq.y / 0.5 ) ).g;
+        float fade = 1.0 - smoothstep( 0.008, 0.02, toonPx );
+        float butt = smoothstep( 0.72, 1.0, rf );
+        float gap = toonLine( min( sf, 1.0 - sf ) * 0.16, 0.004, toonPx );
+        v *= mix( 1.0, ( 1.0 - 0.38 * butt ) * ( 1.0 - 0.45 * gap ) * ( 1.0 + 0.1 * toonLine( rf * 0.2, 0.01, toonPx ) ), fade );
+        toonAlbedo *= vec3( 0.98, 0.86, 0.7 ) * v;
+    }
+    if ( wall > 0.5 ) {
+        // A dark timber trim band under the eaves and along the floor line of each storey.
+        float trim = toonLine( abs( wq.y - top + 0.12 ), 0.12, toonPx );
+        float base = wq.y < 4.05 ? 1.0 : wq.y < 7.3 ? 4.2 : 7.35;
+        trim = max( trim, toonLine( abs( wq.y - base - 0.09 ), 0.09, toonPx ) * step( 2.0, wq.y ) );
+        vec3 timber = vec3( 0.36, 0.25, 0.17 ) * ( 0.88 + 0.24 * texture2D( uToonDetail, vec2( wq.x / 0.9, wq.y / 0.05 ) ).g );
+        toonAlbedo = mix( toonAlbedo, timber, trim );
+    }
     float stoneBase = 1.0 - smoothstep( 1.66, 1.7, vToonWorld.y );
     // Round 13 darkens and warms the base, which read as a milky grey plinth through the S2 glass.
     // Round 19 paints the base as chunky warm grey-tan blocks about 0.4 m across under a darker

@@ -18,6 +18,10 @@ user asked for a finer telescope under 5,000 triangles, aligned so the view look
 - The tube points north along the terrace and 30 degrees up, over the north railing into open
   sky. Its eyepiece faces south, toward the telescope stop camera, over the observing stool.
   So the camera can end on the optical axis, behind the eye lens.
+- SS_TL_Scope_Lod1 is a slim copy of about 1,200 triangles for the mobile GLB. It drops the small
+  knobs, screws and tray holes and uses fewer segments, but keeps a rounder eyepiece, because a
+  phone sees the eyepiece fill the frame under the iris. export_island_b.py puts it in the mobile
+  GLB only, and drops SS_TL_Telescope from that GLB.
 - The report gives the eye lens centre and the optical axis in the glTF frame, for stops.js.
 Nothing else moves.
 """
@@ -33,7 +37,13 @@ REPORT = ROOT / 'island_b_route_r35_report.json'
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 
 OBJECT = 'SS_TL_Telescope'
+SLIM_OBJECT = 'SS_TL_Scope_Lod1'
 BUDGET = 5000
+# The mobile GLB stays under its 70,000 triangle target with a slim telescope of up to 2,300.
+SLIM_BUDGET = 1600
+# Segment counts of the slim copy. A part marked fine (the eyepiece) keeps 12 segments.
+SLIM_SEGMENTS = 8
+SLIM_FINE = 12
 # Material slots. The site paints every bright metal in one brass, and paints the dark metal
 # inside the tube box as a light brass bevel (island-look.js), so the bands read as lit rings.
 # A_screen is a faint warm emitter on the site, so the lenses read as lit glass.
@@ -55,8 +65,14 @@ TUBE_R = 0.085
 class Mesh:
     """A bmesh with small solid builders. Every builder takes world points in metres."""
 
-    def __init__(self):
+    def __init__(self, slim=False):
         self.bm = bmesh.new()
+        self.slim = slim
+
+    def seg(self, n, fine=False):
+        if not self.slim:
+            return n
+        return SLIM_FINE if fine else min(n, SLIM_SEGMENTS if n > 8 else 6)
 
     def frame(self, axis):
         axis = axis.normalized()
@@ -77,9 +93,9 @@ class Mesh:
         for i in range(n):
             self.face([a[i], a[(i + 1) % n], b[(i + 1) % n], b[i]], mat)
 
-    def tube(self, a, b, r1, r2=None, n=24, mat=BRASS, caps=(True, True), turn=0.0):
+    def tube(self, a, b, r1, r2=None, n=24, mat=BRASS, caps=(True, True), turn=0.0, fine=False):
         """A cylinder or a cone from a to b. Each cap is a single n-gon."""
-        a, b = Vector(a), Vector(b)
+        a, b, n = Vector(a), Vector(b), self.seg(n, fine)
         _, u, v = self.frame(b - a)
         ra = self.ring(a, r1, u, v, n, turn)
         rb = self.ring(b, r1 if r2 is None else r2, u, v, n, turn)
@@ -90,9 +106,9 @@ class Mesh:
             self.face(rb, mat)
         return ra, rb
 
-    def shell(self, a, b, r_out, r_in, n=24, mat=BRASS, lips=(True, True), inner=True):
+    def shell(self, a, b, r_out, r_in, n=24, mat=BRASS, lips=(True, True), inner=True, fine=False):
         """An open sleeve with flat annular lips. A sleeve that hugs a tube needs no inner wall."""
-        a, b = Vector(a), Vector(b)
+        a, b, n = Vector(a), Vector(b), self.seg(n, fine)
         _, u, v = self.frame(b - a)
         oa, ob = self.ring(a, r_out, u, v, n), self.ring(b, r_out, u, v, n)
         ia, ib = self.ring(a, r_in, u, v, n), self.ring(b, r_in, u, v, n)
@@ -117,8 +133,9 @@ class Mesh:
         """A knurled knob: a cylinder with a slightly larger grip ring."""
         a, b = Vector(a), Vector(b)
         mid = a.lerp(b, 0.35)
-        self.tube(a, mid, r * 0.55, n=8, mat=mat, caps=(False, False))
-        self.tube(mid, b, r, n=n, mat=mat)
+        if not self.slim:
+            self.tube(a, mid, r * 0.55, n=8, mat=mat, caps=(False, False))
+        self.tube(a if self.slim else mid, b, r, n=n, mat=mat)
 
     def triangles(self):
         return sum(len(f.verts) - 2 for f in self.bm.faces)
@@ -138,7 +155,7 @@ def optical_tube(m):
     m.shell(along(0.64), along(0.665), TUBE_R + 0.006, TUBE_R - 0.012, n=24, mat=BAND)
     m.tube(along(0.655), along(0.66), TUBE_R - 0.011, n=24, mat=GLASS)
     # Bevel bands along the tube.
-    for t in (-0.52, -0.30, 0.30, 0.50):
+    for t in (-0.52, 0.50) if m.slim else (-0.52, -0.30, 0.30, 0.50):
         m.shell(along(t - 0.012), along(t + 0.012), TUBE_R + 0.006, TUBE_R, n=24, mat=BAND, inner=False)
     # The rear cell narrows to the focuser.
     m.tube(along(-0.60), along(-0.64), TUBE_R + 0.004, 0.052, n=24, mat=BAND, caps=(False, False))
@@ -155,11 +172,11 @@ def focuser(m):
         m.knob(along(-0.70, side=0.025 * s, up=-0.042), along(-0.70, side=0.072 * s, up=-0.042), 0.022)
     # The eyepiece: a barrel, a wider body with a grip ring, a rubber eyecup and the eye lens.
     m.tube(along(-0.79), along(-0.84), 0.019, n=20, mat=STEEL, caps=(False, False))
-    m.tube(along(-0.84), along(-0.90), 0.026, n=20, mat=BRASS, caps=(True, False))
+    m.tube(along(-0.84), along(-0.90), 0.026, n=20, mat=BRASS, caps=(True, False), fine=True)
     m.shell(along(-0.865), along(-0.875), 0.028, 0.026, n=20, mat=BAND, inner=False)
-    m.shell(along(-0.90), along(-0.925), 0.031, 0.022, n=20, mat=RUBBER)
+    m.shell(along(-0.90), along(-0.925), 0.031, 0.022, n=20, mat=RUBBER, fine=True)
     lens = along(-0.912)
-    m.tube(along(-0.90), lens, 0.022, n=20, mat=GLASS, caps=(False, True))
+    m.tube(along(-0.90), lens, 0.022, n=20, mat=GLASS, caps=(False, True), fine=True)
     return lens
 
 
@@ -168,9 +185,11 @@ def finder(m):
     side, up = 0.055, TUBE_R + 0.062
     for t in (-0.12, 0.10):
         m.tube(along(t, side * 0.55, TUBE_R - 0.004), along(t, side, up - 0.024), 0.008, n=6, mat=STEEL, caps=(False, True))
-        m.shell(along(t - 0.012, side, up), along(t + 0.012, side, up), 0.027, 0.020, n=14, mat=BAND, inner=False)
+        if not m.slim:
+            m.shell(along(t - 0.012, side, up), along(t + 0.012, side, up), 0.027, 0.020, n=14, mat=BAND, inner=False)
     m.tube(along(-0.24, side, up), along(0.22, side, up), 0.020, n=14, mat=BRASS, caps=(True, False))
-    m.shell(along(0.22, side, up), along(0.29, side, up), 0.026, 0.021, n=14, mat=BRASS)
+    if not m.slim:
+        m.shell(along(0.22, side, up), along(0.29, side, up), 0.026, 0.021, n=14, mat=BRASS)
     m.tube(along(0.24, side, up), along(0.245, side, up), 0.021, n=14, mat=GLASS, caps=(False, True))
     m.tube(along(-0.24, side, up), along(-0.29, side, up), 0.011, n=10, mat=STEEL)
 
@@ -179,7 +198,8 @@ def cradle(m):
     # Two cradle rings clamp the tube at the axle, each with a clamp screw on top.
     for t in (-0.14, 0.14):
         m.shell(along(t - 0.02), along(t + 0.02), TUBE_R + 0.016, TUBE_R, n=24, mat=STEEL, inner=False)
-        m.knob(along(t, up=TUBE_R + 0.016), along(t, up=TUBE_R + 0.05), 0.012)
+        if not m.slim:
+            m.knob(along(t, up=TUBE_R + 0.016), along(t, up=TUBE_R + 0.05), 0.012)
     # A dovetail bar under the rings, and the trunnion bosses that ride in the fork.
     m.box(along(0, up=-(TUBE_R + 0.026)), (0.38, 0.045, 0.02), (AXIS, SIDE, UP), STEEL)
     for s in (1, -1):
@@ -200,6 +220,8 @@ def mount(m):
         # The altitude bearing and its clamp knob outside each arm.
         m.tube(AXLE + SIDE * s * 0.146, AXLE + SIDE * s * 0.165, 0.036, n=20, mat=BAND)
         m.knob(AXLE + SIDE * s * 0.165, AXLE + SIDE * s * 0.205, 0.022)
+    if m.slim:
+        return
     # The azimuth lock knob on the turntable.
     m.knob(head + Vector((0, 0, 0.025)) - SIDE.cross(Vector((0, 0, 1))) * 0.085, head + Vector((0, 0, 0.025)) - SIDE.cross(Vector((0, 0, 1))) * 0.125, 0.016)
     # A slow-motion rod from the right arm to the rear band, with a knob for the hand.
@@ -219,16 +241,18 @@ def tripod(m):
         hinge = head + out * 0.075
         foot = FOOT + out * 0.42
         side = out.cross(Vector((0, 0, 1)))
-        # The hinge: two brass cheeks on the head.
-        for s in (1, -1):
+        # The hinge: two brass cheeks on the head, and the pin through them.
+        for s in () if m.slim else (1, -1):
             m.box(hinge + side * s * 0.022 + Vector((0, 0, 0.004)), (0.04, 0.008, 0.05), (out, side, Vector((0, 0, 1))), BRASS)
-        m.tube(hinge + side * 0.03, hinge - side * 0.03, 0.008, n=8, mat=STEEL)
+        if not m.slim:
+            m.tube(hinge + side * 0.03, hinge - side * 0.03, 0.008, n=8, mat=STEEL)
         # Each leg is an upper wooden stile and a slimmer lower stile, joined by a brass clamp.
         knee = hinge.lerp(foot, 0.55)
         m.tube(hinge, knee, 0.024, 0.021, n=6, mat=WOOD, turn=math.pi / 6)
         m.tube(hinge.lerp(foot, 0.48), foot + Vector((0, 0, 0.03)), 0.016, 0.014, n=6, mat=WOOD, turn=math.pi / 6)
         m.shell(hinge.lerp(foot, 0.53), hinge.lerp(foot, 0.58), 0.028, 0.021, n=8, mat=BRASS, inner=False)
-        m.knob(hinge.lerp(foot, 0.555) + out * 0.022, hinge.lerp(foot, 0.555) + out * 0.05, 0.010)
+        if not m.slim:
+            m.knob(hinge.lerp(foot, 0.555) + out * 0.022, hinge.lerp(foot, 0.555) + out * 0.05, 0.010)
         m.tube(foot + Vector((0, 0, 0.03)), foot + Vector((0, 0, 0.008)), 0.017, 0.019, n=8, mat=BRASS, caps=(False, False))
         m.tube(foot + Vector((0, 0, 0.008)), foot, 0.019, n=8, mat=RUBBER, caps=(False, True))
         knees.append(head.lerp(foot, (HEAD_Z - tray_height) / HEAD_Z))
@@ -242,12 +266,14 @@ def tripod(m):
     m.bridge(top, bottom, WOOD)
     for k, c in zip(knees, corners):
         m.box(k.lerp(c, 0.5) + Vector((0, 0, 0.006)), ((k - c).length + 0.02, 0.016, 0.012), ((k - c).normalized(), (k - c).normalized().cross(Vector((0, 0, 1))), Vector((0, 0, 1))), BRASS)
+        if m.slim:
+            continue
         hole = centre.lerp(c, 0.55) + Vector((0, 0, 0.0125))
         m.tube(hole, hole + Vector((0, 0, 0.002)), 0.016, n=10, mat=RUBBER, caps=(False, True))
 
 
-def build():
-    m = Mesh()
+def build(slim=False):
+    m = Mesh(slim)
     optical_tube(m)
     lens = focuser(m)
     finder(m)
@@ -287,8 +313,19 @@ def main():
     tris = m.triangles()
     assert tris <= BUDGET, f'{tris} triangles, over the {BUDGET} budget'
     apply(ob, m)
+    # The slim copy lives beside the full telescope, in its collection, with its own mesh.
+    slim_mesh, _ = build(slim=True)
+    slim_tris = slim_mesh.triangles()
+    assert slim_tris <= SLIM_BUDGET, f'{slim_tris} slim triangles, over the {SLIM_BUDGET} budget'
+    slim = bpy.data.objects.get(SLIM_OBJECT)
+    if slim is None:
+        slim = bpy.data.objects.new(SLIM_OBJECT, bpy.data.meshes.new(SLIM_OBJECT))
+        for collection in ob.users_collection:
+            collection.objects.link(slim)
+    apply(slim, slim_mesh)
     report = {
         'object': OBJECT, 'triangles_before': before, 'triangles': tris, 'budget': BUDGET,
+        'slim_object': SLIM_OBJECT, 'slim_triangles': slim_tris, 'slim_budget': SLIM_BUDGET,
         'eye_lens_gltf': to_gltf(lens), 'optical_axis_gltf': to_gltf(AXIS),
         'axle_gltf': to_gltf(AXLE), 'foot_gltf': to_gltf(FOOT),
     }

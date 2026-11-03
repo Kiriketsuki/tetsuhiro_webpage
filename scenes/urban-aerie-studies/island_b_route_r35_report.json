@@ -3,6 +3,9 @@
   "triangles_before": 944,
   "triangles": 4668,
   "budget": 5000,
+  "slim_object": "SS_TL_Scope_Lod1",
+  "slim_triangles": 1590,
+  "slim_budget": 1600,
   "eye_lens_gltf": [
     -7.5688,
     8.3739,

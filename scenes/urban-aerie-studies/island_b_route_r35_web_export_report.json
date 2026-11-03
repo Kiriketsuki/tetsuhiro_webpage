@@ -485,6 +485,15 @@
         "p10": 0.318,
         "min": 0.065
       }
+    },
+    "lod1_only": {
+      "Scope_Lod1": {
+        "vertices": 1030,
+        "rays": 60912,
+        "area_mean": 0.76,
+        "p10": 0.332,
+        "min": 0.0
+      }
     }
   },
   "desktop": {
@@ -664,7 +673,7 @@
       "draws": 100
     }
   },
-  "lod1_thinned_faces": 34688,
+  "lod1_thinned_faces": 36736,
   "lod1": {
     "meshes": {
       "Glass": {
@@ -726,8 +735,8 @@
         "custom_normals": false
       },
       "Props": {
-        "tris": 6550,
-        "draws": 9,
+        "tris": 1882,
+        "draws": 8,
         "materials": [
           "web_dark_matte",
           "web_rock",
@@ -736,8 +745,7 @@
           "web_metal_bright",
           "web_wood",
           "web_emit_ember",
-          "web_soft_goods",
-          "web_emit_screen"
+          "web_soft_goods"
         ],
         "smooth_faces": 0,
         "custom_normals": false
@@ -804,23 +812,36 @@
         ],
         "smooth_faces": 0,
         "custom_normals": false
+      },
+      "Scope_Lod1": {
+        "tris": 1590,
+        "draws": 5,
+        "materials": [
+          "web_metal_dark",
+          "web_metal_bright",
+          "web_wood",
+          "web_dark_matte",
+          "web_emit_screen"
+        ],
+        "smooth_faces": 0,
+        "custom_normals": false
       }
     },
-    "tris": 72333,
-    "draws": 50,
+    "tris": 69255,
+    "draws": 54,
     "materials": 22,
-    "raw_bytes": 7072340,
+    "raw_bytes": 6866564,
     "glb": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\.claude\\worktrees\\goofy-gauss-9f2eca\\src\\assets\\models\\island_b_lod1.glb",
     "compress": {
-      "bytes": 597708,
+      "bytes": 590028,
       "steps": [
         "dedup",
         "prune",
         "draco"
       ]
     },
-    "within_budget": false
+    "within_budget": true
   },
-  "raw_dir": "C:\\Users\\Kidriel\\AppData\\Local\\Temp\\claude\\island_b_raw_anqzmgl3",
+  "raw_dir": "C:\\Users\\Kidriel\\AppData\\Local\\Temp\\claude\\island_b_raw_va6zzuk6",
   "source_untouched": true
 }

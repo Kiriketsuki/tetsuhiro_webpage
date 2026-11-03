@@ -56,7 +56,8 @@ watch(() => props.id, arrive)
     z-index: 30;
     top: 1rem;
     right: 1rem;
-    bottom: 1rem;
+    /* The site navbar (about 51 px, 43 px on a phone) stays on top of the page, so the sheet ends above it. */
+    bottom: 4.25rem;
     display: flex;
     width: min(26.25rem, 40vw);
     flex-direction: column;
@@ -82,10 +83,10 @@ watch(() => props.id, arrive)
     .sheet {
         top: auto;
         right: 0;
-        bottom: 0;
+        bottom: 2.7rem;
         left: 0;
         width: auto;
-        max-height: 72vh;
+        max-height: calc(72vh - 2.7rem);
         border-radius: 14px 14px 0 0;
         animation-name: sheet-up;
     }

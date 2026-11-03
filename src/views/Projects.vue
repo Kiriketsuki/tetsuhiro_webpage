@@ -115,11 +115,11 @@ onBeforeUnmount(() => wall.highlight(null))
     list-style: none;
 }
 
-/* Off screen until it has focus. Then it shows as a small label above the pad. */
+/* Off screen until it has focus. Then it shows as a small label above the pad and the navbar. */
 .wall-index a {
     position: fixed;
     z-index: 25;
-    bottom: 1rem;
+    bottom: 4.25rem;
     left: -9999px;
     padding: 0.4rem 0.7rem;
     border: 2px solid var(--color-rose);

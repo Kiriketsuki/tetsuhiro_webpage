@@ -154,6 +154,7 @@ const pages = {
     },
     island: {
         blurb: 'This site: a night island built in Blender and drawn in Three.js.',
+        coverAlt: 'The island at night: a tall house with a steel frame, red autumn trees and lit windows.',
         body: [
             'You are standing in it. The island is modelled in Blender and drawn in Three.js, with toon shading, a soft ink outline and a split tone, after the cozy look of Leaf it Alone.',
             'The first version of this site went up in 2022. I rebuilt it in 2025, and again in 2026 around this island: a workshop with this corkboard, a telescope that opens onto the skills, and a city of lights below.',

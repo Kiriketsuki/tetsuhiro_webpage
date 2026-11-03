@@ -4,7 +4,9 @@ import { findProject } from '../data/projects.js'
 import { withPage } from '../data/project-pages.js'
 import { createDetail } from './wall/detail.js'
 
-// Dev-only lab for the projects evidence wall. Open /lab/wall.html?dir=a on the dev server.
+// Dev-only lab for the projects evidence wall. Open /lab/wall.html?dir=b on the dev server.
+// Direction a won, and it lives on the site now (src/scene/aerie/wall.js), so the lab keeps
+// only the two directions that lost, as a record.
 // The live site does not load this file. Each direction is one module in src/lab/wall/ that
 // draws the board, the pins and the strings. This file gives every direction the same input,
 // the same keyboard index and the same detail panel, so the captures compare only the look.
@@ -16,13 +18,12 @@ import { createDetail } from './wall/detail.js'
 // pan takes screen pixels. zoom takes a factor above 1 to zoom in, about the screen point x, y.
 
 const DIRECTIONS = {
-    a: { label: 'a: lamp-lit 3D wall', load: () => import('./wall/dir-a.js') },
     b: { label: 'b: paper over cork', load: () => import('./wall/dir-b.js') },
     c: { label: 'c: case file', load: () => import('./wall/dir-c.js') },
 }
 
 const params = new URLSearchParams(location.search)
-const dirId = DIRECTIONS[params.get('dir')] ? params.get('dir') : 'a'
+const dirId = DIRECTIONS[params.get('dir')] ? params.get('dir') : 'b'
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const small = window.matchMedia('(max-width: 767px)').matches
 

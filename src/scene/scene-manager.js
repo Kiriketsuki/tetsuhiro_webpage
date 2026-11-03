@@ -17,6 +17,7 @@ import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
+import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
@@ -462,8 +463,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         parts.roomBoard = room
         const home = built.home
         const k = room.group.scale.x
+        // A narrow screen widens the rig's lens (fitFov), so the stop comes closer by as much.
+        const lens = Math.tan(THREE.MathUtils.degToRad(15)) / Math.tan(THREE.MathUtils.degToRad(fitFov(30, camera.aspect) / 2))
         const target = centre.clone().addScaledVector(right, home.x * k).addScaledVector(up, home.y * k)
-        const position = target.clone().addScaledVector(normal, home.d * k)
+        const position = target.clone().addScaledVector(normal, home.d * k * lens)
         shots.board = { position, target, focus: target.clone(), fov: 30, shift: [0, 0], tall: [0, 0], zoom: 1, tallZoom: 1 }
         rig.setShots(shots)
         renderer.shadowMap.needsUpdate = true

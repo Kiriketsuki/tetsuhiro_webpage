@@ -25,7 +25,7 @@ let wallBuilt = false
 const wall = useWall()
 // index.html shows the gate art on a first visit to Home only. Behind the gate the visitor
 // waits anyway, so there the gate also waits for the evidence wall and the camera planner.
-// Both built after the gate opened before, and their long tasks stalled the first moves.
+// Built after the gate, their long tasks of up to 2 s hit the lit lantern and the first moves.
 // The scene build is SCENE_SHARE of the gate meter. Past EXTRAS_WAIT_MS the gate opens anyway.
 const gated = Boolean(document.getElementById('gate-art')) && !document.getElementById('gate-art').hidden
 // The wall and the planner take about a quarter of the wait on a phone at 6x CPU and on slow 3G.

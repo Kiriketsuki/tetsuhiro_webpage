@@ -4,7 +4,7 @@
             <template #top>
                 <header class="sky-head">
                     <p class="label">
-                        <span class="text-violet">03 / skills</span>
+                        <span class="text-violet">04 / skills</span>
                         <span class="text-text-muted">&middot; tap a constellation, then a star</span>
                     </p>
                     <h1 class="font-slab text-[clamp(1.9rem,5vw,3.25rem)] leading-none text-text-strong">Skill tree</h1>

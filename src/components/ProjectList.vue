@@ -1,7 +1,7 @@
 <template>
     <main class="flex min-h-screen w-screen flex-col items-center gap-10 px-5 pt-16 pb-32">
         <header class="flex w-full max-w-6xl flex-col gap-4">
-            <p class="label text-rose">04 / projects</p>
+            <p class="label text-rose">02 / projects</p>
             <h1 class="font-slab text-[clamp(2.75rem,8vw,6rem)] leading-none text-text-strong">
                 Things I have made
             </h1>

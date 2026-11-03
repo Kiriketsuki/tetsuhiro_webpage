@@ -30,6 +30,10 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 // single frames only.
 
 const AMBIENT_FPS = 30
+// The frames the governor judges a tier on, and how long after a drag, pinch or tap a frame still
+// counts as steered, in milliseconds.
+const GOVERNOR_FRAMES = { desktop: 90, mobile: 30 }
+const STEER_MS = 250
 // The longest the reveal waits for compileAsync, in milliseconds. compileAsync polls each
 // program until the driver reports it ready, and a lost WebGL context never reports, so the
 // gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
@@ -117,11 +121,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         state.dirty = true
     }
 
+    // A phone judges its tier on a shorter run of frames, so a slow phone steps down within about
+    // a second of a drag, not after three seconds of lag.
     const governor = createGovernor({
         budgetMs: small ? BUDGET_MS.mobile : BUDGET_MS.desktop,
         tier: tierIndex,
+        window: small ? GOVERNOR_FRAMES.mobile : GOVERNOR_FRAMES.desktop,
         onStep: (next) => buildPipeline(next),
     })
+    // The time of the last drag, pinch or tap. A drag moves the camera through look offsets, which
+    // rig.moving does not report, so the governor also counts the frames drawn just after one.
+    let steeredAt = -Infinity
 
     // The lens follows the stop's focus point. It fades out during a move between stops, so the
     // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
@@ -251,11 +261,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.leaves?.update(seconds)
             ambient = 0
         }
-        const moving = rig.moving
+        const moving = rig.moving || performance.now() - steeredAt < STEER_MS
         render()
-        // Only frames the camera drives count toward the governor. They draw on every
-        // animation frame, so the time between them is the real frame time. The 30 fps
-        // ambient clock would read as a slow device.
+        // Only frames the camera drives count toward the governor: a move between stops, the ease
+        // back after a drag, and a drag or pinch itself. They draw on every animation frame, so
+        // the time between them is the real frame time. The 30 fps ambient clock would read as a
+        // slow device.
         if (moving && tier === null) governor.sample(delta * 1000, performance.now())
     }
 
@@ -455,6 +466,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             update()
         },
         pan: (dx, dy) => {
+            steeredAt = performance.now()
             if (view === 'sky') parts.constellation.pan(dx, dy)
             else rig.pan(dx, dy)
             requestRender()
@@ -463,10 +475,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // under it, or back out to the whole sky.
         tap: (x, y) => {
             if (view !== 'sky') return
+            steeredAt = performance.now()
             parts.constellation.focus((x / window.innerWidth) * 2 - 1, 1 - (y / window.innerHeight) * 2, state.reduced)
             requestRender()
         },
         zoom: (factor) => {
+            steeredAt = performance.now()
             if (view === 'sky') parts.constellation.zoom(factor)
             else rig.zoom(factor)
             requestRender()

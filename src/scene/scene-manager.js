@@ -128,8 +128,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
     // lens is, so the ring fades with it.
     // A custom property on the root restyles every element of the page, so the shell names the
-    // ring through lensTarget, and only the ring restyles. The ring is looked up again when it
-    // leaves the document.
+    // ring through lensTarget, and only the ring restyles. lensElement asks lensTarget again for
+    // a ring that has left the document.
     let lensRing = null
     const lensElement = () => {
         if (!lensRing?.isConnected) lensRing = lensTarget?.() ?? null

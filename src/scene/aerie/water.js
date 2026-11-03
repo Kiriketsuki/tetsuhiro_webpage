@@ -48,7 +48,7 @@ const MOUTH_SAMPLES = 25
 const MOUTH_PROBE = 0.15
 const RAY_HEIGHT = 2
 // One drop-ray grid per ground array. shapeIsland passes the same array to every water mesh, so
-// the grid is built once. The ground meshes must not change while the array lives.
+// prepareWater builds the grid once. The ground meshes must not change while the array lives.
 const dropRays = new WeakMap()
 
 const vertexShader = /* glsl */ `

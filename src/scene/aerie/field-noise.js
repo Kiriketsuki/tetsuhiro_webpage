@@ -105,10 +105,13 @@ export const luma = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
 
 // True for the colour layout the baked islands use: a plain, normalized Uint16 attribute. The
 // fast loops below read and write the raw array and repeat what getX and setXYZ do for this
-// layout, which is a divide or a Math.round by 65535. Any other layout takes the slow path.
+// layout, which is a divide or a Math.round by 65535. Any other layout takes the slow path. A
+// Float16BufferAttribute also keeps a Uint16Array, but its getX decodes half floats, so it
+// takes the slow path too.
 function isPlainUint16Color(color) {
     return (
         color.array.constructor === Uint16Array &&
+        !color.isFloat16BufferAttribute &&
         color.normalized === true &&
         !color.isInterleavedBufferAttribute &&
         color.itemSize >= 3
@@ -160,6 +163,7 @@ export function paintVertices(mesh, paint) {
     if (
         isPlainUint16Color(color) &&
         !position.isInterleavedBufferAttribute &&
+        !position.isFloat16BufferAttribute &&
         !position.normalized &&
         position.itemSize === 3 &&
         position.count >= color.count

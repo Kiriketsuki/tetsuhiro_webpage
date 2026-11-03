@@ -10,7 +10,7 @@ const props = defineProps({
     back: { type: String, default: 'back to the skills' },
 })
 const router = useRouter()
-const { exploring, pan, zoom, tap } = useExplore()
+const { exploring, pan, zoom, tap, hover } = useExplore()
 
 // One finger drags the view. Two fingers drag and pinch at the same time. One finger
 // that lifts within TAP_SLOP pixels of where it went down is a tap.
@@ -35,13 +35,16 @@ const onDown = (e) => {
     } catch {
         // The drag still works without capture.
     }
-    press = pointers.size ? null : { x: e.clientX, y: e.clientY }
+    press = pointers.size ? null : { x: e.clientX, y: e.clientY, type: e.pointerType }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
     last = snapshot()
 }
 
 const onMove = (e) => {
-    if (!pointers.has(e.pointerId)) return
+    if (!pointers.has(e.pointerId)) {
+        if (e.pointerType === 'mouse') hover(e.clientX, e.clientY)
+        return
+    }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > TAP_SLOP) press = null
     const now = snapshot()
@@ -53,7 +56,7 @@ const onMove = (e) => {
 const onUp = (e) => {
     pointers.delete(e.pointerId)
     last = pointers.size ? snapshot() : null
-    if (press && !pointers.size && e.type === 'pointerup') tap(press.x, press.y)
+    if (press && !pointers.size && e.type === 'pointerup') tap(press.x, press.y, press.type)
     press = null
 }
 

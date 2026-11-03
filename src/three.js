@@ -170,12 +170,22 @@ function boot() {
 
     // Drag and pinch from ExplorePad.vue look around the current stop.
     const explore = useExplore()
-    // A tap on the wall that lands on a pin opens it.
-    const tap = (x, y) => {
-        const id = manager.tap(x, y)
-        if (id) wall.picked.value = id
+    // A tap on the wall tells the page which pin it hit, or null for the cork.
+    const tap = (x, y, type = 'mouse') => {
+        // Every tap is a new value, so a second tap on the same pin reaches the page too.
+        wall.picked.value = { id: manager.tap(x, y), touch: type !== 'mouse', at: performance.now() }
     }
-    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap })
+    // A mouse over the wall names the pin under it. The test runs once per frame at most.
+    let hoverAt = null
+    const hover = (x, y) => {
+        if (!wall.shown.value) return
+        if (!hoverAt) requestAnimationFrame(() => {
+            wall.hovered.value = manager.wall.pinAt(hoverAt.x, hoverAt.y)
+            hoverAt = null
+        })
+        hoverAt = { x, y }
+    }
+    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap, hover })
     wall.connect(manager.wall)
     manager.wall.built().then((ok) => {
         wallBuilt = ok

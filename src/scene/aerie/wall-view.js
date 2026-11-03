@@ -91,9 +91,9 @@ export function createView(reducedMotion) {
         // A wide screen fits the frame and the picture light above it, with a small margin.
         const k = small() ? 1.6 / (0.96 * W) : Math.max(1.74 / W, 1.3 / H)
         const d = (k * H) / (2 * T)
-        // On a phone the board centre sits at 34 percent of the height, so the picture light
-        // above the board clears the page header (about 140 px).
-        home = { x: 0, y: small() ? -0.16 * H * k : 0.06, d }
+        // On a phone the board centre sits at 40 percent of the height, so the picture light
+        // above the board clears the page header with its filter chips (about 190 px).
+        home = { x: 0, y: small() ? -0.1 * H * k : 0.06, d }
         const near = W >= H ? CARD[1] / 0.6 / H : CARD[0] / 0.6 / W
         limits = [(near * H) / (2 * T), d * 1.08]
         Object.assign(state, atHome ? home : clamped(state))
@@ -129,6 +129,19 @@ export function createView(reducedMotion) {
         go({ x: x - (area.cx - W / 2) * k, y: y + (area.cy - H / 2) * k, d: (k * H) / (2 * T) }, instant)
     }
 
+    // Frames a part of the board in the middle of the screen, below the page header on a phone.
+    const frameRect = ({ x, y, w, h }, instant) => {
+        const area = small() ? { cy: H * 0.42, w: W * 0.92, h: H * 0.5 } : { cy: H * 0.54, w: W * 0.8, h: H * 0.72 }
+        const k = Math.max(w / area.w, h / area.h)
+        const d = clamp((k * H) / (2 * T), ...limits)
+        const k2 = kOf(d)
+        go(clamped({ x, y: y + (area.cy - H / 2) * k2, d }), instant)
+    }
+
+    // The overview shifted up, so the top row of pins shows above a case folder that starts at
+    // about a quarter of the screen height.
+    const peekTop = (instant) => go(clamped({ x: home.x, y: 0.22 - 0.36 * H * kOf(home.d), d: home.d }), instant)
+
     // A pan that brings a pin inside the screen with a margin, at the same zoom.
     const reveal = ({ x, y }) => {
         const k = kOf(state.d)
@@ -153,7 +166,7 @@ export function createView(reducedMotion) {
     const frame = () => ({ x: state.x, y: state.y, k: kOf(state.d), w: W, h: H })
 
     return {
-        camera, resize, step, pan, zoom, focusOn, reveal, go, goHome, snapshot, frame,
+        camera, resize, step, pan, zoom, focusOn, frameRect, peekTop, reveal, go, goHome, snapshot, frame,
         setReducedMotion: (value) => (reduced = value),
         get moving() { return Boolean(tween) },
         // The overview: the cork point at the screen centre and the camera distance.

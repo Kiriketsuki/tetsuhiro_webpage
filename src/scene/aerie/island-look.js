@@ -11,6 +11,7 @@ import { litterBlocked } from './leaf-cards.js'
 import { createGlassMaterial, createFrameMaterial } from './glass.js'
 import { prepareWater, createWaterMaterial } from './water.js'
 import { createContactShadows } from './contact-shadows.js'
+import { nextTask } from '../next-task.js'
 
 // Puts the cozy night look, after the art style of Leaf it Alone, on a loaded island_b GLB.
 // Opaque parts share one toon material with half-lambert light, warm hue-keeping shadows
@@ -452,7 +453,9 @@ function lightenTelescopeBands(meshes, anchor) {
         })
 }
 
-export function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1 } = {}) {
+// It runs as a few long steps and yields to the browser between them (nextTask), so the
+// loading screen keeps drawing. The steps run in the same order, so the look is the same.
+export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1 } = {}) {
     gltf.scene.updateMatrixWorld(true)
     const moon = anchorPosition(gltf, 'Anchor_Moon') ?? new THREE.Vector3(-28, 71, 24)
     const lip = anchorPosition(gltf, 'Anchor_Waterfall_Top')
@@ -548,12 +551,14 @@ export function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet:
     gltf.scene.traverse((child) => {
         if (child.isMesh) meshes.push(child)
     })
+    await nextTask()
     meshes.forEach((mesh) => {
         const family = mesh.userData.webMaterial
         if (family === 'web_crown') shapeCrowns(mesh, { bend: true })
         else if (family === 'web_plants') shapeCrowns(mesh)
         else if (THIN_FAMILIES.includes(family)) thinMembers(mesh)
     })
+    await nextTask()
     applyPalette(meshes)
     towerRoof(meshes)
     timberWalls(meshes)
@@ -563,7 +568,9 @@ export function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet:
     // already reads through the window spill.
     const outdoor = spots.filter((spot) => !bounces.some((room) => spot.position.distanceTo(room) < INDOOR_GLOW))
     const glows = fitGlowsToWalls(outdoor.slice(0, MAX_GLOWS), meshes)
+    await nextTask()
     const litterAt = applyAutumn(meshes)
+    await nextTask()
     // The leaf piles join the island meshes after the paint, so the litter cards fall on them.
     const blocked = litterBlocked(meshes)
     const piles = createLeafPiles({ meshes, material: opaque, litterAt, blocked })
@@ -571,6 +578,7 @@ export function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet:
         gltf.scene.add(piles)
         meshes.push(piles)
     }
+    await nextTask()
     const shadows = createContactShadows(gltf.scene, meshes, isLaidRock, blocked)
     if (shadows) gltf.scene.add(shadows)
 

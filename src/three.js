@@ -28,8 +28,9 @@ const wall = useWall()
 // Both built after the gate opened before, and their long tasks stalled the first moves.
 // The scene build is SCENE_SHARE of the gate meter. Past EXTRAS_WAIT_MS the gate opens anyway.
 const gated = Boolean(document.getElementById('gate-art')) && !document.getElementById('gate-art').hidden
-const SCENE_SHARE = 0.8
-const EXTRAS = { wall: 0.12, planner: 0.08 }
+// The wall and the planner take about a quarter of the wait on a phone at 6x CPU and on slow 3G.
+const SCENE_SHARE = 0.75
+const EXTRAS = { wall: 0.15, planner: 0.1 }
 const EXTRAS_WAIT_MS = 20000
 // The routes that show the evidence wall: the board, and the board with one pin open.
 const WALL_ROUTES = ['Projects', 'Project']

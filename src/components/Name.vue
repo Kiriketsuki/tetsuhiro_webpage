@@ -81,9 +81,9 @@ const VISIT_SHARE = 0.05
 const PLAN_MS = { min: 200, max: 8000 }
 
 // The fonts and the pages a visitor opens next load behind the gate too. They start once the
-// aerie has downloaded (the real share passes DOWNLOADED), so the island gets the bandwidth
-// first.
-const DOWNLOADED = 0.4
+// aerie has downloaded (the real share passes DOWNLOADED, half of SCENE_SHARE in src/three.js),
+// so the island gets the bandwidth first.
+const DOWNLOADED = 0.37
 // The longest the gate waits for them, in milliseconds.
 const VISIT_WAIT_MS = 8000
 let visitShare = 0

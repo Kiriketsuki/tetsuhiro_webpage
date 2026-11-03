@@ -100,8 +100,12 @@ const pinOf = (page) => PINS.find((pin) => pin.page === page) ?? null
 const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 const hint = coarse ? 'pinch, drag, tap a card twice' : 'drag, scroll, click a card'
 
-// Reading order: top row first, left to right within a row.
-const ordered = [...PINS].sort((a, b) => (Math.abs(a.at[1] - b.at[1]) < 0.1 ? a.at[0] - b.at[0] : b.at[1] - a.at[1]))
+// Reading order: group by group as the wall reads, then top row first, left to right.
+const groupAt = (pin) => GROUPS.findIndex((g) => g.id === pin.group)
+const ordered = [...PINS].sort((a, b) => {
+    if (groupAt(a) !== groupAt(b)) return groupAt(a) - groupAt(b)
+    return Math.abs(a.at[1] - b.at[1]) < 0.1 ? a.at[0] - b.at[0] : b.at[1] - a.at[1]
+})
 const links = {}
 
 // One group under the lamp, or the whole board.

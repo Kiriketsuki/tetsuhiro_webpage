@@ -103,6 +103,11 @@ function fallBack(error) {
     ready.value = true
 }
 
+// Text pages dim the scene, so its twinkle and water are not worth the frames there. Behind the
+// gate the lantern art covers the scene, so the scene draws only the frames that change it, and
+// the lantern keeps the GPU and the main thread.
+const ambientFps = () => (route === 'Home' && entered.value ? 30 : 0)
+
 // The stop for the current route and section. Home waits on the wide view until the
 // visitor goes through the gate.
 function currentStop() {
@@ -144,9 +149,12 @@ function boot() {
             ready.value = true
         })
 
-    // The gate lift is a long move. Section and route changes are shorter ones.
+    // The gate lift is a long move. Section and route changes are shorter ones. The nav lantern
+    // brings the gate back: the camera cuts to the wide view under the art, and the twinkle stops
+    // until the visitor goes in again.
     watch(entered, (value) => {
-        if (value) manager.goTo(currentStop(), { duration: 2.4 })
+        manager.setAmbientFps(ambientFps())
+        manager.goTo(currentStop(), { duration: value ? 2.4 : 0 })
     })
     // During a jump the camera waits for the target section, then takes one move there.
     watch(active, (index) => {
@@ -219,8 +227,7 @@ export function pause() {
 export function setRoute(name, { cut = false } = {}) {
     if (name === route && !cut) return
     route = name
-    // Text pages dim the scene, so its twinkle and water are not worth the frames there.
-    manager?.setAmbientFps(name === 'Home' ? 30 : 0)
+    manager?.setAmbientFps(ambientFps())
     // The skills page sits over the skill sky. A direct visit opens on it with every star lit.
     // A route change into or out of it is the move through the eyepiece. Projects sits over
     // the evidence wall in the same way, and its move is the flight to the workshop board.

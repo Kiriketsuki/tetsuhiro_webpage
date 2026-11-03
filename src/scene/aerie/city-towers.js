@@ -171,8 +171,8 @@ void main() {
 }
 `
 
-export function createCityTowers({ hazeUniforms, look, dpr }) {
-    const parts = planSkyline(look)
+export function createCityTowers({ hazeUniforms, look, dpr, isOpen }) {
+    const parts = planSkyline(look, isOpen)
     const material = new THREE.ShaderMaterial({
         name: 'city.towers',
         uniforms: { ...hazeUniforms, uDpr: dpr },

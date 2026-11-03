@@ -704,7 +704,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             rig.setShots(shots)
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
-            // through the telescope do not stall.
+            // through the telescope do not stall. The city river arrives in its own chunk.
+            await parts.city.ready
             await compiled(scene, camera)
             reached('compiled')
             await compiled(parts.constellation.scene, parts.constellation.camera)

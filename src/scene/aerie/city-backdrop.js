@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { hazeUniforms as skyHaze } from './sky.js'
 import { CITY_HAZE, HAZE_GLSL, NOISE_GLSL, PLANE_VERTEX } from './city-glsl.js'
 import { createCityClouds } from './city-clouds.js'
-import { BOKEH, CITY_LOOK, GRID, GRID_NORMAL, MAP_CENTRE, MAP_SIZE, MAP_TEXELS, bakeCityMap } from './city-map.js'
+import { BOKEH, CITY_LOOK, GRID, GRID_NORMAL, MAP_CENTRE, MAP_SIZE, MAP_TEXELS, bakeCityMap, inPark } from './city-map.js'
 import { createCityTowers } from './city-towers.js'
 import { createCityOffscreen } from './city-offscreen.js'
 
@@ -180,17 +180,17 @@ void main() {
 `
 
 // pixelRatio returns the renderer pixel ratio, so a bokeh disc keeps its size in CSS pixels.
-// The renderer bakes the city map once, here.
+// The river loads in its own chunk (city-river.js). When it arrives, the renderer bakes the
+// city map once, the towers stand off the water, and the plane shows. ready resolves then.
 export function createCityBackdrop({ renderer, haze, hazeDensity = 1 / 4200, pixelRatio = () => 1 }) {
     const group = new THREE.Group()
     group.name = 'CityBackdrop'
     const time = { value: 0 }
     const dpr = { value: pixelRatio() }
-    const map = bakeCityMap(renderer, CITY_LOOK)
     const hazeUniforms = { ...skyHaze(), uHaze: { value: haze }, uHazeDensity: { value: hazeDensity } }
     const material = new THREE.ShaderMaterial({
         name: 'city.night',
-        uniforms: { ...hazeUniforms, uMap: { value: map.texture }, uTime: time, uDpr: dpr, uRail: { value: new THREE.Vector3(...CITY_LOOK.rail) }, uPool: { value: CITY_LOOK.pool } },
+        uniforms: { ...hazeUniforms, uMap: { value: null }, uTime: time, uDpr: dpr, uRail: { value: new THREE.Vector3(...CITY_LOOK.rail) }, uPool: { value: CITY_LOOK.pool } },
         vertexShader: PLANE_VERTEX,
         fragmentShader,
         transparent: true,
@@ -202,12 +202,30 @@ export function createCityBackdrop({ renderer, haze, hazeDensity = 1 / 4200, pix
     mesh.position.fromArray(CENTRE)
     mesh.renderOrder = -8
     mesh.name = 'City'
-    const towers = createCityTowers({ hazeUniforms, look: CITY_LOOK, dpr })
+    mesh.visible = false
+    // The towers and the river join these holders when the river chunk arrives, so the
+    // offscreen target moves them with the other layers.
+    const towerLayer = new THREE.Group()
+    const riverLayer = new THREE.Group()
     const clouds = createCityClouds({ renderer, hazeUniforms, time, centre: CENTRE })
-    const layers = [mesh, towers.mesh, ...clouds.meshes]
+    const layers = [mesh, towerLayer, riverLayer, ...clouds.meshes]
     const offscreen = createCityOffscreen(layers)
     group.add(offscreen.quad, ...layers)
     group.userData.layers = layers
+
+    let disposed = false
+    let built = null
+    const ready = import('./city-river.js').then(({ createCityRiver }) => {
+        if (disposed) return
+        const river = createCityRiver({ hazeUniforms, time, dpr })
+        const map = bakeCityMap(renderer, CITY_LOOK, river.bake)
+        const towers = createCityTowers({ hazeUniforms, look: CITY_LOOK, dpr, isOpen: (x, z) => river.isOpen(x, z) || inPark(x, z) })
+        material.uniforms.uMap.value = map.texture
+        towerLayer.add(towers.mesh)
+        riverLayer.add(river.group)
+        mesh.visible = true
+        built = { map, towers, river }
+    }).catch((error) => console.error('The city river did not load, so the city stays hidden.', error))
 
     // A disc keeps its size in CSS pixels, so its size in target pixels follows the target scale.
     const update = (seconds) => {
@@ -217,13 +235,15 @@ export function createCityBackdrop({ renderer, haze, hazeDensity = 1 / 4200, pix
     update(0)
 
     const dispose = () => {
+        disposed = true
         geometry.dispose()
         material.dispose()
-        map.dispose()
-        towers.dispose()
+        built?.map.dispose()
+        built?.towers.dispose()
+        built?.river.dispose()
         clouds.dispose()
         offscreen.dispose()
     }
 
-    return { group, update, dispose }
+    return { group, update, dispose, ready }
 }

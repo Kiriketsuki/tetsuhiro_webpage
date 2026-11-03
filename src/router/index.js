@@ -1,9 +1,25 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import { findProject } from '../data/projects.js'
+import { land } from '../composables/useWaypoints.js'
+
+// The routes whose way back to Home lands on the Projects section.
+const PROJECT_ROUTES = ['Projects', 'Project', 'DancingTables', 'Placeholders']
 
 const routes = [
-    { path: '/', name: 'Home', component: Home, meta: { title: 'Home' } },
+    {
+        path: '/',
+        name: 'Home',
+        component: Home,
+        meta: { title: 'Home' },
+        // /#projects opens Home on that section, and the address drops the hash. Back from a
+        // project page, the browser's own Back too, lands on Projects and not on the welcome.
+        beforeEnter: (to, from) => {
+            if (to.hash) return land(to.hash) ? { path: '/', hash: '' } : true
+            if (PROJECT_ROUTES.includes(from.name)) land('projects')
+            return true
+        },
+    },
     {
         path: '/skills',
         name: 'Skills',

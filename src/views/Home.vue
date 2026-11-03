@@ -49,7 +49,7 @@ import Skills from '../components/Skills.vue'
 import Projects from '../components/Projects.vue'
 import Contact from '../components/Contact.vue'
 import ExplorePad from '../components/ExplorePad.vue'
-import { useWaypoints, sections } from '../composables/useWaypoints.js'
+import { useWaypoints, sections, takeLanding } from '../composables/useWaypoints.js'
 import { useExplore } from '../composables/useExplore.js'
 import { useScramble } from '../composables/useScramble.js'
 
@@ -127,9 +127,11 @@ watch(wordsHidden, (value) => {
 
 onMounted(async () => {
     await nextTick()
-    window.scrollTo(0, 0)
-    setActive(0)
-    showSection(0)
+    // A link back from another page can open Home on one section (useWaypoints.js land).
+    const start = takeLanding()
+    window.scrollTo({ top: start ? document.querySelector(`.${sections[start]}`).offsetTop : 0, behavior: 'instant' })
+    setActive(start)
+    showSection(start)
     if (entered.value) decodeTitle(0.2)
 
     trigger = ScrollTrigger.create({

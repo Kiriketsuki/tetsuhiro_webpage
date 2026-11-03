@@ -259,12 +259,12 @@ watch(() => props.id, arrive)
     }
 }
 
-/* A light dim that fades out toward the top, so the tops of the pins stay readable. */
+/* A light, even dim, so the pins stay readable behind the folder. */
 .case-dim {
     position: fixed;
     z-index: 29;
     inset: 0;
-    background: linear-gradient(to bottom, rgb(10 8 12 / 0) 0, rgb(10 8 12 / 0) 20vh, rgb(10 8 12 / 0.3) 45vh);
+    background: rgb(10 8 12 / 0.2);
 }
 
 .case-tabs {
@@ -612,10 +612,10 @@ watch(() => props.id, arrive)
 @media (max-width: 767px) {
     .case {
         top: auto;
-        bottom: 2.7rem;
+        bottom: 4rem;
         left: 0;
         width: 100%;
-        height: calc(100dvh - 2.7rem - 4.5rem);
+        height: calc(100dvh - 4rem - 4.5rem);
         translate: none;
         border-radius: 14px 14px 0 0;
         animation-name: case-up;

@@ -6,9 +6,9 @@
 @source not inline("shadow ring blur filter backdrop-filter transform outline transition");
 
 /*
- * Night glass frames (docs/design-system.md). A pane of dark glass with the aerie
- * blurred behind it, a 1px brass ring that starts in the section colour, a 12px
- * chamfer on two opposite corners, and a brass bracket on each square corner.
+ * Night glass frames (docs/design-system.md). A pane of flat dark glass with the aerie
+ * blurred behind it, a 1px brass ring, a 12px chamfer on two opposite corners, and a brass
+ * bracket on each square corner. No gradient: every fill is one colour.
  *
  * The ring is a mask: the outer shape minus an inset copy of it, so the diagonal keeps
  * the width of the sides. A box-shadow is always a rectangle, so it cannot turn at a
@@ -45,14 +45,14 @@
             var(--b) 100% 0 / 2px 14px,
             var(--b) 0 100% / 14px 2px,
             var(--b) 0 100% / 2px 14px,
-            linear-gradient(165deg, var(--color-glass), var(--color-glass-deep) 60%);
+            var(--color-glass);
         backdrop-filter: blur(8px) saturate(1.2);
         mask: var(--chamfer);
     }
 
     .frame::after {
         padding: 1px;
-        background: linear-gradient(135deg, var(--frame), var(--color-brass) 40%, var(--color-brass-dim));
+        background: var(--color-brass-soft);
         mask: linear-gradient(135deg, #0000 8.07px, #000 0 calc(100% - 8.07px), #0000 0) content-box, var(--chamfer);
         mask-composite: exclude;
     }

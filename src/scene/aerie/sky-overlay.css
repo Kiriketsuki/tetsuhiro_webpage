@@ -76,8 +76,7 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
 
 /*
  * The card opens beside its star, or on the far side when the star is near the right edge.
- * It keeps the site's night glass frame, with a soft nebula in the branch colour and a few
- * fine stars in the glass. The drop-shadow glow makes the card its own backdrop root, so the
+ * It keeps the site's night glass frame, with a few fine stars in the flat glass. The drop-shadow glow makes the card its own backdrop root, so the
  * glass shows the nebula and not a blur of the sky.
  */
 .sky-card {
@@ -106,9 +105,7 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
         radial-gradient(circle at 88% 64%, rgb(255 255 255 / 0.6) 0 0.6px, transparent 1.2px),
         radial-gradient(circle at 36% 82%, rgb(255 255 255 / 0.45) 0 0.5px, transparent 1px),
         radial-gradient(circle at 58% 48%, rgb(255 255 255 / 0.35) 0 0.4px, transparent 0.9px),
-        radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, var(--frame) 24%, transparent), transparent 62%),
-        radial-gradient(90% 80% at 0% 100%, rgb(88 58 140 / 0.28), transparent 70%),
-        rgb(7 10 31 / 0.84);
+        rgb(7 10 31 / 0.88);
 }
 
 .sky-card.flip {
@@ -148,7 +145,7 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
     height: 2.75rem;
     border: 1px solid color-mix(in oklab, var(--frame) 70%, transparent);
     border-radius: 50%;
-    background: radial-gradient(circle at 50% 35%, color-mix(in oklab, var(--frame) 18%, #0b1430), #050816);
+    background: #0b1430;
     box-shadow: 0 0 1rem color-mix(in oklab, var(--frame) 35%, transparent);
 }
 

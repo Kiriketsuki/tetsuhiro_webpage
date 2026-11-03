@@ -14,11 +14,13 @@ const routes = [
         meta: { title: 'Home' },
         // /#projects opens Home on that section, and the address drops the hash. Back from a
         // project page, the browser's own Back too, lands on Projects and not on the welcome.
-        // Back from the About room lands on About in the same way.
+        // Back from the About room lands on About, and back from the sky lands on Skills, in the
+        // same way.
         beforeEnter: (to, from) => {
             if (to.hash) return land(to.hash) ? { path: '/', hash: '' } : true
             if (PROJECT_ROUTES.includes(from.name)) land('projects')
             else if (from.name === 'About') land('about')
+            else if (from.name === 'Skills') land('skills')
             return true
         },
     },

@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { GradePass } from './grade-pass.js'
 import { GlowPass } from './glow-pass.js'
 
@@ -47,6 +46,25 @@ function createComposer(renderer, target, passes) {
     return { setSize, setPixelRatio, render, dispose: () => target.dispose() }
 }
 
+// The scene pass: the steps RenderPass takes with its defaults (clear on, no clear colour,
+// no override material), without the RenderPass module. autoClear stays off during the
+// render, so the clear here is the only one.
+function createScenePass(scene, camera) {
+    return {
+        scene,
+        camera,
+        setSize() {},
+        render(renderer, writeBuffer, readBuffer) {
+            const autoClear = renderer.autoClear
+            renderer.autoClear = false
+            renderer.setRenderTarget(this.renderToScreen ? null : readBuffer)
+            renderer.clear(renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil)
+            renderer.render(this.scene, this.camera)
+            renderer.autoClear = autoClear
+        },
+    }
+}
+
 // Builds the composer for one tier: the scene into a half-float target, the glow on the
 // desktop tier, then the grade pass to the screen.
 // The scene depth goes to a texture on a tier with depth, for the ink and the lens in
@@ -62,7 +80,7 @@ export function createPipeline({ renderer, scene, camera, tier, small = false })
     })
     target.texture.name = `aerie.main.${tier.name}`
     if (depth) target.depthTexture = new THREE.DepthTexture(size.x * pixelRatio, size.y * pixelRatio)
-    const renderPass = new RenderPass(scene, camera)
+    const renderPass = createScenePass(scene, camera)
     const grade = new GradePass()
     const glow = tier.glow && !small ? new GlowPass() : null
     const composer = createComposer(renderer, target, glow ? [renderPass, glow, grade] : [renderPass, grade])

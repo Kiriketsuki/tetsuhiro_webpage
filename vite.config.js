@@ -33,12 +33,15 @@ const chunkFileNames = (chunk) =>
 // plugin drops every line that holds only a // comment from the scene modules at build time.
 // The minifier removes such lines outside the strings anyway, and inside a shader string a
 // line that starts with // is always a GLSL comment. The source keeps every comment.
+// It also drops the indent of every line, which the minifier keeps inside the shader strings
+// too. GLSL ignores the indent, every multi-line template string in src/scene is a shader,
+// and the shader patches in toon-material.js match one-line strings only.
 const stripShaderComments = () => ({
     name: 'strip-shader-comments',
     apply: 'build',
     transform(code, id) {
         if (!/[\\/]src[\\/]scene[\\/].*\.js$/.test(id)) return null
-        return { code: code.replace(/^[ \t]*\/\/[^\n]*\n/gm, ''), map: null }
+        return { code: code.replace(/^[ \t]*\/\/[^\n]*\n/gm, '').replace(/^[ \t]+/gm, ''), map: null }
     },
 })
 

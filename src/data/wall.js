@@ -18,7 +18,7 @@ export const GROUPS = [
 
 // kind: hero is a large photo, card is an index card with a small photo, note is a paper note.
 // page is the project id in projects.js when the project has a detail page. tilt is in degrees.
-const ALL_PINS = [
+export const PINS = [
     {
         id: 'agenkic-hub',
         group: 'tools',
@@ -96,21 +96,6 @@ const ALL_PINS = [
         page: 'kinopy',
         at: [0.52, 0.17],
         tilt: 3,
-    },
-    {
-        id: 'tokin',
-        // Hidden with the toKin project in projects.js, so its pin and its strings leave the wall.
-        hidden: true,
-        group: 'fun',
-        kind: 'card',
-        title: 'toKin',
-        year: '2026',
-        line: 'An incremental game about the first AI company. It also runs inside Claude Code.',
-        stack: ['TypeScript', 'Bun', 'Claude Code mods'],
-        link: 'https://tokin.tetsuhiro.dev',
-        page: 'tokin',
-        at: [0.27, 0.26],
-        tilt: -2,
     },
     {
         id: 'agenkic-orkistrator',
@@ -219,20 +204,13 @@ const ALL_PINS = [
 ]
 
 // The red strings. Each one joins two pins, with a short label.
-export const PINS = ALL_PINS.filter((pin) => !pin.hidden)
-const shown = new Set(PINS.map((pin) => pin.id))
-
-// A string with a hidden pin at either end leaves the wall with that pin.
 export const STRINGS = [
     ['resonant-respite', 'island', 'the music world became this aerie'],
     ['aetherial-verdancy', 'island', 'Vue, Three.js and Blender again'],
     ['resonant-respite', 'aetherial-verdancy', 'music drives the scene, 2024'],
     ['kinopy', 'island', 'shipped in the same October'],
     ['aetherial-verdancy', 'kinopy', 'plants grown, then plants solved'],
-    ['kinopy', 'tokin', 'two games on tetsuhiro.dev'],
-    ['tokin', 'agenkic-orkistrator', 'AI agents turned into games'],
     ['agenkic-hub', 'agenkic-orkistrator', 'one agent per task, drawn as wizards'],
-    ['agenkic-hub', 'tokin', 'both extend Claude Code'],
     ['agenkic-hub', 'statusline', 'the installer ships the status bar'],
     ['chrysaki', 'statusline', 'the desk theme moved into Claude Code'],
     ['statusline', 'usaki', 'the status bar left the terminal'],
@@ -243,8 +221,6 @@ export const STRINGS = [
     ['medicasr', 'autoconnect', 'clinician screens, then operator screens'],
     ['autoconnect', 'agenkic-hub', 'tools built beside the day job'],
     ['teaching', 'autoconnect', 'two jobs in 2026'],
-]
-    .map(([from, to, label]) => ({ from, to, label }))
-    .filter((s) => shown.has(s.from) && shown.has(s.to))
+].map(([from, to, label]) => ({ from, to, label }))
 
 export const findPin = (id) => PINS.find((pin) => pin.id === id) ?? null

@@ -26,19 +26,34 @@ const element = (tag, className, text) => {
     return el
 }
 
+const SVG = 'http://www.w3.org/2000/svg'
+const svgOf = (tag, attributes) => {
+    const el = document.createElementNS(SVG, tag)
+    Object.entries(attributes).forEach(([key, value]) => el.setAttribute(key, value))
+    return el
+}
+
 function logo(icon, color) {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    svg.setAttribute('viewBox', '0 0 24 24')
-    svg.setAttribute('fill', color)
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    path.setAttribute('d', icon.path)
-    svg.append(path)
+    const svg = svgOf('svg', { viewBox: '0 0 24 24', fill: color })
+    svg.append(svgOf('path', { d: icon.path }))
     return svg
 }
 
-// titles: one { name, label, color } per constellation. onPick(id, fromKeyboard) runs when a
-// name is clicked.
-export function createSkyOverlay({ parent, titles, onPick }) {
+// The constellation as a tiny star chart, with the card's own star lit.
+function miniChart({ art, stars, lines }) {
+    const svg = svgOf('svg', { viewBox: '0 0 1 1', class: 'sky-chart' })
+    art.forEach((d) => svg.append(svgOf('path', { d })))
+    lines.forEach(([x1, y1, x2, y2]) => svg.append(svgOf('line', { x1, y1, x2, y2 })))
+    stars.forEach(([cx, cy, mine]) => {
+        if (mine) svg.append(svgOf('circle', { cx, cy, r: 0.07, class: 'halo' }))
+        svg.append(svgOf('circle', { cx, cy, r: mine ? 0.03 : 0.018, class: mine ? 'mine' : '' }))
+    })
+    return svg
+}
+
+// titles: one { name, label, color } per constellation. chartOf(id) gives the constellation
+// name and star chart for a skill. onPick(id, fromKeyboard) runs when a name is clicked.
+export function createSkyOverlay({ parent, titles, chartOf, onPick }) {
     const root = element('div', 'sky-overlay')
     root.hidden = true
     root.setAttribute('role', 'region')
@@ -128,6 +143,7 @@ export function createSkyOverlay({ parent, titles, onPick }) {
         if (!skill) return
         open = id
         const color = colorOf(skill)
+        const chart = chartOf(id)
         const badge = element('span', 'sky-logo')
         badge.setAttribute('aria-hidden', 'true')
         const heading = element('h3', 'sky-card-name', skill.name)
@@ -137,12 +153,16 @@ export function createSkyOverlay({ parent, titles, onPick }) {
         close.setAttribute('aria-label', `Close ${skill.name}`)
         close.addEventListener('click', closeCard)
         const head = element('div', 'sky-card-head')
-        head.append(badge, heading)
+        head.append(badge, heading, miniChart(chart))
+        const legend = element('span', 'frame-legend', `${chart.name} · ${branchOf(skill)?.label ?? ''}`)
         const parentSkill = skills.find((s) => s.id === skill.parent)
-        card.replaceChildren(element('span', 'frame-legend', branchOf(skill)?.label ?? ''), close, head)
-        card.append(element('p', 'sky-card-note', notes[id] ?? ''))
-        if (parentSkill) card.append(element('p', 'sky-card-parent', `Grew out of ${parentSkill.name}`))
+        card.replaceChildren(legend, close, head, element('p', 'sky-card-note', notes[id] ?? ''))
+        if (parentSkill) card.append(element('p', 'sky-card-parent', `✦ Grew out of ${parentSkill.name}`))
         card.style.setProperty('--frame', color)
+        // Restarts the entrance, so a second star's card arrives the same way.
+        card.classList.remove('arrive')
+        void card.offsetWidth
+        card.classList.add('arrive')
         card.setAttribute('aria-labelledby', heading.id)
         card.hidden = false
         placeCard()

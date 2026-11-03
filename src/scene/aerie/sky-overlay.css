@@ -74,81 +74,174 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
     text-transform: uppercase;
 }
 
-/* The card opens beside its star, or on the far side when the star is near the right edge. */
+/*
+ * The card opens beside its star, or on the far side when the star is near the right edge.
+ * It keeps the site's chamfered frame, but the plate is a pane of night glass: a soft nebula
+ * in the branch colour, a few fine stars, and the sky blurred behind it.
+ */
 .sky-card {
+    --color-plate: #070a1f;
     position: absolute;
     top: var(--y);
     left: var(--x);
-    width: min(20rem, calc(100vw - 2rem));
-    transform: translate(1.5rem, -50%);
-    padding: 1.4rem 1.25rem 1.1rem;
+    width: min(23rem, calc(100vw - 2rem));
+    transform: translate(1.75rem, -50%);
+    padding: 1.9rem 1.75rem 1.5rem;
     color: var(--color-text-body);
     font-family: var(--font-body);
-    font-size: 0.9rem;
-    line-height: 1.55;
+    font-size: 0.95rem;
+    line-height: 1.7;
     pointer-events: auto;
+    filter: drop-shadow(0 0 1.5rem color-mix(in oklab, var(--frame) 30%, transparent));
+}
+
+.sky-card.frame::after {
+    background:
+        radial-gradient(circle at 18% 22%, rgb(255 255 255 / 0.7) 0 0.6px, transparent 1.2px),
+        radial-gradient(circle at 72% 14%, rgb(255 255 255 / 0.5) 0 0.5px, transparent 1px),
+        radial-gradient(circle at 88% 64%, rgb(255 255 255 / 0.6) 0 0.6px, transparent 1.2px),
+        radial-gradient(circle at 36% 82%, rgb(255 255 255 / 0.45) 0 0.5px, transparent 1px),
+        radial-gradient(circle at 58% 48%, rgb(255 255 255 / 0.35) 0 0.4px, transparent 0.9px),
+        radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, var(--frame) 24%, transparent), transparent 62%),
+        radial-gradient(90% 80% at 0% 100%, rgb(88 58 140 / 0.28), transparent 70%),
+        rgb(7 10 31 / 0.84);
+    box-shadow: inset 0 0 0 6px transparent, inset 0 0 0 7px color-mix(in oklab, var(--frame) 22%, transparent);
+    backdrop-filter: blur(8px);
 }
 
 .sky-card.flip {
-    transform: translate(calc(-100% - 1.5rem), -50%);
+    transform: translate(calc(-100% - 1.75rem), -50%);
+}
+
+.sky-card.arrive {
+    animation: sky-card-in 0.35s ease-out;
+}
+
+@keyframes sky-card-in {
+    from {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+}
+
+.sky-card .frame-legend {
+    letter-spacing: 0.18em;
 }
 
 .sky-card-head {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.6rem;
-    padding-right: 1.5rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
+/* The logo sits in a ring with a small moon going round it. */
 .sky-logo {
+    position: relative;
     display: grid;
-    flex: none;
     place-items: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border: 2px solid var(--frame);
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid color-mix(in oklab, var(--frame) 70%, transparent);
     border-radius: 50%;
-    background: var(--color-bg-raised);
+    background: radial-gradient(circle at 50% 35%, color-mix(in oklab, var(--frame) 18%, #0b1430), #050816);
+    box-shadow: 0 0 1rem color-mix(in oklab, var(--frame) 35%, transparent);
+}
+
+.sky-logo::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 0, var(--frame) 0 2px, transparent 2.5px);
+    animation: sky-orbit 9s linear infinite;
+}
+
+@keyframes sky-orbit {
+    to {
+        rotate: 1turn;
+    }
 }
 
 .sky-logo svg {
-    width: 1.1rem;
-    height: 1.1rem;
+    width: 1.3rem;
+    height: 1.3rem;
 }
 
 .sky-card-name {
     margin: 0;
     color: var(--color-text-strong);
     font-family: var(--font-display);
-    font-size: 1.6rem;
+    font-size: 2.1rem;
     font-weight: 400;
     line-height: 1;
 }
 
+.sky-chart {
+    width: 4.5rem;
+    height: 4.5rem;
+    overflow: visible;
+}
+
+.sky-chart path {
+    fill: none;
+    stroke: var(--frame);
+    stroke-width: 0.012;
+    stroke-linejoin: round;
+    opacity: 0.35;
+}
+
+.sky-chart line {
+    stroke: var(--frame);
+    stroke-width: 0.018;
+    stroke-linecap: round;
+    opacity: 0.8;
+}
+
+.sky-chart circle {
+    fill: color-mix(in oklab, var(--frame) 55%, white);
+    opacity: 0.75;
+}
+
+.sky-chart .mine {
+    fill: #fff;
+    opacity: 1;
+}
+
+.sky-chart .halo {
+    fill: var(--frame);
+    opacity: 0.35;
+}
+
 .sky-card-note {
     margin: 0;
+    max-width: 34ch;
 }
 
 .sky-card-parent {
-    margin: 0.6rem 0 0;
+    margin: 1.1rem 0 0;
+    padding-top: 0.9rem;
+    border-top: 1px solid color-mix(in oklab, var(--frame) 25%, transparent);
     color: var(--color-text-faint);
     font-family: var(--font-label);
     font-size: 0.68rem;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
+/* The close control sits in the top rule, across from the legend. */
 .sky-close {
     position: absolute;
-    top: 0.5rem;
-    right: 0.6rem;
-    padding: 0.1rem 0.4rem;
+    top: 0;
+    right: 1.1rem;
+    padding: 0 0.45rem;
     border: 0;
-    background: none;
+    background: var(--color-plate);
     color: var(--color-text-muted);
-    font-size: 1.3rem;
-    line-height: 1;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    transform: translateY(-50%);
     cursor: pointer;
 }
 
@@ -157,6 +250,13 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
     color: var(--color-text-strong);
     outline: 2px solid var(--frame);
     outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sky-card.arrive,
+    .sky-logo::after {
+        animation: none;
+    }
 }
 
 /* A phone gets the card as a sheet over the bottom of the screen, clear of the nav. */
@@ -168,6 +268,11 @@ body:has(.explore-pad) .sky-overlay:not([hidden]) {
         bottom: 4.75rem;
         left: 1rem;
         width: auto;
+        padding: 1.6rem 1.35rem 1.25rem;
         transform: none;
+    }
+
+    .sky-card-name {
+        font-size: 1.8rem;
     }
 }

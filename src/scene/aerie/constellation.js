@@ -382,6 +382,24 @@ function artsGeometry(arts) {
     )
 }
 
+// A small star chart of one constellation for the skill card, in a unit square with y down:
+// the figure drawing as SVG paths, its stars and lines, and the star of skill `id` marked.
+function chartOf({ figure, members, points, box }, id) {
+    const at = (x, y) => [0.5 + (x - box.cx) / (2 * box.half), 0.5 - (y - box.cy) / (2 * box.half)]
+    const star = (key) => at(...points[key])
+    const path = (line) => `M${line.flatMap((v, i) => (i % 2 ? [at(line[i - 1], v).map((n) => n.toFixed(3)).join(' ')] : [])).join('L')}`
+    const pairs = [
+        ...members.filter((skill) => points[skill.parent]).map((skill) => [skill.parent, skill.id]),
+        ...(figure.edges ?? '').split(' ').filter(Boolean).map((pair) => pair.split('-')),
+    ]
+    return {
+        name: figure.name,
+        art: [...figure.art, ...(figure.bands ?? []).map((band) => band.slice(1))].map(path),
+        stars: Object.keys(points).map((key) => [...star(key), key === id]),
+        lines: pairs.map(([a, b]) => [...star(a), ...star(b)]),
+    }
+}
+
 // canvas is the scene canvas. The HTML overlay goes right after it.
 export function createConstellation({ pixelRatio = 1, small = false, canvas = null } = {}) {
     const scene = new THREE.Scene()
@@ -417,6 +435,7 @@ export function createConstellation({ pixelRatio = 1, small = false, canvas = nu
     const overlay = createSkyOverlay({
         parent: canvas,
         titles: constellations.map(({ branch, figure }) => ({ name: figure.name, label: branch.label, color: PALETTE[branch.color] })),
+        chartOf: (id) => chartOf(constellations[figureOf.get(id)], id),
         onPick: (id, fromKeyboard) => pick(id, fromKeyboard, window.matchMedia('(prefers-reduced-motion: reduce)').matches),
     })
 

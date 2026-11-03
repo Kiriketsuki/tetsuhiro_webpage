@@ -48,6 +48,32 @@ and the quality governor never changed tier.
    under its 200 kB budget. Until the chunk arrives, a move cuts, and the loading gate
    still covers the scene then.
 
+## Through the workshop doorway (owner, 3 November 2026)
+
+"Especially for the projects, the camera should enter and leave through the door way."
+
+- The workshop doorway is 1.2 m wide (x -5.5 to -4.3) in the front wall at z -0.5, with
+  its sill at y 1.0 and its head frame at y 3.15 (a raycast scan of the front wall).
+- `doorway` in `src/data/route.js` puts three points on its centre line at eye height,
+  y 2.4: one 4.7 m out in front, one on the porch, and one just in the room.
+- Every move into the board view, the Projects wall, flies to the outside point, then in
+  through the door to the board. An arc from a far stop comes down in front of the house.
+- Every move out of the board view backs out through the same door, still facing the room,
+  then turns in the open on its way to the next stop. A move that starts anywhere in the
+  workshop room leaves the same way.
+- `enterWall` keeps its dissolve onto the wall. The in-move is now one move from wherever the
+  camera is, and the swap waits for it to come to rest on the board.
+- A move asked for on the way out replaces the out leg that has not started. The page that
+  comes back can pick another section, and the camera now follows the page.
+
+| Check | Result |
+|---|---|
+| All 10 moves into and out of the board view, at 1440x900 and 412x915 | Each crosses the front wall at x -4.91, y 2.4, about 0.6 m from each post |
+| Mesh crossings on those moves | 0 |
+| Nearest mesh inside the house | 0.55 m or more |
+| Peak turn rate | 13 to 123 degrees a second |
+| The real flow: the Projects card link, then the back button | In and out through the door at both sizes, no console errors |
+
 ## Measurements
 
 Per-frame camera speed and turn rate at 1/60 s, on master and on this branch. The

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
-import { route } from '../data/route.js'
+import { route, doorway } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -45,9 +45,19 @@ const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
 // the iris close and open, and how early the iris starts to close before the camera stops.
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
-// The move to the evidence wall, in seconds: the flight from the workshop stop to the board
-// stop, and the dissolve from the room board to the lit wall.
-const WALL = { fly: 1.5, dissolve: 0.55 }
+// The dissolve from the room board to the lit wall, in seconds.
+const WALL = { dissolve: 0.55 }
+// The workshop doorway as THREE vectors, and the side of the door a move between two stops
+// takes: 'in' to the board view, 'out' from it, or none.
+const DOOR = { outside: new THREE.Vector3(...doorway.outside), porch: new THREE.Vector3(...doorway.porch), inside: new THREE.Vector3(...doorway.inside) }
+const ROOM = new THREE.Box3(new THREE.Vector3(...doorway.room[0]), new THREE.Vector3(...doorway.room[1]))
+// position is the camera now. A move that starts in the room heads out, whatever stop the rig
+// was at, so a move that takes over on the way out never cuts through the front wall.
+const doorFor = (from, to, position) => {
+    if (to === 'board' && from !== 'board') return { side: 'in', ...DOOR }
+    if (to !== 'board' && (from === 'board' || ROOM.containsPoint(position))) return { side: 'out', ...DOOR }
+    return null
+}
 // The kit board hangs a little in front of the old board, which stays in the island GLB
 // (corkboard-kit.md, case 1). Offsets along the anchor's right and normal, in metres.
 const BOARD_OFFSET = { right: 0.02, out: 0.073 }
@@ -299,7 +309,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         b.t += delta
         while (b.legs.length && b.t >= b.legs[0][0]) {
             const [, id, duration] = b.legs.shift()
-            rig.goTo(id, duration)
+            rig.goTo(id, { duration, door: doorFor(rig.current, id, camera.position) })
+            // The dissolve onto the wall waits for the camera to come to rest on the board.
+            if (b.on && id === 'board') b.swap = b.t + rig.moveDuration
         }
         if (!b.swapped && b.t >= b.swap && (!b.on || parts.wall || wallFailed)) {
             b.swapped = true
@@ -639,15 +651,20 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig,
         parts,
         loaders,
+        // A move into or out of the board view goes through the workshop doorway.
         // A move to a neighbouring story stop follows its leg. Any other move takes the
         // lifted arc, and a zero duration cuts. Without a duration the move takes one from its
         // path length. A move that starts in the middle of a leg starts from the camera at its
         // speed, and rig.current is already that leg's end stop.
         goTo: (id, { duration = null } = {}) => {
+            // A move asked for on the way out of the wall replaces the out leg that has not
+            // started yet. The page that comes back can pick a new section after the route
+            // change has picked its stop, and the camera follows the page.
+            if (boardMove && !boardMove.on) boardMove.legs.length = 0
             const cut = state.reduced || (duration !== null && duration <= 0)
             const leg = cut ? null : (legs[`${rig.current}>${id}`] ?? null)
             const from = rig.current
-            rig.goTo(id, { duration: cut ? 0 : duration, leg })
+            rig.goTo(id, { duration: cut ? 0 : duration, leg, door: doorFor(from, id, camera.position) })
             const time = rig.moveDuration
             fade = id === 'bedroom' && time > 0 && from !== 'bedroom' ? { t: 0, duration: time } : null
             pipeline.grade.uniforms.uFade.value = 0
@@ -724,10 +741,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 requestRender()
             },
         },
-        // The move to the evidence wall: the camera flies to the workshop (from any other
-        // stop), on to the board stop in front of the room board, and the room board dissolves
-        // into the lit wall. Off dissolves back and flies on to the stop `back`. Reduced motion
-        // cuts the camera and keeps only the dissolve, which is a fade and not a motion.
+        // The move to the evidence wall: the camera flies in through the workshop doorway to
+        // the board stop in front of the room board, and the room board dissolves into the
+        // lit wall. Off dissolves back and flies out through the doorway to the stop `back`.
+        // Reduced motion cuts the camera and keeps only the dissolve, which is a fade and not a motion.
         enterWall: (on, back = 'workshop') => {
             settle()
             // The room copy shows the overview, so the wall starts there too.
@@ -742,15 +759,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 else showWall(on)
                 return
             }
+            // One move in through the workshop doorway to the board, or out through it from the
+            // board. A null duration takes the duration from the path, and the swap time comes
+            // from the move once it starts (stepBoard).
             if (on) {
-                const lead = ['workshop', 'board'].includes(rig.current) ? 0 : 1.6
-                const legs = [[0, 'workshop', lead], [lead, 'board', WALL.fly]].slice(lead ? 0 : 1)
-                boardMove = { t: 0, on, legs, swap: lead + WALL.fly, swapped: false }
+                boardMove = { t: 0, on, legs: [[0, 'board', null]], swap: Infinity, swapped: false }
             } else {
                 rig.jump('board')
-                const legs = [[0, 'workshop', 1.2]]
-                if (back !== 'workshop') legs.push([1.2, back, 1.6])
-                boardMove = { t: 0, on, legs, swap: 0, swapped: false }
+                boardMove = { t: 0, on, legs: [[0, back, null]], swap: 0, swapped: false }
             }
             requestRender()
         },

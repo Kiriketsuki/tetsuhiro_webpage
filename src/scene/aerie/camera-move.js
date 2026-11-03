@@ -39,6 +39,8 @@ const LEG_SAMPLES = [0.5]
 // that is a detour of more than DETOUR times the straight distance. A scroll back up passes
 // the follow frame of the leg it reverses, and the path doubled back on itself through it.
 const DETOUR = 1.4
+// How far from the door axis, in metres, a move that takes over counts as in the doorway.
+const DOOR_CORRIDOR = 1.5
 // A move runs at an even pace along a mix of camera distance and view turn: each radian the
 // view turns counts as TURN_METRES metres, and the two add in quadrature, so the pace bends
 // smoothly where the view starts or stops turning. Without the turn, the view whipped round
@@ -173,13 +175,97 @@ function arcPoints(position, look, shot, lift, crane) {
 // leg's follow frames. Without one it rises in an arc, high enough that blocked(a, b, ends),
 // which says if the aerie lies between two points, finds nothing. duration is in seconds, or null
 // for a duration from the path length. midway is true for a move that takes over from another
-// one. The two paths have the same number of points, so the rig runs both on one spline
+// one. door, if given, sends the move through a doorway (doorFrames). The two paths have the same number of points, so the rig runs both on one spline
 // parameter and the view turns in step with the camera.
-export function createMove({ position, target, shot, leg = null, duration = null, blocked = () => false, midway = false }) {
+// An arc from position, looking at look, to shot, raised until blocked finds nothing. It
+// returns the control points, start and end included.
+function arcTo(position, look, shot, blocked) {
+    const start = Math.min(MAX_LIFT, position.distanceTo(shot.position) * LIFT_PER_METRE)
+    let lift = start
+    let crane = false
+    for (;;) {
+        const arc = arcPoints(position, look, shot, lift, crane)
+        if (lift >= MAX_LIFT || !meets(createWalkCurve(arc.cams), blocked)) return arc
+        if (!crane && lift >= start + LIFT_TRIES) {
+            crane = true
+            lift = start
+        } else lift = Math.min(MAX_LIFT, Math.max(lift, 0.5) + LIFT_STEP)
+    }
+}
+
+// The doorway frames of a move through a door, in the order of the move. door.side is 'in' or
+// 'out', and door.outside, door.porch and door.inside are points on the door's centre line.
+// The camera faces into the room the whole way: it looks in along the door axis, and from the
+// inside point at the board on the way in. So the way out backs out through the door, the
+// way in played backward, and the camera turns round in the open, not in the room.
+// A move that takes over (midway) close to the door axis skips the frames it has passed.
+function doorFrames(door, position, shot, midway) {
+    const outward = door.outside.clone().sub(door.inside).normalize()
+    const along = (point) => point.clone().sub(door.inside).dot(outward)
+    const offAxis = position.clone().sub(door.inside).projectOnPlane(outward).length()
+    const start = along(position)
+    const passed = (frame) => midway && offAxis < DOOR_CORRIDOR && (door.side === 'in' ? along(frame.position) > start - 0.1 : along(frame.position) < start + 0.1)
+    const frames = [door.outside, door.porch].map((point) => ({ position: point.clone(), look: point.clone().addScaledVector(outward, -LOOK_DISTANCE) }))
+    frames.push({ position: door.inside.clone(), look: aim(door.inside, door.side === 'in' ? shot.target : door.inside.clone().addScaledVector(outward, -1)) })
+    return (door.side === 'in' ? frames : frames.reverse()).filter((frame) => !passed(frame))
+}
+
+// The view turns at most MAX_TURN radians between two control points. A larger turn gets a
+// control point half way, with the view half way round. Without it, the look path between two
+// views that face apart passes close to the camera, and the view flips in one frame: the move
+// out of the board view, which faces the wall, to the doorway behind it did that.
+const MAX_TURN = 1.4
+function splitTurns(cams, looks) {
+    for (let i = 0; i < cams.length - 1; i += 1) {
+        const from = looks[i].clone().sub(cams[i]).normalize()
+        const to = looks[i + 1].clone().sub(cams[i + 1]).normalize()
+        const angle = from.angleTo(to)
+        if (angle <= MAX_TURN) continue
+        // Two views that face almost apart turn round the vertical, toward the way the camera goes.
+        const axis = new THREE.Vector3().crossVectors(from, to)
+        if (axis.lengthSq() < 1e-6) {
+            const travel = cams[i + 1].clone().sub(cams[i])
+            axis.set(0, 1, 0)
+            if (from.clone().applyAxisAngle(axis, Math.PI / 2).dot(travel) < 0) axis.negate()
+        }
+        const middle = cams[i].clone().lerp(cams[i + 1], 0.5)
+        cams.splice(i + 1, 0, middle)
+        looks.splice(i + 1, 0, middle.clone().addScaledVector(from.applyAxisAngle(axis.normalize(), angle / 2), LOOK_DISTANCE))
+        i -= 1
+    }
+}
+
+export function createMove({ position, target, shot, leg = null, duration = null, blocked = () => false, midway = false, door = null }) {
     let cams = [position.clone()]
     let looks = [aim(position, target)]
     let camPath = null
-    if (leg) {
+    if (door) {
+        // In: an arc to the first doorway frame, then through the door to the shot. Out:
+        // through the door from the shot inside, then an arc to the end shot.
+        const frames = doorFrames(door, position, shot, midway)
+        const frameShot = (frame) => ({ position: frame.position, target: frame.look })
+        if (!frames.length) ({ cams, looks } = arcTo(position, looks[0], shot, blocked))
+        else if (door.side === 'in') {
+            ;({ cams, looks } = arcTo(position, looks[0], frameShot(frames[0]), blocked))
+            frames.slice(1).forEach((frame) => {
+                cams.push(frame.position)
+                looks.push(frame.look)
+            })
+            cams.push(shot.position.clone())
+            looks.push(aim(shot.position, shot.target))
+        } else {
+            frames.forEach((frame) => {
+                cams.push(frame.position)
+                looks.push(frame.look)
+            })
+            const last = frames.at(-1)
+            const arc = arcTo(last.position, last.look, shot, blocked)
+            cams.push(...arc.cams.slice(1))
+            looks.push(...arc.looks.slice(1))
+        }
+        splitTurns(cams, looks)
+        camPath = createWalkCurve(cams)
+    } else if (leg) {
         const straight = position.distanceTo(shot.position)
         followFrames(leg)
             .filter((frame) => !midway || position.distanceTo(frame.position) + frame.position.distanceTo(shot.position) <= DETOUR * straight)
@@ -191,19 +277,8 @@ export function createMove({ position, target, shot, leg = null, duration = null
         looks.push(aim(shot.position, shot.target))
         camPath = createWalkCurve(cams)
     } else {
-        const start = Math.min(MAX_LIFT, position.distanceTo(shot.position) * LIFT_PER_METRE)
-        const look = looks[0]
-        let lift = start
-        let crane = false
-        for (;;) {
-            ;({ cams, looks } = arcPoints(position, look, shot, lift, crane))
-            camPath = createWalkCurve(cams)
-            if (lift >= MAX_LIFT || !meets(camPath, blocked)) break
-            if (!crane && lift >= start + LIFT_TRIES) {
-                crane = true
-                lift = start
-            } else lift = Math.min(MAX_LIFT, Math.max(lift, 0.5) + LIFT_STEP)
-        }
+        ;({ cams, looks } = arcTo(position, looks[0], shot, blocked))
+        camPath = createWalkCurve(cams)
     }
     const lookPath = createWalkCurve(looks)
     // The running pace along the shared spline parameter: camera metres plus view turn.

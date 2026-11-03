@@ -142,12 +142,13 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     }
 
     // Starts a move from wherever the camera is now, at the speed it moves now. A zero
-    // duration cuts. The second argument is the duration in seconds, or { duration, leg }.
+    // duration cuts. The second argument is the duration in seconds, or { duration, leg, door }.
+    // door sends the move through a doorway (camera-move.js).
     // Without a duration the move takes one from its path length (camera-move.js). With a leg
     // (legsFromRoute) the path runs through the leg's follow frames. Without one it rises in
     // an arc.
     const goTo = (id, options = {}) => {
-        const { duration = null, leg = null } = typeof options === 'number' ? { duration: options } : options
+        const { duration = null, leg = null, door = null } = typeof options === 'number' ? { duration: options } : options
         if (!all[id]) return
         if (!moves || (duration !== null && duration <= 0)) {
             jump(id)
@@ -161,14 +162,14 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         const travelFrom = tween ? Math.sin(Math.PI * tween.s) : 0
         const coast = velocity.lengthSq() + lookVelocity.lengthSq() > 1e-6 ? { position, look: baseLook.clone(), velocity: velocity.clone(), lookVelocity: lookVelocity.clone(), brake: false } : null
         const midway = Boolean(coast)
-        let move = moves.createMove({ position, target: from, shot, leg, duration, blocked, midway })
+        let move = moves.createMove({ position, target: from, shot, leg, duration, blocked, midway, door })
         let v0 = 0
         const along = move.camPath.tangentAt(0, new THREE.Vector3()).dot(velocity)
         if (coast && along < 0) {
             // The coast covers half its start speed times TAKE_OVER before it stops.
             const stop = position.clone().addScaledVector(velocity, TAKE_OVER / 2)
             const stopLook = coast.look.clone().addScaledVector(lookVelocity, TAKE_OVER / 2)
-            move = moves.createMove({ position: stop, target: stopLook, shot, leg, duration, blocked, midway })
+            move = moves.createMove({ position: stop, target: stopLook, shot, leg, duration, blocked, midway, door })
             coast.brake = true
         } else if (coast) {
             // The new path takes the speed along it, and the rest of the motion fades out.
@@ -332,9 +333,10 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         get current() {
             return current
         },
-        // The length of the move that runs now, in seconds, or 0 at rest.
+        // The time from the start of the move that runs now to its end, in seconds, or 0 at
+        // rest. A move that brakes first ends later than its duration.
         get moveDuration() {
-            return tween ? tween.duration : 0
+            return tween ? Math.max(tween.delay + tween.duration, tween.coast ? TAKE_OVER : 0) : 0
         },
         // 0 at rest, rising to 1 in the middle of a move between stops, for the lens fade. It
         // follows the share of the path, so it rises and falls with the speed curve.

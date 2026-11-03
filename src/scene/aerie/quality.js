@@ -3,12 +3,16 @@ import { GradePass } from './grade-pass.js'
 import { GlowPass } from './glow-pass.js'
 
 // The quality ladder. The soft glow runs on the desktop only, and the ladder drops it
-// first, then MSAA, then the ink and the lens (depth), then the pixel ratio. Reduced motion is
-// not a tier: it renders one frame.
+// first, then MSAA, then the pixel ratio to 1.5, then the ink and the lens (depth), then the
+// pixel ratio to 1. Reduced motion is not a tier: it renders one frame.
+// A phone starts at no-msaa at its full pixel ratio. ink-dpr-1.5 cuts the pixels by about 44
+// percent and keeps the ink, whose offsets follow the pixel ratio, so the lines keep their
+// width. Before, the first step down on a phone dropped the ink and the pixels at once.
 export const TIERS = [
     { name: 'glow-msaa4', samples: 4, maxPixelRatio: 2, glow: true, depth: true },
     { name: 'msaa4', samples: 4, maxPixelRatio: 2, glow: false, depth: true },
     { name: 'no-msaa', samples: 0, maxPixelRatio: 2, glow: false, depth: true },
+    { name: 'ink-dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false, depth: true },
     { name: 'dpr-1.5', samples: 0, maxPixelRatio: 1.5, glow: false, depth: false },
     { name: 'dpr-1', samples: 0, maxPixelRatio: 1, glow: false, depth: false },
 ]

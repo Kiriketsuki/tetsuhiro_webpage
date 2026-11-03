@@ -29,7 +29,7 @@ export const PROPS = [
         verb: 'look at the stars',
         to: '/skills',
         stop: 'telescope',
-        // The tube, the finder and the tripod. The phone island (LOD1) keeps the telescope in
+        // The tube, the finder and the tripod. The phone aerie (LOD1) keeps the telescope in
         // its own Scope_Lod1 meshes. The stool beside the tripod and the small table further out
         // sit in the Props meshes, so `cut` drops the stool. The cut stops just short of the
         // tripod foot at z -4.13.

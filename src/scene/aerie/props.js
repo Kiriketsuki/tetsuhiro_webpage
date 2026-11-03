@@ -248,7 +248,7 @@ export function createProps(manager, root, reduced) {
     // the flight between stops has all but ended.
     // The shell turns the props on only on Home past the gate, so a prop never glints behind a
     // text page or inside the About room.
-    const live = (prop) => enabled && manager.view === 'island' && rig.travel < 0.02 && rig.current === prop.def.stop
+    const live = (prop) => enabled && manager.view === 'aerie' && rig.travel < 0.02 && rig.current === prop.def.stop
 
     // Steps the hover ease and the glint once a frame, from the scene's own render.
     const step = () => {

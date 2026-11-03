@@ -20,6 +20,7 @@ import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-sh
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
+import { createHoverFocus, HOVER_FOCUS } from './aerie/hover-focus.js'
 import { GRADE } from './aerie/grade-pass.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
@@ -129,9 +130,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The look options in force (look-options.js). A new pipeline takes them again.
     // A phone has no cursor, and the lens costs too much at a phone pixel ratio.
     let lookSet = small ? new Set([...SITE_LOOK].filter((name) => name !== 'lens')) : SITE_LOOK
-    // The pointer in uv, or null without one. The lens clears its blur a little around it.
+    // The pointer in uv, or null without one. The lens pulls focus toward what it rests on.
     let cursor = null
-    const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), clear: 0, last: performance.now(), shown: -1 }
+    const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), on: 0, movedAt: 0, last: performance.now(), shown: -1 }
+    const hoverFocus = createHoverFocus(renderer)
     let lookControl = null
     let submits = []
 
@@ -175,10 +177,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
     let steeredAt = -Infinity
 
-    // The lens follows the stop's focus point. It fades out during a move between stops, so the
-    // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
-    // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
-    // lens is, so the ring fades with it.
+    // The lens follows the stop's focus point, and adds the depth under the resting cursor
+    // (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
+    // the hover focus comes back after the move. Reduced motion keeps the stop's focus only. The
+    // cursor patch and the vignette centre ease after the pointer, so they drift and never jump.
+    // --aerie-lens tells the focus ring in the shell how strong the lens is, so the ring fades
+    // with it.
     // A custom property on the root restyles every element of the page, so the shell names the
     // ring through lensTarget, and only the ring restyles. lensElement asks lensTarget again for
     // a ring that has left the document.
@@ -187,39 +191,48 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         if (!lensRing?.isConnected) lensRing = lensTarget?.() ?? null
         return lensRing ?? document.documentElement
     }
+    // Returns true while the hover focus still needs frames.
     const updateLens = () => {
         const now = performance.now()
-        const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
+        const dt = Math.min(0.25, (now - lensCursor.last) / 1000)
+        const k = state.reduced ? 1 : 1 - Math.exp(-dt / 0.18)
         lensCursor.last = now
         const uniforms = pipeline.grade.uniforms
         const dof = lookSet.has('lens') && uniforms.uDepthOn.value && !scope ? 1 - Math.min(1, rig.travel * 1.6) : 0
         uniforms.uDof.value = dof
         uniforms.uFocus.value = rig.focus
+        const on = !!cursor && dof === 1 && !state.reduced
+        // Reduced motion draws single frames, so a long step snaps the pull out in one frame.
+        const hover = hoverFocus.update({ on, cursor, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
+        uniforms.uHoverFocus.value = hover.focus
+        uniforms.uHover.value = hover.weight
+        uniforms.uHoverCap.value = HOVER_FOCUS.cap
         if (cursor) lensCursor.uv.lerp(cursor, k)
-        lensCursor.clear += ((cursor ? 0.4 : 0) - lensCursor.clear) * k
+        lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)
-        uniforms.uCursorClear.value = lensCursor.clear
-        uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.clear * 2.5, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.clear * 2.5)
+        uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, HOVER_FOCUS.clear, hover.weight)
+        uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.on, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.on)
         uniforms.uVignette.value = (lookSet.has('split') ? 0.27 : 0.22) + 0.04 * dof
         const shown = Math.round(dof * 20) / 20
         if (shown !== lensCursor.shown) {
             lensCursor.shown = shown
             lensElement().style.setProperty('--aerie-lens', String(shown))
         }
+        return hover.busy
     }
 
     const render = () => {
         renderer.info.reset()
         hooks.before?.()
         const begin = performance.now()
-        updateLens()
+        const lensBusy = updateLens()
         // The wall renders its shadow map only after a pin lifts.
         if (view === 'wall' && parts.wall.takeShadowDirty()) renderer.shadowMap.needsUpdate = true
         pipeline.render()
         submits.push(performance.now() - begin)
         if (submits.length > 120) submits = submits.slice(-60)
         hooks.after?.()
-        state.dirty = false
+        state.dirty = lensBusy
     }
 
     // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
@@ -909,6 +922,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         setPointer: (x, y) => {
             if (!state.reduced) rig.setPointer(x, y)
             cursor = new THREE.Vector2((x + 1) / 2, 1 - (y + 1) / 2)
+            lensCursor.movedAt = performance.now()
             requestRender()
         },
         // The pointer left the page: the cursor patch fades out.
@@ -970,6 +984,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             carpetBuild.dispose()
             Object.values(parts).forEach((part) => part?.dispose?.())
             pipeline?.dispose()
+            hoverFocus.dispose()
             disposeLoaders(loaders)
             renderer.dispose()
         },

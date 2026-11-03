@@ -1,0 +1,173 @@
+/*
+ * The words over the skill sky (sky-overlay.js). They show only while the explore pad is
+ * up: at the telescope from Home, and on /skills. The overlay sits just above the pad, so
+ * a name takes a click, and the pad still takes every drag on the open sky.
+ */
+.sky-overlay {
+    --zoom: 1;
+    position: fixed;
+    inset: 0;
+    z-index: 21;
+    display: none;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+body:has(.explore-pad) .sky-overlay:not([hidden]) {
+    display: block;
+}
+
+.sky-name,
+.sky-title {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    white-space: nowrap;
+    will-change: transform, opacity;
+    text-shadow:
+        0 0 0.5rem rgb(2 4 16 / 0.95),
+        0 1px 2px rgb(2 4 16 / 0.9);
+}
+
+.sky-name {
+    translate: -50% 0.55rem;
+    padding: 0.2rem 0.4rem;
+    border: 0;
+    background: none;
+    color: var(--c);
+    font-family: var(--font-label);
+    font-size: calc(0.72rem * var(--zoom));
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.sky-name:hover,
+.sky-name:focus-visible {
+    color: var(--color-text-strong);
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+}
+
+.sky-title {
+    translate: -50% -50%;
+    color: #f2d9a6;
+    font-family: var(--font-display);
+    font-size: calc(1.45rem * var(--zoom));
+    font-style: italic;
+    line-height: 1;
+    text-align: center;
+}
+
+.sky-title small {
+    display: block;
+    margin-top: 0.35em;
+    color: var(--c);
+    font-family: var(--font-label);
+    font-size: 0.4em;
+    font-style: normal;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+}
+
+/* The card opens beside its star, or on the far side when the star is near the right edge. */
+.sky-card {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    width: min(20rem, calc(100vw - 2rem));
+    transform: translate(1.5rem, -50%);
+    padding: 1.4rem 1.25rem 1.1rem;
+    color: var(--color-text-body);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    pointer-events: auto;
+}
+
+.sky-card.flip {
+    transform: translate(calc(-100% - 1.5rem), -50%);
+}
+
+.sky-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+    padding-right: 1.5rem;
+}
+
+.sky-logo {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 2px solid var(--frame);
+    border-radius: 50%;
+    background: var(--color-bg-raised);
+}
+
+.sky-logo svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.sky-card-name {
+    margin: 0;
+    color: var(--color-text-strong);
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.sky-card-note {
+    margin: 0;
+}
+
+.sky-card-parent {
+    margin: 0.6rem 0 0;
+    color: var(--color-text-faint);
+    font-family: var(--font-label);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.sky-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.sky-close:hover,
+.sky-close:focus-visible {
+    color: var(--color-text-strong);
+    outline: 2px solid var(--frame);
+    outline-offset: 2px;
+}
+
+/* A phone gets the card as a sheet over the bottom of the screen, clear of the nav. */
+@media (max-width: 40rem) {
+    .sky-card,
+    .sky-card.flip {
+        top: auto;
+        right: 1rem;
+        bottom: 4.75rem;
+        left: 1rem;
+        width: auto;
+        transform: none;
+    }
+}

@@ -19,11 +19,12 @@ const { ready } = useWaypoints()
 useScene()
 
 // The scene shows on every route once it has loaded. A route change moves the camera to
-// that route's room. Pages full of text dim it, so the words stay readable.
+// that route's room. Pages full of text dim it, so the words stay readable. /skills is the
+// skill sky itself, so it stays at full strength.
 const PAGE_DIM = 0.32
 const opacity = computed(() => {
     if (!ready.value) return 0
-    return route.name === 'Home' ? 1 : PAGE_DIM
+    return ['Home', 'Skills'].includes(route.name) ? 1 : PAGE_DIM
 })
 
 watch(opacity, (value) => {

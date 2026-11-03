@@ -158,6 +158,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (!reveal || state.reduced) parts.constellation.showAll()
             pipeline.setView(parts.constellation.scene, parts.constellation.camera)
         } else {
+            parts.constellation.close()
             pipeline.setView(scene, camera)
         }
         requestRender()
@@ -369,7 +370,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // The skill sky is its own chunk, so it stays out of the scene budget.
             await Promise.all([document.fonts.load('30px "JetBrains Mono"'), document.fonts.load('italic 42px "Instrument Serif"')]).catch(() => {})
             const { createConstellation } = await import('./aerie/constellation.js')
-            parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
+            parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 
             rig.setShots(shots)

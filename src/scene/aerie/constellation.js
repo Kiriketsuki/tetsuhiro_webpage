@@ -2,19 +2,20 @@ import * as THREE from 'three'
 import { skills, branches, branchOf, PALETTE } from '../../data/skills.js'
 import { createNebula } from './skill-nebula.js'
 import { figures } from './constellation-figures.js'
+import { createSkyOverlay } from './sky-overlay.js'
 
 // The skill sky that the telescope shows. Each skill branch is a named constellation from
 // constellation-figures.js, each skill a star in it, over a quiet nebula from skill-nebula.js.
 // The figure lines and the parent links from src/data/skills.js draw in from the root star
 // outward, and a soft drawing of the figure fades in behind them. The skills marked showOff
-// are the big stars with spikes. A tap on a figure flies the view to it and dims the rest.
-// Stars, lines, figure art and labels are four draw calls in their own THREE.Scene. A
-// portrait screen gets a taller arrangement of the same figures.
+// are the big stars with spikes. A tap on a figure flies the view to it and dims the rest,
+// and a tap on a star opens a card on what I did with that skill. Stars, lines and figure
+// art are three draw calls in their own THREE.Scene. The names, titles and cards are HTML
+// from sky-overlay.js. A portrait screen gets a taller arrangement of the same figures.
 
 const RADIUS = 100
 const FOV = 50
-const VIEW_ELEVATION = { wide: 23, tall: 31 }
-const LABEL = { width: 512, height: 64 }
+const VIEW_ELEVATION = { wide: 23, tall: 28 }
 const REVEAL_SECONDS = 4.5
 const FOCUS_SECONDS = 0.9
 const LOOK_LIMIT = { x: 0.75, y: 0.5 }
@@ -31,7 +32,6 @@ const LOOK = {
     clouds: [0x4a2758, 0x1c5060, 0x8a4630],
     cloudAmount: 0.17,
     gold: 0xe2bd78,
-    title: 0xf2d9a6,
     grid: 0.045,
     whiten: 0.2,
 }
@@ -46,7 +46,6 @@ const fitFov = (aspect) => {
     return aspect >= 16 / 9 ? FOV : Math.min(85, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(wide) / aspect)))
 }
 const branchColor = (branch) => new THREE.Color(PALETTE[branch.color] ?? PALETTE.ink)
-const hex = (value) => `#${new THREE.Color(value).getHexString(THREE.SRGBColorSpace)}`
 
 // A point of a figure on the sky. x and y run along the tangent plane at the figure
 // centre, so the stars and the flat art quads line up exactly from the camera.
@@ -124,7 +123,8 @@ function layout(tall) {
         const color = branchColor(branch)
         const member = (key) => members.find((skill) => skill.id === key)
         const parentLinks = members.filter((skill) => member(skill.parent)).map((skill) => [skill.parent, skill.id, 0])
-        const links = [...parentLinks, ...figure.edges.split(' ').map((pair) => [...pair.split('-'), 1])]
+        const extra = (figure.edges ?? '').split(' ').filter(Boolean)
+        const links = [...parentLinks, ...extra.map((pair) => [...pair.split('-'), 1])]
         const roots = members.filter((skill) => !member(skill.parent)).map((skill) => skill.id)
         const start = 0.4 + k * 0.8
         const orders = ordersOf(points, links, roots, start)
@@ -135,7 +135,7 @@ function layout(tall) {
             stars.push({ position: position(key), color, order: orders[key], size, figure: k })
             if (skill) {
                 placed.set(key, { position: position(key), order: orders[key], color })
-                labels.push({ position: position(key), row: skills.indexOf(skill), order: orders[key] + 0.3, title: false, figure: k })
+                labels.push({ position: position(key), order: orders[key] + 0.3, figure: k, id: key })
             }
         })
         links.forEach(([a, b, kind]) => {
@@ -148,7 +148,7 @@ function layout(tall) {
             figure: k,
         })
         const title = figure.title ?? [box.cx, box.low - 3]
-        labels.push({ position: toSky(at, ...title), row: skills.length + k, order: start + 1.2, title: true, figure: k })
+        labels.push({ position: toSky(at, ...title), order: start + 1.2, figure: k, title: k })
         targets.push({ centre: toSky(at, box.cx, box.cy).normalize(), half: rad(box.half * at[2]) })
     })
     // Links to a parent in another constellation, as faint dashed lines between the figures.
@@ -280,74 +280,6 @@ void main() {
     gl_FragColor = vec4( texel.rgb * texel.a * vShow * 0.5, 1.0 );
 }
 `
-// Labels are camera-facing quads. Each corner moves out from its point in view space.
-// A skill name fades out where it would draw smaller than about 9 px, as on a phone's
-// whole-sky view, and comes back as the view zooms in. The titles always show.
-const labelVertex = /* glsl */ `
-attribute vec3 aCentre;
-attribute vec2 aCorner;
-attribute vec3 aSize;
-attribute float aOrder;
-attribute float aFigure;
-uniform float uReveal;
-uniform float uScale;
-uniform float uViewHeight;
-${DIM}
-varying vec2 vUv;
-varying float vShow;
-void main() {
-    vec4 view = modelViewMatrix * vec4( aCentre, 1.0 );
-    float pixels = aSize.y * uScale * projectionMatrix[1][1] / -view.z * uViewHeight;
-    float legible = aSize.z < 0.0 ? smoothstep( 18.0, 22.0, pixels ) : 1.0;
-    vShow = smoothstep( aOrder, aOrder + 0.8, uReveal ) * legible * dimOf( aFigure );
-    vUv = uv;
-    view.xy += ( aCorner * aSize.xy + vec2( 0.0, aSize.z ) ) * uScale;
-    gl_Position = projectionMatrix * view;
-}
-`
-const labelFragment = /* glsl */ `
-uniform sampler2D uMap;
-varying vec2 vUv;
-varying float vShow;
-void main() {
-    vec4 texel = texture2D( uMap, vUv );
-    gl_FragColor = vec4( texel.rgb, texel.a * vShow );
-}
-`
-
-// Skill names in their branch colour, then one row per constellation title.
-function labelAtlas() {
-    const canvas = document.createElement('canvas')
-    canvas.width = LABEL.width
-    canvas.height = LABEL.height * (skills.length + constellations.length)
-    const ctx = canvas.getContext('2d')
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    // A dark soft shadow keeps the names legible over the figure fills.
-    ctx.shadowColor = 'rgba(2, 4, 16, 0.9)'
-    ctx.shadowBlur = 10
-    const centre = LABEL.width / 2
-    skills.forEach((skill, i) => {
-        ctx.font = '600 30px "JetBrains Mono", ui-monospace, monospace'
-        ctx.fillStyle = PALETTE[branchOf(skill)?.color] ?? PALETTE.ink
-        ctx.fillText(skill.name.toUpperCase(), centre, LABEL.height * (i + 0.5))
-    })
-    constellations.forEach(({ branch, figure }, k) => {
-        const y = LABEL.height * (skills.length + k)
-        ctx.font = 'italic 42px "Instrument Serif", Georgia, serif'
-        ctx.fillStyle = hex(LOOK.title)
-        ctx.fillText(figure.name, centre, y + 24)
-        ctx.font = '500 17px "JetBrains Mono", ui-monospace, monospace'
-        ctx.letterSpacing = '5px'
-        ctx.fillStyle = PALETTE[branch.color] ?? PALETTE.ink
-        ctx.fillText(branch.label.toUpperCase(), centre, y + 53)
-        ctx.letterSpacing = '0px'
-    })
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.colorSpace = THREE.SRGBColorSpace
-    return texture
-}
-
 // The figure drawings, one square tile per constellation, in the branch colour.
 function artAtlas(tile) {
     const canvas = document.createElement('canvas')
@@ -450,26 +382,8 @@ function artsGeometry(arts) {
     )
 }
 
-function labelsGeometry(labels) {
-    const rows = skills.length + constellations.length
-    const values = { position: [], aCentre: [], aCorner: [], aSize: [], uv: [], aOrder: [], aFigure: [] }
-    labels.forEach((label) => {
-        const size = label.title ? [12, 1.5, 0] : [10, 1.25, -1.6]
-        QUAD.forEach(([x, y]) => {
-            values.position.push(...label.position.toArray())
-            values.aCentre.push(...label.position.toArray())
-            values.aCorner.push(x, y)
-            values.aSize.push(...size)
-            values.uv.push((x + 1) / 2, 1 - (label.row + (1 - y) / 2) / rows)
-            values.aOrder.push(label.order)
-            values.aFigure.push(label.figure)
-        })
-    })
-    // three needs a position attribute to draw. The shader places the quads from aCentre.
-    return geometryOf(values, labels.length * 4, true)
-}
-
-export function createConstellation({ pixelRatio = 1, small = false } = {}) {
+// canvas is the scene canvas. The HTML overlay goes right after it.
+export function createConstellation({ pixelRatio = 1, small = false, canvas = null } = {}) {
     const scene = new THREE.Scene()
     scene.name = 'SkillSky'
     const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 12000)
@@ -478,23 +392,19 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
         uTime: { value: 0 },
         uPixelRatio: { value: pixelRatio },
         uAspect: { value: 1 },
-        uScale: { value: 1 },
-        uViewHeight: { value: window.innerHeight },
         uFocus: { value: -1 },
         uDim: { value: 0 },
         uWidth: { value: 0.0045 },
         uWhiten: { value: LOOK.whiten },
     }
     const additive = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }
-    const labelMap = labelAtlas()
     const artMap = artAtlas(small ? 384 : 512)
-    const material = (name, vertexShader, fragmentShader, extra = {}, options = additive) =>
-        new THREE.ShaderMaterial({ name, uniforms: { ...uniforms, ...extra }, vertexShader, fragmentShader, ...options })
+    const material = (name, vertexShader, fragmentShader, extra = {}) =>
+        new THREE.ShaderMaterial({ name, uniforms: { ...uniforms, ...extra }, vertexShader, fragmentShader, ...additive })
     const stars = new THREE.Points(undefined, material('sky.skills', starVertex, starFragment))
     const lines = new THREE.Mesh(undefined, material('sky.links', lineVertex, lineFragment))
     const art = new THREE.Mesh(undefined, material('sky.figures', artVertex, artFragment, { uMap: { value: artMap } }))
-    const labels = new THREE.Mesh(undefined, material('sky.labels', labelVertex, labelFragment, { uMap: { value: labelMap } }, { transparent: true, depthWrite: false }))
-    const parts = [art, lines, stars, labels]
+    const parts = [art, lines, stars]
     parts.forEach((object, i) => {
         object.frustumCulled = false
         object.renderOrder = i
@@ -502,6 +412,13 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
     const nebula = createNebula({ look: LOOK, small, time: uniforms.uTime })
     nebula.mesh.rotation.order = 'YXZ'
     scene.add(nebula.mesh, ...parts)
+
+    const figureOf = new Map(constellations.flatMap(({ members }, k) => members.map((skill) => [skill.id, k])))
+    const overlay = createSkyOverlay({
+        parent: canvas,
+        titles: constellations.map(({ branch, figure }) => ({ name: figure.name, label: branch.label, color: PALETTE[branch.color] })),
+        onPick: (id, fromKeyboard) => pick(id, fromKeyboard, window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+    })
 
     let tall = null
     let maxOrder = 1
@@ -514,10 +431,9 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
         stars.geometry = starsGeometry(placed.stars)
         lines.geometry = linesGeometry(placed.lines)
         art.geometry = artsGeometry(placed.arts)
-        labels.geometry = labelsGeometry(placed.labels)
+        overlay.setLabels(placed.labels)
         targets = placed.targets
         maxOrder = Math.max(...placed.labels.map((label) => label.order), ...placed.lines.map((line) => line.order)) + 1.2
-        uniforms.uScale.value = tall ? 1.5 : 1.45
     }
 
     const look = { x: 0, y: 0, fov: FOV }
@@ -533,6 +449,18 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
     }
     arrange(false)
     aim()
+    // The words follow the stars on every frame that draws the sky. A name grows a little as
+    // the view zooms in, and waits while a degree of sky is under about 12 pixels.
+    stars.onBeforeRender = () => {
+        overlay.place({
+            camera,
+            reveal: uniforms.uReveal.value,
+            focus: uniforms.uFocus.value,
+            dim: uniforms.uDim.value,
+            pixelsPerDegree: window.innerHeight / look.fov,
+            zoom: THREE.MathUtils.clamp(Math.sqrt(baseFov / look.fov), 1, 1.5),
+        })
+    }
 
     // The view eases between the overview and one figure. `tween` holds the start and the
     // end of the look and of the dimming.
@@ -552,6 +480,32 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
         if (tween.t >= 1) tween = null
     }
     const overview = () => ({ x: 0, y: 0, fov: baseFov })
+    const toOverview = (instant) => {
+        uniforms.uFocus.value = -1
+        ease(overview(), 0, instant)
+    }
+    // Flies to figure k, framed with a little room around it.
+    const toFigure = (k, instant) => {
+        const { centre, half } = targets[k]
+        const across = 2 * Math.atan(Math.tan(half) * 1.15)
+        const fov = camera.aspect >= 1 ? across : 2 * Math.atan(Math.tan(across / 2) / camera.aspect)
+        uniforms.uFocus.value = k
+        ease(
+            {
+                x: -Math.atan2(centre.x, -centre.z),
+                y: Math.asin(centre.y) - viewElevation(),
+                fov: THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(fov), baseFov * 0.3, baseFov),
+            },
+            1,
+            instant
+        )
+    }
+    // Opens the card for a skill, and flies to its constellation first if it is not in focus.
+    const pick = (id, fromKeyboard, instant) => {
+        const k = figureOf.get(id)
+        if (k !== undefined && k !== uniforms.uFocus.value) toFigure(k, instant)
+        overlay.openCard(id, fromKeyboard)
+    }
 
     let revealing = null
     const open = () => {
@@ -562,7 +516,9 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
         uniforms.uDim.value = 0
         Object.assign(look, overview())
         aim()
+        overlay.show()
     }
+    const close = () => overlay.hide()
     const update = (delta, seconds) => {
         uniforms.uTime.value = seconds
         if (tween) step(delta)
@@ -576,9 +532,16 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
         revealing = null
         uniforms.uReveal.value = maxOrder
     }
-    // x and y are the tap in normalised device coordinates. A tap on a figure flies to it,
-    // and a tap on empty sky or on the figure in focus flies back to the overview.
+    // x and y are the tap in normalised device coordinates. A tap on a star opens its card.
+    // A tap on a figure flies to it, and a tap on empty sky or on the figure in focus flies
+    // back to the overview.
     const focus = (x, y, instant = false) => {
+        const star = overlay.hitStar(((x + 1) / 2) * window.innerWidth, ((1 - y) / 2) * window.innerHeight)
+        if (star) {
+            pick(star, false, instant)
+            return true
+        }
+        overlay.closeCard()
         const half = Math.tan(rad(camera.fov / 2))
         let hit = -1
         let nearest = Infinity
@@ -590,24 +553,8 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
                 nearest = distance
             }
         })
-        if (hit < 0 || hit === uniforms.uFocus.value) {
-            uniforms.uFocus.value = -1
-            ease(overview(), 0, instant)
-            return true
-        }
-        const { centre, half: size } = targets[hit]
-        const across = 2 * Math.atan(Math.tan(size) * 1.15)
-        const fov = camera.aspect >= 1 ? across : 2 * Math.atan(Math.tan(across / 2) / camera.aspect)
-        uniforms.uFocus.value = hit
-        ease(
-            {
-                x: -Math.atan2(centre.x, -centre.z),
-                y: Math.asin(centre.y) - viewElevation(),
-                fov: THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(fov), baseFov * 0.3, baseFov),
-            },
-            1,
-            instant
-        )
+        if (hit < 0 || hit === uniforms.uFocus.value) toOverview(instant)
+        else toFigure(hit, instant)
         return true
     }
     // dx and dy are screen pixels. A drag turns the view a little, inside fixed limits.
@@ -625,7 +572,6 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
     const resize = (aspect) => {
         camera.aspect = aspect
         uniforms.uAspect.value = aspect
-        uniforms.uViewHeight.value = window.innerHeight
         arrange(aspect < 1)
         baseFov = fitFov(aspect)
         tween = null
@@ -642,9 +588,9 @@ export function createConstellation({ pixelRatio = 1, small = false } = {}) {
             object.geometry.dispose()
             object.material.dispose()
         })
-        labelMap.dispose()
         artMap.dispose()
         nebula.dispose()
+        overlay.dispose()
     }
-    return { scene, camera, open, update, showAll, focus, pan, zoom, resize, setPixelRatio, dispose }
+    return { scene, camera, open, close, update, showAll, focus, pan, zoom, resize, setPixelRatio, dispose }
 }

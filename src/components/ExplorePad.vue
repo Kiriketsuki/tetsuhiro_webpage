@@ -1,7 +1,15 @@
 <script setup>
 import { onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import { useExplore } from '../composables/useExplore.js'
 
+// `to` sends the back control to that route. Without it the control ends look-around mode
+// on Home. An empty `back` hides the control. The `top` slot replaces the gesture hint.
+const props = defineProps({
+    to: { type: String, default: null },
+    back: { type: String, default: 'back to the skills' },
+})
+const router = useRouter()
 const { exploring, pan, zoom, tap } = useExplore()
 
 // One finger drags the view. Two fingers drag and pinch at the same time. One finger
@@ -53,7 +61,8 @@ const onUp = (e) => {
 const onWheel = (e) => zoom(Math.exp(-e.deltaY * 0.0015))
 
 const leave = () => {
-    exploring.value = false
+    if (props.to) router.push(props.to)
+    else exploring.value = false
 }
 
 const onKey = (e) => {
@@ -73,9 +82,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         @pointercancel="onUp"
         @wheel.prevent="onWheel"
     >
-        <p class="label explore-hint">Drag to look around. Pinch or scroll to zoom. Tap a constellation to fly to it.</p>
-        <button type="button" class="action explore-back" @pointerdown.stop @click="leave">
-            back to the skills
+        <slot name="top">
+            <p class="label explore-hint">Drag to look around. Pinch or scroll to zoom. Tap a constellation to fly to it.</p>
+        </slot>
+        <button v-if="back" type="button" class="action explore-back" @pointerdown.stop @click="leave">
+            {{ back }}
         </button>
     </div>
 </template>

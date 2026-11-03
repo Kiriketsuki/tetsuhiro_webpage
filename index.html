@@ -31,7 +31,9 @@
     <!--
       The gate: a paper lantern on an autumn branch under the night sky. It lives here, not in
       the app bundle, so it paints before the JS arrives and costs nothing against the shell
-      budgets. src/components/Name.vue drives it: it sets --p to the real load share, opens it
+      budgets. The lantern, the branch and the falling leaves are frames from
+      lab/gate-lantern.html, drawn with the island's own toon material, ink and lens, so they
+      match the island. src/components/Name.vue sets --p to the real load share, opens the art
       as an iris onto the island when the scene is ready, and removes it after the visitor
       goes in. Colours are hex, because the token CSS loads with the bundle.
     -->
@@ -51,7 +53,8 @@
         -webkit-mask: radial-gradient(circle at var(--x) var(--y), transparent var(--hole), #000 calc(var(--hole) + 7rem));
         mask: radial-gradient(circle at var(--x) var(--y), transparent var(--hole), #000 calc(var(--hole) + 7rem));
       }
-      #gate-art > * {
+      #gate-art > *,
+      .ga-art > * {
         position: absolute;
       }
       .ga-star {
@@ -90,59 +93,76 @@
       .ga-islets {
         animation: ga-bob 9s ease-in-out infinite alternate;
       }
-      .ga-lamp {
+      /* The frames are 1024 by 784. The lantern hook sits at 50% 21.5%, the middle of the
+         paper at 50% 55.9%. */
+      .ga-art {
         left: 50%;
-        top: 60%;
-        width: min(40rem, 112vw);
+        top: 56%;
+        width: min(38rem, 120vw, 58vh);
+        aspect-ratio: 1024 / 784;
         transform: translate(-50%, -50%);
-        overflow: visible;
+        perspective: 40rem;
       }
-      .ga-glow {
-        opacity: var(--p);
+      .ga-img {
+        position: absolute;
+        inset: 0;
+        background: center / 100% 100% no-repeat;
       }
-      .ga-flicker {
-        transform-box: fill-box;
-        transform-origin: center;
-        animation: ga-glow 3.1s ease-in-out infinite;
+      .ga-branch {
+        background-image: url(/gate/branch-s0.webp);
       }
-      .ga-dim {
-        opacity: calc(0.82 - 0.82 * var(--p));
-      }
-      .ga-hot {
-        opacity: calc(1.1 * var(--p));
-      }
-      .ga-flame {
-        transform-box: fill-box;
-        transform-origin: 50% 100%;
-        transform: scale(calc(0.4 + 0.6 * var(--p)));
-        animation: ga-flame 1.3s ease-in-out infinite alternate;
-      }
-      .ga-spill {
-        opacity: calc(0.9 * var(--p));
-        mix-blend-mode: screen;
-      }
-      .ga-sway {
-        animation: ga-sway var(--sd) ease-in-out var(--dl) infinite alternate;
-      }
+      /* Autumn spreads along the branch from left to right as the load grows. */
       .ga-autumn {
-        opacity: clamp(0, (var(--p) - var(--t)) * 14, 1);
-        transition: opacity 0.6s;
+        background-image: url(/gate/branch-s1.webp);
+        -webkit-mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
+        mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
       }
-      .ga-vein {
-        fill: none;
-        stroke: #2a0e08;
-        stroke-opacity: 0.35;
-      }
-      .ga-swing {
-        transform-origin: 300px 64px;
+      .ga-lantern {
+        inset: 0;
+        transform-origin: 50% 21.5%;
         animation: ga-swing 6s ease-in-out infinite alternate;
       }
-      .is-ready .ga-fall {
-        animation: ga-fall 3.4s cubic-bezier(0.4, 0, 0.7, 1) var(--fd) forwards;
+      .ga-paper {
+        background-image: url(/gate/lantern-s0.webp);
+      }
+      .ga-lit {
+        background-image: url(/gate/lantern-s1.webp);
+        opacity: var(--p);
+      }
+      .ga-glow {
+        left: 50%;
+        top: 55.9%;
+        width: 78%;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        opacity: var(--p);
+      }
+      .ga-glow::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, #ffb04d55, #ff8a3a1f 45%, transparent);
+        animation: ga-flicker 3.1s ease-in-out infinite;
+      }
+      .ga-core {
+        left: 50%;
+        top: 55.9%;
+      }
+      .ga-leaf {
+        left: var(--x);
+        top: var(--y);
+        width: 6.5%;
+        aspect-ratio: 1;
+        background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        opacity: 0;
+      }
+      .is-ready .ga-leaf {
+        animation: ga-fall 3.6s cubic-bezier(0.4, 0, 0.7, 1) var(--d) both;
       }
       .is-ready .ga-fades {
         opacity: 0;
-        transition: opacity 1.2s 0.6s;
+        transition: opacity 1.2s 0.5s;
       }
       @keyframes ga-twinkle {
         50% { opacity: 0.25; }
@@ -153,25 +173,20 @@
       @keyframes ga-bob {
         to { transform: translateY(-6px); }
       }
-      @keyframes ga-glow {
-        30% { opacity: 0.86; transform: scale(0.985); }
-        80% { opacity: 0.92; transform: scale(1.01); }
-      }
-      @keyframes ga-flame {
-        33% { transform: scale(calc(0.38 + 0.6 * var(--p)), calc(0.44 + 0.6 * var(--p))) skewX(-3deg); }
-        100% { transform: scale(calc(0.42 + 0.6 * var(--p)), calc(0.39 + 0.6 * var(--p))) skewX(3deg); }
-      }
-      @keyframes ga-sway {
-        from { transform: rotate(-4deg); }
-        to { transform: rotate(5deg); }
+      @keyframes ga-flicker {
+        30% { opacity: 0.84; transform: scale(0.985); }
+        55% { opacity: 1; }
+        80% { opacity: 0.9; transform: scale(1.012); }
       }
       @keyframes ga-swing {
-        from { transform: rotate(-1.6deg); }
-        to { transform: rotate(1.6deg); }
+        from { transform: rotate(-1.4deg); }
+        to { transform: rotate(1.4deg); }
       }
       @keyframes ga-fall {
-        40% { transform: translate(30px, 160px) rotate(140deg); }
-        100% { transform: translate(-20px, 560px) rotate(300deg); opacity: 0; }
+        0% { opacity: 1; transform: translate(0, 0) rotate(var(--r)) rotateX(0deg); }
+        40% { transform: translate(1.6rem, 22vh) rotate(calc(var(--r) + 80deg)) rotateX(200deg); }
+        85% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-1.2rem, 70vh) rotate(calc(var(--r) + 200deg)) rotateX(520deg); }
       }
       @media (max-aspect-ratio: 1/1) {
         .ga-moon {
@@ -180,17 +195,16 @@
           width: 2.4rem;
           height: 2.4rem;
         }
-        .ga-lamp {
-          top: 54%;
+        .ga-art {
+          top: 52%;
         }
       }
       @media (prefers-reduced-motion: reduce) {
         #gate-art * {
           animation: none !important;
         }
-        .is-ready .ga-fall {
-          opacity: 0;
-          transition: opacity 0.6s;
+        #gate-art *::before {
+          animation: none !important;
         }
       }
       /* The gate dialog from Name.vue: a title screen lit from below by the lantern. */
@@ -237,7 +251,7 @@
         display: block;
         margin-top: 0.5rem;
         font-family: var(--font-display);
-        font-size: clamp(4.2rem, 8vw, 7rem);
+        font-size: clamp(3.2rem, min(8vw, 11vh), 7rem);
         font-weight: 400;
         line-height: 0.9;
         /* Room for the J tail, which the text clip would cut. */
@@ -379,84 +393,26 @@
         </g>
         <g fill="#ffb54d"><circle cx="122" cy="298" r="1.6" /><circle cx="880" cy="248" r="1.3" /><circle cx="716" cy="328" r="1" /></g>
       </svg>
-      <svg class="ga-lamp" viewBox="0 0 600 460">
-        <defs>
-          <radialGradient id="ga-g-glow"><stop offset="0" stop-color="#ffc56b" stop-opacity=".62" /><stop offset=".35" stop-color="#ff9f43" stop-opacity=".22" /><stop offset="1" stop-color="#ff8a3a" stop-opacity="0" /></radialGradient>
-          <radialGradient id="ga-g-amb"><stop offset="0" stop-color="#ff9f43" stop-opacity=".22" /><stop offset="1" stop-color="#ff9f43" stop-opacity="0" /></radialGradient>
-          <radialGradient id="ga-g-spill" cx="300" cy="225" r="300" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffc977" /><stop offset=".45" stop-color="#ff8f3d" stop-opacity=".45" /><stop offset="1" stop-color="#ff8f3d" stop-opacity="0" /></radialGradient>
-          <radialGradient id="ga-g-paper" cx="300" cy="226" r="92" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffe2a0" /><stop offset=".42" stop-color="#ffa64a" /><stop offset=".78" stop-color="#d9582c" /><stop offset="1" stop-color="#86281c" /></radialGradient>
-          <radialGradient id="ga-g-hot" cx="300" cy="236" r="58" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fffbe8" /><stop offset=".5" stop-color="#ffe6a8" stop-opacity=".55" /><stop offset="1" stop-color="#ffd27a" stop-opacity="0" /></radialGradient>
-          <linearGradient id="ga-g-cap" x1="0" x2="1"><stop offset="0" stop-color="#1c110b" /><stop offset=".35" stop-color="#5a3a24" /><stop offset=".5" stop-color="#8a5c38" /><stop offset=".7" stop-color="#4a2e1c" /><stop offset="1" stop-color="#160d08" /></linearGradient>
-          <linearGradient id="ga-g-bark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d4c36" /><stop offset=".45" stop-color="#3c281c" /><stop offset="1" stop-color="#1b110b" /></linearGradient>
-          <linearGradient id="ga-g-tassel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d23a2e" /><stop offset="1" stop-color="#7a1a1e" stop-opacity=".2" /></linearGradient>
-          <linearGradient id="ga-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7f9a58" /><stop offset="1" stop-color="#2f4a30" /></linearGradient>
-          <linearGradient id="ga-la" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe08a" /><stop offset=".55" stop-color="#f2a33a" /><stop offset="1" stop-color="#b8661e" /></linearGradient>
-          <linearGradient id="ga-lr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a64" /><stop offset=".55" stop-color="#e2452e" /><stop offset="1" stop-color="#8e1c22" /></linearGradient>
-          <linearGradient id="ga-lo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc061" /><stop offset=".55" stop-color="#ec7a2a" /><stop offset="1" stop-color="#a03a18" /></linearGradient>
-          <linearGradient id="ga-lc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6738a" /><stop offset=".55" stop-color="#c8344e" /><stop offset="1" stop-color="#6e1630" /></linearGradient>
-          <path id="ga-leaf" d="M0 0L6-4L20-2L17-8L30-16L24-18L27-27L17-24L16-30L9-24L10-38L4-34L0-45L-4-34L-10-38L-9-24L-16-30L-17-24L-27-27L-24-18L-30-16L-17-8L-20-2L-6-4Z" stroke-linejoin="round" />
-          <path id="ga-vein" d="M0 8V-40M0-6L24-20M0-6L-24-20M0 0L15-6M0 0L-15-6M0-18L9-30M0-18L-9-30" />
-          <clipPath id="ga-body"><path d="M270 146C222 160 218 280 270 294H330C382 280 378 160 330 146Z" /></clipPath>
-          <filter id="ga-grain" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="1.1 .35" numOctaves="2" seed="4" />
-            <feColorMatrix values="0 0 0 0 .3  0 0 0 0 .12  0 0 0 0 .05  0 0 0 .55 0" />
-            <feComposite in2="SourceGraphic" operator="in" />
-            <feBlend in2="SourceGraphic" mode="multiply" />
-          </filter>
-          <filter id="ga-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" /></filter>
-          <filter id="ga-shadow" x="-10%" y="-30%" width="120%" height="160%"><feDropShadow dx="1.5" dy="3" stdDeviation="2" flood-color="#000" flood-opacity=".45" /></filter>
-          <mask id="ga-foliage-mask" style="mask-type: alpha"><use href="#ga-foliage" /></mask>
-        </defs>
-
-        <g class="ga-glow ga-fades"><circle class="ga-flicker" cx="300" cy="225" r="420" fill="url(#ga-g-amb)" /><circle class="ga-flicker" cx="300" cy="225" r="190" fill="url(#ga-g-glow)" /></g>
-
-        <g id="ga-foliage">
-          <g class="ga-fades" filter="url(#ga-shadow)">
-            <path fill="url(#ga-g-bark)" d="M-60 54C40 40 140 74 232 62S384 52 462 38S584 26 660 30L660 40C586 38 524 48 462 52S330 74 234 78S40 60-60 70Z" />
-            <path fill="none" stroke="url(#ga-g-bark)" stroke-linecap="round" stroke-width="5" d="M120 62q10-22 34-32M188 70q-8 20-24 32M408 50q16-18 40-24M486 44q10 18 30 26M60 52q-4-18-20-28M548 34q14-10 34-12" />
-            <path fill="none" stroke="#a07a5a" stroke-opacity=".45" stroke-width="1.4" d="M-60 55C40 41 140 75 232 63S384 53 462 39S584 27 660 31" />
-          </g>
-          <g transform="translate(34 30) rotate(-30) scale(0.9 0.738)"><g class="ga-fall" style="--fd:0.00s"><g class="ga-sway" style="--sd:4s;--dl:0.0s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lr)" class="ga-autumn" style="--t:0.006"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(64 44) rotate(150) scale(0.8 0.72)"><g class="ga-fall" style="--fd:0.13s"><g class="ga-sway" style="--sd:5s;--dl:-0.7s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lo)" class="ga-autumn" style="--t:0.061"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(110 36) rotate(-10) scale(1 0.98)"><g class="ga-fall" style="--fd:0.26s"><g class="ga-sway" style="--sd:6s;--dl:-1.4s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-la)" class="ga-autumn" style="--t:0.117"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(150 30) rotate(20) scale(0.95 0.779)"><g class="ga-fall" style="--fd:0.39s"><g class="ga-sway" style="--sd:7s;--dl:-2.1s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lc)" class="ga-autumn" style="--t:0.172"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(160 96) rotate(170) scale(0.9 0.81)"><g class="ga-fall" style="--fd:0.52s"><g class="ga-sway" style="--sd:4s;--dl:-2.8s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lo)" class="ga-autumn" style="--t:0.228"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(190 58) rotate(200) scale(0.85 0.833)"><g class="ga-fall" style="--fd:0.65s"><g class="ga-sway" style="--sd:5s;--dl:-3.5s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lr)" class="ga-autumn" style="--t:0.283"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(214 70) rotate(-170) scale(0.8 0.656)"><g class="ga-fall" style="--fd:0.78s"><g class="ga-sway" style="--sd:6s;--dl:-4.2s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-la)" class="ga-autumn" style="--t:0.339"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(250 58) rotate(-20) scale(0.9 0.81)"><g class="ga-fall" style="--fd:0.91s"><g class="ga-sway" style="--sd:7s;--dl:-4.9s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lc)" class="ga-autumn" style="--t:0.394"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(352 58) rotate(10) scale(0.9 0.882)"><g class="ga-fall" style="--fd:1.04s"><g class="ga-sway" style="--sd:4s;--dl:-5.6s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lo)" class="ga-autumn" style="--t:0.450"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(384 64) rotate(160) scale(0.85 0.697)"><g class="ga-fall" style="--fd:1.17s"><g class="ga-sway" style="--sd:5s;--dl:-6.3s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-la)" class="ga-autumn" style="--t:0.506"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(420 34) rotate(-25) scale(1 0.9)"><g class="ga-fall" style="--fd:1.30s"><g class="ga-sway" style="--sd:6s;--dl:-7.0s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lr)" class="ga-autumn" style="--t:0.561"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(452 26) rotate(15) scale(0.9 0.882)"><g class="ga-fall" style="--fd:1.43s"><g class="ga-sway" style="--sd:7s;--dl:-7.7s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-la)" class="ga-autumn" style="--t:0.617"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(470 58) rotate(190) scale(0.85 0.697)"><g class="ga-fall" style="--fd:1.56s"><g class="ga-sway" style="--sd:4s;--dl:-8.4s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lc)" class="ga-autumn" style="--t:0.672"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(512 70) rotate(170) scale(0.95 0.855)"><g class="ga-fall" style="--fd:1.69s"><g class="ga-sway" style="--sd:5s;--dl:-9.1s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lo)" class="ga-autumn" style="--t:0.728"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(540 32) rotate(-15) scale(0.9 0.882)"><g class="ga-fall" style="--fd:1.82s"><g class="ga-sway" style="--sd:6s;--dl:-9.8s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lr)" class="ga-autumn" style="--t:0.783"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(586 24) rotate(10) scale(0.85 0.697)"><g class="ga-fall" style="--fd:1.95s"><g class="ga-sway" style="--sd:7s;--dl:-10.5s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-la)" class="ga-autumn" style="--t:0.839"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(248 92) rotate(180) scale(0.75 0.675)"><g class="ga-fall" style="--fd:2.08s"><g class="ga-sway" style="--sd:4s;--dl:-11.2s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-lr)" class="ga-autumn" style="--t:0.894"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-          <g transform="translate(96 62) rotate(165) scale(0.8 0.784)"><g class="ga-fall" style="--fd:2.21s"><g class="ga-sway" style="--sd:5s;--dl:-11.9s"><use href="#ga-leaf" fill="#000" opacity=".3" x="1.5" y="3"/><use href="#ga-leaf" fill="url(#ga-lg)"/><use href="#ga-leaf" fill="url(#ga-la)" class="ga-autumn" style="--t:0.950"/><use href="#ga-vein" class="ga-vein"/></g></g></g>
-        </g>
-        <g mask="url(#ga-foliage-mask)"><rect class="ga-spill" width="600" height="460" fill="url(#ga-g-spill)" /></g>
-
-        <g class="ga-fades"><g class="ga-swing">
-          <path d="M300 66V122" stroke="#2a1a12" stroke-width="2.2" />
-          <circle cx="300" cy="66" r="4" fill="none" stroke="#3a2618" stroke-width="2" />
-          <path d="M292 128h16l-2-8h-12z" fill="url(#ga-g-cap)" />
-          <path d="M262 131q38-8 76 0v13q-38 6-76 0z" fill="url(#ga-g-cap)" />
-          <g clip-path="url(#ga-body)">
-            <rect x="210" y="140" width="180" height="160" fill="url(#ga-g-paper)" filter="url(#ga-grain)" />
-            <rect class="ga-hot" x="210" y="140" width="180" height="160" fill="url(#ga-g-hot)" />
-            <path class="ga-flame" d="M300 238c9 12 10 24 0 32c-10-8-9-20 0-32z" fill="#fff6d0" filter="url(#ga-blur)" />
-            <path fill="none" stroke="#5a1810" stroke-opacity=".38" stroke-width="2.2" d="M210 160q90 9 180 0M210 176q90 10 180 0M210 192q90 10 180 0M210 208q90 10 180 0M210 224q90 10 180 0M210 240q90 10 180 0M210 256q90 10 180 0M210 272q90 9 180 0M210 286q90 7 180 0" />
-            <path fill="none" stroke="#4a1208" stroke-opacity=".22" stroke-width="1.4" d="M300 144V296M276 146C262 190 262 250 276 294M324 146C338 190 338 250 324 294M254 150C232 196 232 244 254 290M346 150C368 196 368 244 346 290" />
-            <path class="ga-dim" d="M200 130H400V310H200Z" fill="#12080a" />
-            <path d="M226 150C214 190 214 250 230 286M374 150C386 190 386 250 370 286" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="22" filter="url(#ga-blur)" />
-          </g>
-          <path d="M270 146C222 160 218 280 270 294H330C382 280 378 160 330 146Z" fill="none" stroke="#ffd58a" stroke-opacity=".28" stroke-width="1.2" />
-          <path d="M266 292q34 7 68 0v13q-34 6-68 0z" fill="url(#ga-g-cap)" />
-          <circle cx="300" cy="314" r="4.5" fill="#b8302a" />
-          <path stroke="url(#ga-g-tassel)" stroke-width="1.3" opacity=".8" fill="none" stroke-linecap="round" d="M300 318v58M297 318q-4 30-5 54M303 318q4 30 5 54M295 318q-8 26-10 48M305 318q8 26 10 48M299 318q-2 30-1 60M301 318q2 30 1 60" />
-        </g></g>
-      </svg>
+      <div class="ga-art">
+        <i class="ga-glow ga-fades"></i>
+        <i class="ga-img ga-branch ga-fades"></i>
+        <i class="ga-img ga-branch ga-autumn ga-fades"></i>
+        <div class="ga-lantern ga-fades">
+          <i class="ga-img ga-paper"></i>
+          <i class="ga-img ga-paper ga-lit"></i>
+        </div>
+        <i class="ga-core"></i>
+        <i class="ga-leaf" style="--x:3.5%;--y:22.9%;--s:0;--r:143deg;--d:0.84s"></i>
+        <i class="ga-leaf" style="--x:10.3%;--y:23.4%;--s:1;--r:-59deg;--d:0.71s"></i>
+        <i class="ga-leaf" style="--x:17.9%;--y:11.9%;--s:2;--r:135deg;--d:0.20s"></i>
+        <i class="ga-leaf" style="--x:31.0%;--y:8.1%;--s:3;--r:-70deg;--d:0.93s"></i>
+        <i class="ga-leaf" style="--x:35.1%;--y:10.8%;--s:0;--r:-180deg;--d:0.22s"></i>
+        <i class="ga-leaf" style="--x:56.1%;--y:9.4%;--s:1;--r:-37deg;--d:0.12s"></i>
+        <i class="ga-leaf" style="--x:67.5%;--y:23.2%;--s:2;--r:69deg;--d:0.91s"></i>
+        <i class="ga-leaf" style="--x:71.2%;--y:22.2%;--s:3;--r:-118deg;--d:0.29s"></i>
+        <i class="ga-leaf" style="--x:85.2%;--y:10.3%;--s:0;--r:161deg;--d:0.73s"></i>
+        <i class="ga-leaf" style="--x:89.7%;--y:13.1%;--s:1;--r:-117deg;--d:0.21s"></i>
+      </div>
     </div>
     <!-- The gate shows only on a first visit to the home page. -->
     <script>

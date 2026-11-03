@@ -62,7 +62,7 @@ const percent = computed(() => Math.round(progress.value * 100))
 // it. Reduced motion fades the art instead.
 const open = () => {
     if (!art) return
-    const box = art.querySelector('.ga-flame').getBoundingClientRect()
+    const box = art.querySelector('.ga-core').getBoundingClientRect()
     const x = box.left + box.width / 2
     const y = box.top + box.height / 2
     gsap.set(art, { '--x': `${x}px`, '--y': `${y}px`, '--hole': '0px' })

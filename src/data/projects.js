@@ -18,8 +18,7 @@ const withThumb = (project) => ({
 
 // The index, in order. group picks the band on /projects: work, then this year, then school.
 // Each project has a detail page at /projects/<id>.
-// hidden: the project stays in the data but nowhere on the site, and its page redirects.
-const all = [
+export const projects = [
     {
         id: 'autoconnect',
         title: 'Auto-Connect operator interfaces',
@@ -93,17 +92,6 @@ const all = [
         group: 'recent',
     },
     {
-        id: 'tokin',
-        // Hidden on 3 November 2026: the owner has not finished toKin, so the site does not
-        // show it yet. Remove the flag to bring it back.
-        hidden: true,
-        title: 'toKin',
-        stack: 'TypeScript, Bun, Claude Code mods',
-        year: '2026',
-        role: 'Solo, Tetsuhiro Development',
-        group: 'recent',
-    },
-    {
         id: 'trkixel',
         title: 'TrKixel',
         stack: 'Vue, Rust, Tauri',
@@ -160,9 +148,6 @@ const all = [
         group: 'school',
     },
 ].map(withThumb)
-
-export const projects = all.filter((project) => !project.hidden)
-export const isHidden = (id) => all.some((project) => project.id === id && project.hidden)
 
 // Older projects that keep their detail page. The archive on /projects links to them.
 const retired = [

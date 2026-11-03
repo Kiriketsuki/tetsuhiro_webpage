@@ -130,6 +130,37 @@ export const stops = {
         shift: [0.12, 0],
         tall: [0, 0.18],
     },
+    // Chapter 01 of the story: the sky-taxi lands on the pad. The camera stands east of the
+    // pad and looks west along the whole walkway: the pad in front, then the ramp, the deck,
+    // the bridge, the path and the house. A portrait phone keeps the tall view of `pad`.
+    arrival: {
+        camera: null,
+        anchor: 'Anchor_Pad',
+        focus: 'Anchor_Pad',
+        fallback: { position: [31, 11.5, 4.5], target: [3, 0.5, 2], fov: 42 },
+        shift: [0, 0],
+        tallView: { position: [21, 13, 3.5], target: [6, -0.8, 2], fov: 62 },
+        tall: [0, 0],
+    },
+    // Chapter 05, the closing shot: the fire on the north rim, with the city far below and
+    // the night sky. The fire already sits about 2.4 m from the rim, and the city lies north
+    // and far below it. The camera stands about 6 m above the lawn south of the fire and
+    // looks north-north-east, about 20 degrees down. The fire sits in the lower left, clear
+    // of the Contact card on the right, and the city fills the middle band of the frame. The
+    // house and the glass stair tower stay out of the frame. The owner picked this framing
+    // from three on 3 November 2026.
+    campfire: {
+        camera: null,
+        anchor: 'Anchor_Campfire',
+        focus: 'Anchor_Campfire',
+        fallback: { position: [3.6, 6.2, -1.6], target: [4.5, 0.0, -18], fov: 46 },
+        // The shift lifts the fire clear of the nav strip at the foot of the screen.
+        shift: [0, 0.1],
+        // A portrait phone has a narrow view, so the view aims a little west and widens, and
+        // the fire stays on screen above the card.
+        tallView: { position: [3.6, 6.2, -1.6], target: [2.2, 0.0, -18], fov: 50 },
+        tall: [0, 0.2],
+    },
     // Round 8 drops Cam_05_Pad for a higher view from the south-east, down across the pad,
     // the ramp, the deck and the path toward the house, so the island fills most of the frame.
     // From the Blender camera the pad sat at the island edge, and 60 to 70 percent of the

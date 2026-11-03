@@ -46,10 +46,18 @@ const LAB_STOPS = {
     },
 }
 // ?pose=x,y,z,tx,ty,tz,fov adds a trial shot, so a framing search can render a candidate
-// view without an edit to stops.js.
+// view without an edit to stops.js. &focus=x,y,z or &focus=<anchor> sets the point the lens
+// keeps sharp, as the `focus` key of a stop does. &shift=x,y and &tall=x,y slide the subject
+// on a wide and a portrait screen, as the stop keys of the same names do.
 const pose = params.get('pose')?.split(',').map(Number)
+const pair = (name) => {
+    const value = params.get(name)?.split(',').map(Number)
+    return value?.length === 2 && value.every(Number.isFinite) ? value : [0, 0]
+}
 if (pose?.length === 7 && pose.every(Number.isFinite)) {
-    LAB_STOPS.trial = { camera: null, anchor: null, fallback: { position: pose.slice(0, 3), target: pose.slice(3, 6), fov: pose[6] }, shift: [0, 0], tall: [0, 0] }
+    const point = params.get('focus')?.split(',').map(Number)
+    const focus = point?.length === 3 && point.every(Number.isFinite) ? point : params.get('focus') ?? undefined
+    LAB_STOPS.trial = { camera: null, anchor: null, focus, fallback: { position: pose.slice(0, 3), target: pose.slice(3, 6), fov: pose[6] }, shift: pair('shift'), tall: pair('tall') }
     params.set('cam', 'trial')
 }
 if (LAB_STOPS[params.get('cam')]) stops[params.get('cam')] = LAB_STOPS[params.get('cam')]

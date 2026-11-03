@@ -56,7 +56,7 @@ function currentStop() {
     const routeStop = stopForRoute(route)
     if (routeStop) return routeStop
     if (!entered.value) return 'overview'
-    return waypoints[active.value]?.stop ?? 'hero'
+    return waypoints[active.value]?.stop ?? 'arrival'
 }
 
 function boot() {

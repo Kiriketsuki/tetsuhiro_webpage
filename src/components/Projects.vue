@@ -26,7 +26,7 @@ const picture = computed(() => (showImages.value ? peeked.value.image : null))
 <template>
     <div class="stop" :data-side="sideOf('projects')">
         <article class="frame frame-rose flex w-full max-w-[34rem] flex-col gap-4 p-5 pt-7 sm:p-8 sm:pt-9">
-            <span class="frame-legend">04 / projects</span>
+            <span class="frame-legend">02 / over the bridge</span>
 
             <div class="flex items-end justify-between gap-6">
                 <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">

@@ -1,11 +1,13 @@
-"""Collision proxy for explore on foot: src/assets/models/island_b_collide.glb.
+"""Collision proxy for explore on foot: src/assets/models/aerie_collide.glb.
 
 Run it from this folder with background Blender:
 
-    blender --factory-startup -b --python export_collision.py -- [--no-compress] [--keep-scene]
+    blender --factory-startup -b --python export_aerie_collision.py -- [--no-compress] [--keep-scene]
 
-It reads the shipped island_b.glb, so the proxy matches what the site draws. It never opens
-or saves a .blend, so it cannot collide with an island export.
+It reads the shipped aerie model (aerie.glb, or island_b.glb before the rename), so the
+proxy matches what the site draws. It never opens or saves a .blend, so it cannot collide
+with an aerie export. The live model came from island_b_route_r35.blend, with the round 21
+telescope.
 
 The proxy holds one mesh, Collide, and these empties:
 
@@ -57,11 +59,14 @@ from collision_grid import (  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 SITE = ROOT.parent.parent
-SOURCE = SITE / 'src/assets/models/island_b.glb'
+MODELS = SITE / 'src/assets/models'
+# The orchestrator renames island_b.glb to aerie.glb. Either name works until that lands.
+SOURCE = next((MODELS / n for n in ('aerie.glb', 'island_b.glb') if (MODELS / n).exists()),
+              MODELS / 'aerie.glb')
 # The site places the campfire kit at Anchor_Campfire (src/scene/aerie/campfire.js).
-CAMPFIRE_KIT = SITE / 'src/assets/models/campfire_kit.glb'
-OUT = SITE / 'src/assets/models/island_b_collide.glb'
-REPORT = ROOT / 'island_b_collide_report.json'
+CAMPFIRE_KIT = MODELS / 'campfire_kit.glb'
+OUT = MODELS / 'aerie_collide.glb'
+REPORT = ROOT / 'aerie_collide_report.json'
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 GLTF_TRANSFORM = '@gltf-transform/cli@4.5.1'
 
@@ -125,8 +130,8 @@ ZONE_HALF = {
 
 # Source ----------------------------------------------------------------------------------
 
-def load_island():
-    """Imports island_b.glb into a new scene and returns its objects by name."""
+def load_aerie():
+    """Imports the aerie model into a new scene and returns its objects by name."""
     scene = bpy.data.scenes.new('Collide_Build')
     before = set(bpy.data.objects)
     with bpy.context.temp_override(scene=scene, view_layer=scene.view_layers[0]):
@@ -134,6 +139,9 @@ def load_island():
     objs = {}
     for ob in set(bpy.data.objects) - before:
         objs[ob.name.split('.')[0]] = ob
+    # The lawn mesh is named Island in the model. A renamed model may call it Aerie.
+    if 'Island' not in objs and 'Aerie' in objs:
+        objs['Island'] = objs['Aerie']
     before = set(bpy.data.objects)
     with bpy.context.temp_override(scene=scene, view_layer=scene.view_layers[0]):
         bpy.ops.import_scene.gltf(filepath=str(CAMPFIRE_KIT))
@@ -424,7 +432,8 @@ def room_blocks(bm_out, objs):
             continue
         corners, *_ = fitted_box(pts, z0 + 0.05, z1 - 0.05, aligned=True)
         add_box(bm_out, corners)
-        rooms[name] = len(pts)
+        centre = sum(corners[:4], Vector()) / 4
+        rooms[name] = Vector((centre.x, centre.y, z0 + 0.15))
     bm.free()
     return rooms
 
@@ -570,7 +579,7 @@ def chain_edges(edges):
     return lines
 
 
-def slice_walls(bm_out, objs, boxes, on_island):
+def slice_walls(bm_out, objs, boxes, on_aerie):
     """Wall strips from horizontal cuts through the house and its glass."""
     count = 0
     for name, heights in SLICE_HEIGHTS.items():
@@ -579,7 +588,7 @@ def slice_walls(bm_out, objs, boxes, on_island):
             geom = list(bm.verts) + list(bm.edges) + list(bm.faces)
             cut = bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0, 0, z), plane_no=(0, 0, 1))
             edges = [e for e in cut['geom_cut'] if isinstance(e, bmesh.types.BMEdge)
-                     and (name in ('House', 'Glass') or on_island(e.verts[0].co))]
+                     and (name in ('House', 'Glass') or on_aerie(e.verts[0].co))]
             for line in chain_edges(edges):
                 pts = simplify(line, SLICE_SIMPLIFY) if len(line) > 2 else line
                 for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
@@ -604,14 +613,14 @@ def build(objs, report):
     region = largest_region(walk)
     near = dilate(dilate(region))
 
-    def on_island_point(c):
+    def on_aerie_point(c):
         # The cliff, the lip and the underside lie outside the walkable area, and the rim
         # fence already closes it, so they stay out of the proxy.
         i, j = int(round((c.x - lo.x) / CELL)), int(round((c.y - lo.y) / CELL))
         return 0 <= j < near.shape[0] and 0 <= i < near.shape[1] and near[j, i]
 
-    def on_island(f):
-        return on_island_point(f.calc_center_median())
+    def on_aerie(f):
+        return on_aerie_point(f.calc_center_median())
 
     for name in sorted(set(FLOOR_MESHES) | set(SLICE_MESHES)):
         bm = world_bmesh(objs[name])
@@ -625,7 +634,7 @@ def build(objs, report):
             c = f.calc_center_median()
             return any(in_flight(c, b) for b in boxes)
         if name in FLOOR_MESHES:
-            keep = [f for f in up if not in_any(f) and (name in ('House', 'Paths') or on_island(f))]
+            keep = [f for f in up if not in_any(f) and (name in ('House', 'Paths') or on_aerie(f))]
             copy_faces(floors, keep)
             if name == 'Paths':
                 ledges += floor_hops(ground, keep)
@@ -640,11 +649,12 @@ def build(objs, report):
     terraces = [c for c in terraces if roof.ray_cast(c + Vector((0, 0, 0.1)), Vector((0, 0, 1)), CEILING)[0] is None]
     hops = prop_boxes(solids, objs, ground, report) + ledges
     report['hops'] = [[round(h['at'].x, 2), round(h['at'].y, 2), h['rise']] for h in hops]
-    report['trunk_posts'] = trunk_posts(solids, objs, ground, on_island_point)
-    report['rooms'] = room_blocks(solids, objs)
+    report['trunk_posts'] = trunk_posts(solids, objs, ground, on_aerie_point)
+    rooms = room_blocks(solids, objs)
+    report['rooms'] = list(rooms)
 
     report['fence_quads'] = fence(solids, ground, erode(region), lo)
-    report['slice_quads'] = slice_walls(walls, objs, boxes, on_island_point)
+    report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point)
 
     tidy(floors, 4.0)
     tidy(walls, 6.0)
@@ -673,6 +683,10 @@ def build(objs, report):
     # The barbecue stands on the upper terrace. The check aims 1.9 m east of it, onto the boards.
     targets = {**spots, 'Upper_Terrace': anchor(objs, 'Anchor_BBQ') + Vector((1.9, 0.4, -0.78))}
     report['reach'], report['reach_cells'] = reach(out, spawn, targets, FLOOR_NZ)
+    # The owner's rule: the walker never enters a room, so the low-poly interiors are never
+    # seen close up. The floor inside each room must stay out of reach.
+    inside, _ = reach(out, spawn, {f'inside_{k}': p for k, p in rooms.items()}, FLOOR_NZ)
+    report['rooms_closed'] = {k: not v for k, v in inside.items()}
     return out, spots, hops, spawn
 
 
@@ -717,11 +731,11 @@ def export(scene, path):
 
 
 def compress(raw, out):
-    """Runs gltf-transform: prune (keeping the empties), then Draco, as the island export does."""
+    """Runs gltf-transform: prune (keeping the empties), then Draco, as the aerie export does."""
     npx = shutil.which('npx.cmd') or shutil.which('npx')
     if not npx:
         return {'error': 'npx not found. Run gltf-transform draco by hand.'}
-    tmp = Path(tempfile.mkdtemp(prefix='island_b_collide_'))
+    tmp = Path(tempfile.mkdtemp(prefix='aerie_collide_'))
     pruned = tmp / 'prune.glb'
     steps = [['prune', str(raw), str(pruned), '--keep-leaves', 'true'],
              ['draco', str(pruned), str(out), '--method', 'edgebreaker', '--quantize-position', '14']]
@@ -734,19 +748,22 @@ def compress(raw, out):
 
 
 def main():
-    report = {'source': str(SOURCE.relative_to(SITE)), 'out': str(OUT.relative_to(SITE))}
-    scene, objs = load_island()
+    report = {'source': SOURCE.relative_to(SITE).as_posix(), 'out': OUT.relative_to(SITE).as_posix()}
+    scene, objs = load_aerie()
     bm, spots, hops, spawn = build(objs, report)
     if report['triangles'] > TRIANGLE_LIMIT:
         raise RuntimeError(f"The proxy has {report['triangles']} triangles, over {TRIANGLE_LIMIT}.")
     unreached = [name for name, ok in report['reach'].items() if not ok]
     if unreached:
         raise RuntimeError(f"The walker cannot reach {', '.join(unreached)} from Spawn_Campfire.")
+    open_rooms = [name for name, closed in report['rooms_closed'].items() if not closed]
+    if open_rooms:
+        raise RuntimeError(f"The walker can walk into {', '.join(open_rooms)}.")
     out_scene, report['empties'] = write_scene(bm, spots, hops, spawn)
     if '--no-compress' in ARGS:
         report['bytes'] = export(out_scene, OUT)
     else:
-        raw = Path(tempfile.mkdtemp(prefix='island_b_collide_raw_')) / 'raw.glb'
+        raw = Path(tempfile.mkdtemp(prefix='aerie_collide_raw_')) / 'raw.glb'
         report['raw_bytes'] = export(out_scene, raw)
         report['compress'] = compress(raw, OUT)
     REPORT.write_text(json.dumps(report, indent=2), encoding='utf-8')

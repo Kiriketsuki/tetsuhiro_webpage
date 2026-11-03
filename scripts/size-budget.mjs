@@ -2,7 +2,7 @@
 // docs/site-rewrite-plan.md. Run it after `vite build`, or use `npm run check`.
 // It reads the Vite manifest, so the shell is exactly what index.html loads
 // before any dynamic import, and the scene is what the Home route imports.
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
@@ -11,6 +11,7 @@ const MANIFEST = join(DIST, '.vite', 'manifest.json')
 // The module that Home.vue imports on idle. Its chunk and every chunk under
 // it that the shell does not already load count as the scene.
 const SCENE_SOURCE = 'src/three.js'
+const MODELS_SOURCE = 'src/assets/models'
 
 // Limits in bytes. Gzip limits use level 9, so they sit a little under the
 // numbers that Vite prints.
@@ -91,10 +92,13 @@ function measure(manifest) {
         .filter((file) => file.endsWith('.glb'))
         .map((file) => ({ file: `assets/${file}`, size: rawSize(`assets/${file}`) }))
         .sort((a, b) => b.size - a.size)
-    // Vite names a hashed asset <name>-<hash>.glb, so the prefix finds it.
+    // Vite names a hashed asset <name>-<hash>.glb, so the prefix finds it. A model that no
+    // code imports yet is not in dist, so its source file in src/assets/models counts.
     const modelOf = (name) => models.find((model) => model.file.startsWith(`assets/${name}-`))
-    const modelSize = (name) => modelOf(name)?.size ?? 0
-    const modelNote = (name) => modelOf(name)?.file ?? 'none yet'
+    const sourceOf = (name) => join(MODELS_SOURCE, `${name}.glb`)
+    const modelSize = (name) => modelOf(name)?.size ?? (existsSync(sourceOf(name)) ? statSync(sourceOf(name)).size : 0)
+    const modelNote = (name) =>
+        modelOf(name)?.file ?? (existsSync(sourceOf(name)) ? `${sourceOf(name)} (not imported yet)` : 'none yet')
     const exploreFiles = lazyFiles.filter((file) => /(^|\/)explore-[^/]*\.js$/.test(file))
 
     return [
@@ -119,7 +123,7 @@ function measure(manifest) {
             size: sum(exploreFiles, gzipSize),
             note: exploreFiles.length ? exploreFiles.join(', ') : 'none yet',
         },
-        { name: 'collision model (raw)', limit: LIMITS.collideModel, size: modelSize('island_b_collide'), note: modelNote('island_b_collide') },
+        { name: 'collision model (raw)', limit: LIMITS.collideModel, size: modelSize('aerie_collide'), note: modelNote('aerie_collide') },
         { name: 'walker model (raw)', limit: LIMITS.walkerModel, size: modelSize('walker'), note: modelNote('walker') },
         {
             name: 'scene textures (raw)',

@@ -1,0 +1,128 @@
+{
+  "source": "src/assets/models/island_b.glb",
+  "out": "src/assets/models/aerie_collide.glb",
+  "ramps": 7,
+  "hops": [
+    [
+      -1.51,
+      0.25,
+      0.2
+    ],
+    [
+      9.84,
+      -3.73,
+      0.4
+    ]
+  ],
+  "trunk_posts": 31,
+  "rooms": [
+    "workshop",
+    "lounge",
+    "bedroom"
+  ],
+  "fence_quads": 185,
+  "slice_quads": 1311,
+  "before_decimate": {
+    "floors": 6290,
+    "walls": 2194,
+    "solids": 1146
+  },
+  "after_decimate": {
+    "floors": 2566,
+    "walls": 2194
+  },
+  "triangles": 5920,
+  "reach": {
+    "Pad": true,
+    "Workshop": true,
+    "Bedroom": true,
+    "Telescope": true,
+    "Campfire": true,
+    "Lookout": true,
+    "Upper_Terrace": true
+  },
+  "reach_cells": 10117,
+  "rooms_closed": {
+    "inside_workshop": true,
+    "inside_lounge": true,
+    "inside_bedroom": true
+  },
+  "empties": {
+    "Zone_Pad": [
+      15.404,
+      -3.004,
+      0.62,
+      2.4,
+      2.4,
+      1.2
+    ],
+    "Zone_Workshop": [
+      -4.75,
+      -1.15,
+      0.874,
+      0.9,
+      0.9,
+      1.0
+    ],
+    "Zone_Bedroom": [
+      -7.27,
+      2.667,
+      7.45,
+      0.8,
+      0.8,
+      1.0
+    ],
+    "Zone_Telescope": [
+      -7.651,
+      4.033,
+      7.45,
+      0.8,
+      0.8,
+      1.0
+    ],
+    "Zone_Campfire": [
+      1.75,
+      8.5,
+      0.376,
+      1.8,
+      1.8,
+      1.0
+    ],
+    "Zone_Lookout": [
+      10.836,
+      -4.11,
+      0.557,
+      1.2,
+      1.2,
+      1.0
+    ],
+    "Hop_1": [
+      -1.509,
+      0.254,
+      0.604,
+      0.22,
+      0.262,
+      0.05
+    ],
+    "Hop_2": [
+      9.835,
+      -3.727,
+      0.985,
+      0.849,
+      0.353,
+      0.05
+    ],
+    "Spawn_Campfire": [
+      1.0,
+      9.9,
+      0.396,
+      0.3,
+      0.3,
+      0.3
+    ]
+  },
+  "raw_bytes": 114136,
+  "compress": {
+    "bytes": 26944
+  }
+}

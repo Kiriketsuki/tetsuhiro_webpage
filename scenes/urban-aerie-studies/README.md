@@ -1,5 +1,11 @@
 # Urban aerie house studies
 
+## Collision for explore on foot: 3 November 2026
+
+`export_aerie_collision.py` builds the walker's collision proxy in background Blender and writes `src/assets/models/aerie_collide.glb` (27 kB, 5,920 triangles) and `aerie_collide_report.json`. It reads the shipped `island_b.glb` (`aerie.glb` after the rename) and `campfire_kit.glb`, so it never opens a `.blend` and cannot collide with an aerie export. The live model came from `island_b_route_r35.blend` with the round 21 telescope.
+
+The proxy has the floors of the lawn, paths, pad, rocks and house. Seven stair flights become ramps. Walls come from horizontal slices, each stood up as a short strip, and props and trunks become fitted boxes and posts. Each room is a closed block, and a ground scan fences the rim and the water. The empties are `Zone_*` (scale gives the half size), `Hop_*` and `Spawn_Campfire`. `collision_grid.py` holds the masks and the reach check. The export stops unless every zone and the upper terrace can be reached from the campfire, and unless no room floor can be reached.
+
 ## Campfire kit: 3 November 2026
 
 The owner asked for a better fire pit and places to sit at the last stop of the walk. `campfire_kit.py` builds them in background Blender on an empty file and writes `src/assets/models/campfire_kit.glb` (69 kB, 2,754 triangles) and `campfire_kit_report.json`. It reads `island_b.glb` only to fit the kit to the lawn round `Anchor_Campfire` and to bake a vertex AO against it, so an island export does not touch the kit. The kit holds eleven ring stones, an ash bed, five charred logs in a star with two split logs over the centre, coals, a half-log bench with a red blanket to the west, two stumps to the east (one with a teal cushion) and a small woodpile to the north-west. The north side stays open toward the city.

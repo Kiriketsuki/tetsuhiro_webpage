@@ -26,11 +26,13 @@ const ALONG = new THREE.Vector2(0.78, -0.62).normalize()
 const ACROSS = new THREE.Vector2(-ALONG.y, ALONG.x)
 const toWorld = ([u, n]) => [ORIGIN[0] + ALONG.x * u + ACROSS.x * n, ORIGIN[1] + ALONG.y * u + ACROSS.y * n]
 // The Seine: its centre line across the map, its half width, and the island in it.
-const seine = (u) => 120 * Math.sin(u / 700) + 50 * Math.sin(u / 260 + 1)
+const SEINE_SHIFT = 125
+const seine = (u) => SEINE_SHIFT + 120 * Math.sin(u / 700) + 50 * Math.sin(u / 260 + 1)
 const RIVER = 65
 const ISLE = { u: -100, length: 260, width: 22 }
-// The lattice tower stands on the near bank, with its long park out toward the camera.
-const TOWER_U = -650
+// The lattice tower stands on the near bank, with its long park out toward the camera. It sits
+// right of the waterfall and below the island, where the desktop and the phone overview both show it.
+const TOWER_U = 150
 const TOWER_N = seine(TOWER_U) + RIVER + 75
 // The tower in stacked square frustums: bottom height, top height, bottom half width and
 // top half width, in metres. It is half the size of the real one, like the whole plan.
@@ -42,7 +44,7 @@ const LATTICE = [
 ]
 // Star places: map u, map n, the number of boulevards and their length in metres.
 const PLACES = [
-    [650, 300, 12, 1300],
+    [600, 620, 12, 1300],
     [-250, 480, 8, 900],
     [-1150, -520, 6, 900],
     [400, -700, 10, 1100],
@@ -242,7 +244,7 @@ void main() {
     col += GOLD * ( street * 0.35 * dens + boulevards * 0.38 + 0.35 * exp( -length( p - ${glslVec2(TOWER)} ) / 70.0 ) );
 
     // The Seine, with lit quays, bridges every 280 m and the island in the middle.
-    float dn = m.y - ( 120.0 * sin( m.x / 700.0 ) + 50.0 * sin( m.x / 260.0 + 1.0 ) );
+    float dn = m.y - ( ${SEINE_SHIFT.toFixed(1)} + 120.0 * sin( m.x / 700.0 ) + 50.0 * sin( m.x / 260.0 + 1.0 ) );
     float isle = ${ISLE.width.toFixed(1)} * smoothstep( ${ISLE.length.toFixed(1)}, ${(ISLE.length * 0.7).toFixed(1)}, abs( m.x - ${ISLE.u.toFixed(1)} ) );
     float water = band( abs( dn ), ${RIVER.toFixed(1)}, soft ) * ( 1.0 - band( abs( dn ), isle, soft ) );
     float quays = band( abs( abs( dn ) - ${(RIVER + 4).toFixed(1)} ), 3.0, soft ) + band( abs( abs( dn ) - isle - 2.0 ), 2.5, soft ) * step( 4.0, isle );

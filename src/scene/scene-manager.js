@@ -1,10 +1,12 @@
 import * as THREE from 'three'
-import desktopUrl from '../assets/models/island_b.glb?url'
-import mobileUrl from '../assets/models/island_b_lod1.glb?url'
+import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
+import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
+import { createLookWorker } from './aerie/look-client.js'
 import { createDetailTexture } from './aerie/detail-texture.js'
+import { createLeafCarpet } from './aerie/leaf-carpet.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
 import { createCityBackdrop } from './aerie/city-backdrop.js'
 import { createSky, NIGHT_SKY, ISLAND_HAZE_DENSITY } from './aerie/sky.js'
@@ -28,6 +30,10 @@ import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 // single frames only.
 
 const AMBIENT_FPS = 30
+// The frames the governor judges a tier on, and how long after a drag, pinch or tap a frame still
+// counts as steered, in milliseconds.
+const GOVERNOR_FRAMES = { desktop: 90, mobile: 30 }
+const STEER_MS = 250
 // The longest the reveal waits for compileAsync, in milliseconds. compileAsync polls each
 // program until the driver reports it ready, and a lost WebGL context never reports, so the
 // gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
@@ -39,17 +45,23 @@ const FADE_EDGE = 0.35
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
 // The board size when Anchor_Corkboard gives a position but no size, in metres.
 const BOARD_SIZE = { width: 1.0, height: 0.7 }
-const MOBILE = '(max-width: 767px)'
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
 const MOON_FALLBACK = new THREE.Vector3(-28, 71, 24)
 // The city haze density: the city loses about a fifth of its colour at the bottom of the
 // overview frame and about two thirds at its centre.
 const CITY_HAZE_DENSITY = 1 / 2400
+// The faces that corkboard.js draws its card text with, and the faces of the skill sky
+// overlay. A canvas draws with a fallback font while its face is still loading, so each font
+// names the weight the canvas asks for.
+const CARD_FONTS = ['52px "Instrument Serif"', '600 22px "JetBrains Mono"']
+const SKY_FONTS = ['30px "JetBrains Mono"', 'italic 42px "Instrument Serif"']
 
-// hooks.before and hooks.after run around each render, for the lab's GPU timer.
-export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {} }) {
-    const small = window.matchMedia(MOBILE).matches
-    const useLod = lod ?? (small ? 1 : 0)
+// hooks.before and hooks.after run around each render, for the lab's GPU timer. lensTarget: an
+// optional function that returns the element that reads --aerie-lens. Without it, or while it
+// returns null, the value goes on the root element.
+export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', hooks = {}, lensTarget = null }) {
+    const small = isSmallScreen()
+    const useLod = lod ?? islandLod()
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
     renderer.toneMapping = THREE.NoToneMapping
     // The scene draws into a linear half-float target, and the composite pass encodes sRGB
@@ -109,16 +121,30 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         state.dirty = true
     }
 
+    // A phone judges its tier on a shorter run of frames, so a slow phone steps down within about
+    // a second of a drag, not after three seconds of lag.
     const governor = createGovernor({
         budgetMs: small ? BUDGET_MS.mobile : BUDGET_MS.desktop,
         tier: tierIndex,
+        window: small ? GOVERNOR_FRAMES.mobile : GOVERNOR_FRAMES.desktop,
         onStep: (next) => buildPipeline(next),
     })
+    // The time of the last drag, pinch or tap. A drag moves the camera through look offsets, which
+    // rig.moving does not report, so the governor also counts the frames drawn just after one.
+    let steeredAt = -Infinity
 
     // The lens follows the stop's focus point. It fades out during a move between stops, so the
     // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
     // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
     // lens is, so the ring fades with it.
+    // A custom property on the root restyles every element of the page, so the shell names the
+    // ring through lensTarget, and only the ring restyles. lensElement asks lensTarget again for
+    // a ring that has left the document.
+    let lensRing = null
+    const lensElement = () => {
+        if (!lensRing?.isConnected) lensRing = lensTarget?.() ?? null
+        return lensRing ?? document.documentElement
+    }
     const updateLens = () => {
         const now = performance.now()
         const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
@@ -136,7 +162,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const shown = Math.round(dof * 20) / 20
         if (shown !== lensCursor.shown) {
             lensCursor.shown = shown
-            document.documentElement.style.setProperty('--aerie-lens', String(shown))
+            lensElement().style.setProperty('--aerie-lens', String(shown))
         }
     }
 
@@ -238,11 +264,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.leaves?.update(seconds)
             ambient = 0
         }
-        const moving = rig.moving
+        const moving = rig.moving || performance.now() - steeredAt < STEER_MS
         render()
-        // Only frames the camera drives count toward the governor. They draw on every
-        // animation frame, so the time between them is the real frame time. The 30 fps
-        // ambient clock would read as a slow device.
+        // Only frames the camera drives count toward the governor: a move between stops, the ease
+        // back after a drag, and a drag or pinch itself. They draw on every animation frame, so
+        // the time between them is the real frame time. The 30 fps ambient clock would read as a
+        // slow device.
         if (moving && tier === null) governor.sample(delta * 1000, performance.now())
     }
 
@@ -313,20 +340,29 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
 
-    // The painted detail texture builds in small slices while the island downloads.
+    // The painted detail texture and the leaf carpet build in small slices while the island
+    // downloads. The fonts and the skill sky chunk load at the same time, so the build after
+    // the download does not wait on them one after the other.
     const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
+    const carpetBuild = createLeafCarpet({ sliced: true })
+    // The look worker loads beside the island, so it is ready when the island arrives.
+    const lookWorker = createLookWorker()
+    const fonts = Promise.all(CARD_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
+    const skyFonts = Promise.all(SKY_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
+    const skyModule = import('./aerie/constellation.js')
+    skyModule.catch(() => {})
 
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))
     loaders.manager.onProgress = (url, loaded, total) => report(total ? loaded / total : 0)
 
     const ready = loaders.gltf
-        .loadAsync(useLod === 1 ? mobileUrl : desktopUrl, (event) => {
+        .loadAsync(islandUrl(useLod), (event) => {
             if (event.lengthComputable) islandBytes = event.loaded / event.total
             report(0)
         })
         .then(async (gltf) => {
-            const look = applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild })
+            const look = await applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild, worker: lookWorker }).finally(() => lookWorker.dispose())
             parts.look = look
             lookControl = createLookControl(look.uniforms)
             lookControl.apply(lookSet, pipeline.grade.uniforms)
@@ -347,6 +383,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 maxAnisotropy: small ? 1 : renderer.capabilities.getMaxAnisotropy(),
             })
             scene.add(parts.leaves.group)
+            await nextTask()
 
             const spot = anchor(root, 'Anchor_Campfire') ?? findCampfireSpot(root)
             if (spot) {
@@ -369,14 +406,14 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const board = boardFrom(root, gltf.cameras)
             if (board) {
                 // The card atlas uses the site fonts, so it waits for them.
-                await Promise.all([document.fonts.load('52px "Instrument Serif"'), document.fonts.load('22px "JetBrains Mono"')]).catch(() => {})
+                await fonts
                 parts.cards = createCorkboard({ board, projects })
                 scene.add(parts.cards.mesh)
             }
 
             // The skill sky is its own chunk, so it stays out of the scene budget.
-            await Promise.all([document.fonts.load('30px "JetBrains Mono"'), document.fonts.load('italic 42px "Instrument Serif"')]).catch(() => {})
-            const { createConstellation } = await import('./aerie/constellation.js')
+            await skyFonts
+            const { createConstellation } = await skyModule
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 
@@ -394,6 +431,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             requestRender()
             return { anchors: (name) => anchor(root, name), root, gltf }
         })
+
+    // A failed island never needs the look worker.
+    ready.catch(() => lookWorker.dispose())
 
     const api = {
         ready,
@@ -429,6 +469,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             update()
         },
         pan: (dx, dy) => {
+            steeredAt = performance.now()
             if (view === 'sky') parts.constellation.pan(dx, dy)
             else rig.pan(dx, dy)
             requestRender()
@@ -437,10 +478,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // under it, or back out to the whole sky.
         tap: (x, y) => {
             if (view !== 'sky') return
+            steeredAt = performance.now()
             parts.constellation.focus((x / window.innerWidth) * 2 - 1, 1 - (y / window.innerHeight) * 2, state.reduced)
             requestRender()
         },
         zoom: (factor) => {
+            steeredAt = performance.now()
             if (view === 'sky') parts.constellation.zoom(factor)
             else rig.zoom(factor)
             requestRender()
@@ -540,6 +583,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             canvas.removeEventListener('webglcontextlost', onLost)
             canvas.removeEventListener('webglcontextrestored', onRestored)
             rig.dispose()
+            // A dispose during the load stops the worker and the carpet slices too.
+            lookWorker.dispose()
+            carpetBuild.dispose()
             Object.values(parts).forEach((part) => part?.dispose?.())
             pipeline?.dispose()
             disposeLoaders(loaders)

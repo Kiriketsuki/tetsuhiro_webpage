@@ -4,10 +4,6 @@
             Find My HDB
         </h1>
 
-        <div class="case-hero frame frame-line">
-            <embed src="https://placeholders-d4876.web.app" type="" class="w-full h-full">
-        </div>
-
         <div class="text_center section">
             <div class="text" style="width: 100%;">
                 <h5>
@@ -26,18 +22,14 @@
             </div>
         </div>
 
-        <div class="text_right section">
-            <div class="image">
-                <iframe src="https://data.gov.sg/dataset/resale-flat-prices/resource/f1765b54-a209-4718-8d38-a39237f502b3/view/093ff0f0-783f-4f6a-be52-7e506a8c58ca" frameBorder="0" class="w-full h-full" title="HDB resale prices on data.gov.sg"> </iframe>
-            </div>
-
-            <div class="text">
+        <div class="text_center section">
+            <div class="text" style="width: 100%;">
                 <h5>
                     The idea
                 </h5>
 
                 <p>
-                    We used the <a href="https://data.gov.sg/dataset/resale-flat-prices" class="text-link">HDB resale price data</a>.
+                    We used the <a href="https://data.gov.sg/collections/189/view" class="text-link">HDB resale price data</a>.
                     It has the flat type, the number of rooms, the town and the price, which is plenty to work with. You tell the
                     app what flat you want, and it finds the listings that fit.
                 </p>
@@ -109,8 +101,9 @@
 <style scoped>
 /*
  * The 2022 write-ups, reset into the frame style: a serif title over a rose
- * rule, the demo in a solid frame, then text and pictures in two columns on
- * wide screens and one on phones. No tilt and no gradient headings.
+ * rule, then text and pictures in two columns on wide screens and one on
+ * phones. No tilt and no gradient headings. The page embeds nothing: the app
+ * is offline now, so its screenshots tell the story.
  */
 .case {
     display: flex;
@@ -129,17 +122,6 @@
     font-family: var(--font-display);
     font-size: clamp(2.5rem, 7vw, 5.5rem);
     line-height: 1;
-}
-
-.case-hero {
-    width: min(70rem, 100%);
-    height: min(80vh, 44rem);
-    padding: 6px;
-}
-
-.case-hero > * {
-    width: 100%;
-    height: 100%;
 }
 
 .section {

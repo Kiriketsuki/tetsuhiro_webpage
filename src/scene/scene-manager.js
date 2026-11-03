@@ -612,7 +612,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
             // The skill sky is its own chunk, so it stays out of the scene budget.
             await skyFonts
-            const { createConstellation } = await skyModule
+            const { createConstellation, eyepieceGlass } = await skyModule
+            eyepieceGlass(scene)
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 

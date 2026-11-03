@@ -4,6 +4,9 @@ import { createNebula } from './skill-nebula.js'
 import { figures, smooth } from './constellation-figures.js'
 import { createSkyOverlay } from './sky-overlay.js'
 
+// The eyepiece glass rides in this chunk, so the scene chunk stays in its budget.
+export { eyepieceGlass } from './eyepiece-glass.js'
+
 // The skill sky that the telescope shows. Each skill branch is a named constellation from
 // constellation-figures.js, each skill a star in it, over a quiet nebula from skill-nebula.js.
 // The figure lines and the parent links from src/data/skills.js draw in from the root star

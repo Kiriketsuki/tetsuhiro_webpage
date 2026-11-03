@@ -34,6 +34,31 @@ if (typeof window !== 'undefined' && window.matchMedia) {
 
 const clamp = (index) => Math.min(sections.length - 1, Math.max(0, index))
 
+// A link from another page back to one home section, such as "back to the aerie" from the
+// Projects wall, which goes to /#projects. The router hands the hash to land(), and Home opens
+// on that section instead of the welcome.
+export const homeAt = (section) => `/#${section}`
+let landing = 0
+
+// Called by the router before Home enters. It sets the section first, so the scene picks the
+// section's stop for the move home. A visitor who has seen the aerie skips the gate. Returns
+// false for a hash that names no section.
+export function land(hash) {
+    const index = sections.indexOf(hash.replace(/^#/, ''))
+    if (index < 0) return false
+    landing = index
+    active.value = index
+    if (ready.value) entered.value = true
+    return true
+}
+
+// The section Home opens on, once. Every later visit to Home opens on the welcome again.
+export function takeLanding() {
+    const index = landing
+    landing = 0
+    return index
+}
+
 // Shared state for the page and the scene. Home.vue writes `active` from the scroll,
 // three.js reads it to move the camera.
 export function useWaypoints() {

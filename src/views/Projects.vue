@@ -1,7 +1,7 @@
 <template>
     <main v-if="onWall">
-        <!-- Escape closes the case folder first (CaseFolder.vue), then leaves the wall. -->
-        <ExplorePad :to="id ? null : '/'" back="" :inert="Boolean(id)">
+        <!-- Escape closes the case folder or the list first, then leaves the wall. -->
+        <ExplorePad :to="id || listOpen ? null : AERIE" back="" :inert="Boolean(id)">
             <template #top>
                 <header class="wall-head" :class="{ 'case-open': id }">
                     <p class="label">
@@ -25,25 +25,49 @@
                         </button>
                     </div>
                     <div v-show="!id" class="wall-actions">
-                        <router-link to="/" class="action" @pointerdown.stop>back to the aerie</router-link>
-                        <router-link :to="{ path: '/projects', query: { list: null } }" class="action" @pointerdown.stop>list view</router-link>
+                        <router-link :to="AERIE" class="action" @pointerdown.stop>back to the aerie</router-link>
                     </div>
                 </header>
             </template>
         </ExplorePad>
 
-        <!-- The wall is a picture, so the pins are links here too: Tab marks each pin on the
-             wall, and Enter opens its case. A link shows on screen only while it has focus. -->
+        <!-- The wall is a picture, so its targets are links and buttons here too: Tab marks each
+             label, pin and the list post-it on the wall, and Enter acts on it. A control shows on
+             screen only while it has focus. -->
         <nav class="wall-index" aria-label="Projects on the wall" :inert="Boolean(id)">
             <ol>
-                <li v-for="pin in ordered" :key="pin.id">
+                <template v-for="g in GROUPS" :key="g.id">
+                    <li>
+                        <button
+                            :ref="(el) => (links[labelId(g.id)] = el)"
+                            type="button"
+                            :aria-pressed="group === g.id"
+                            @focus="keyFocus(labelId(g.id))"
+                            @blur="mark(null, 'key')"
+                            @click="toggle(g.id)"
+                        >
+                            Zoom in on {{ g.title }}
+                        </button>
+                    </li>
+                    <li v-for="pin in ordered.filter((p) => p.group === g.id)" :key="pin.id">
+                        <router-link
+                            :ref="(el) => (links[pin.id] = el?.$el)"
+                            :to="`/projects/${pin.page}`"
+                            @focus="keyFocus(pin.id)"
+                            @blur="mark(null, 'key')"
+                        >
+                            {{ pin.title }}, {{ pin.year }}
+                        </router-link>
+                    </li>
+                </template>
+                <li>
                     <router-link
-                        :ref="(el) => (links[pin.id] = el?.$el)"
-                        :to="`/projects/${pin.page}`"
-                        @focus="keyFocus(pin.id)"
+                        :ref="(el) => (links[LIST_ID] = el?.$el)"
+                        :to="LIST"
+                        @focus="keyFocus(LIST_ID)"
                         @blur="mark(null, 'key')"
                     >
-                        {{ pin.title }}, {{ pin.year }}
+                        The whole list of projects
                     </router-link>
                 </li>
             </ol>
@@ -61,10 +85,11 @@
             aria-hidden="true"
             @click="openTag"
         >
-            <span class="ring"></span>{{ tag.title }}<span class="open">open</span>
+            <span class="ring"></span>{{ tag.title }}<span class="open">{{ tag.verb }}</span>
         </button>
 
         <CaseFolder v-if="id" :id="id" @close="close" @open="follow" />
+        <ProjectList v-else-if="listOpen" sheet @close="closeList" />
     </main>
     <ProjectDetail v-else-if="id" />
     <ProjectList v-else />
@@ -76,26 +101,26 @@ import { useRoute, useRouter } from 'vue-router'
 import ExplorePad from '../components/ExplorePad.vue'
 import ProjectList from '../components/ProjectList.vue'
 import CaseFolder from '../components/CaseFolder.vue'
-import { GROUPS, PINS } from '../data/wall.js'
+import { GROUPS, LIST_ID, PINS, labelId } from '../data/wall.js'
 import { useWall } from '../composables/useWall.js'
+import { homeAt } from '../composables/useWaypoints.js'
 
 // /projects is the evidence wall in the workshop once it has built, and /projects/<id> is the
-// wall with that project's case folder open over it. Without the wall (no WebGL, a failed
-// load, or ?list), they are the list page and the project page.
+// wall with that project's case folder open over it. /projects?list is the wall with the list
+// of every project open beside it, as a sheet off the board. Without the wall (no WebGL or a
+// failed load), they are the list page and the project page.
 const ProjectDetail = defineAsyncComponent(() => import('./ProjectDetail.vue'))
+
+// The way back lands on the Projects section of the home page, at the workshop.
+const AERIE = homeAt('projects')
+const LIST = { path: '/projects', query: { list: null } }
 
 const route = useRoute()
 const router = useRouter()
 const wall = useWall()
-watch(
-    () => 'list' in route.query,
-    (list) => {
-        if (list) wall.listed.value = true
-    },
-    { immediate: true },
-)
-const onWall = computed(() => wall.shown.value && !wall.listed.value)
+const onWall = computed(() => wall.shown.value)
 const id = computed(() => (route.name === 'Project' ? route.params.id : null))
+const listOpen = computed(() => route.name === 'Projects' && 'list' in route.query)
 const pinOf = (page) => PINS.find((pin) => pin.page === page) ?? null
 const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 const hint = coarse ? 'pinch, drag, tap a card twice' : 'drag, scroll, click a card'
@@ -108,11 +133,22 @@ const ordered = [...PINS].sort((a, b) => {
 })
 const links = {}
 
-// One group under the lamp, or the whole board.
+// One group framed on screen, or the whole board. A label of the framed group zooms back out.
 const group = ref(null)
 const pick = (next) => {
     group.value = next
     wall.filter(next)
+}
+const toggle = (next) => pick(group.value === next ? null : next)
+
+// The wall's targets that are not pins: the four labels and the list post-it.
+const groupOf = (targetId) => GROUPS.find((g) => labelId(g.id) === targetId) ?? null
+const targetOf = (targetId) => {
+    const pin = PINS.find((p) => p.id === targetId)
+    if (pin) return { title: pin.title, verb: 'open' }
+    const g = groupOf(targetId)
+    if (g) return { title: g.title, verb: group.value === g.id ? 'zoom out' : 'zoom in' }
+    return targetId === LIST_ID ? { title: 'The whole list', verb: 'open' } : null
 }
 
 // The marked pin: lifted on the wall, with its tag on screen. source says what marked it, so
@@ -142,12 +178,12 @@ let frame = 0
 const place = () => {
     frame = 0
     const m = marked.value
-    const pin = m && PINS.find((p) => p.id === m.id)
-    const at = pin && wall.screenOf(m.id)
-    tag.value = at ? { id: m.id, title: pin.title, source: m.source, x: at.x, y: at.y } : null
+    const target = m && targetOf(m.id)
+    const at = target && wall.screenOf(m.id)
+    tag.value = at ? { id: m.id, ...target, source: m.source, x: at.x, y: at.y } : null
     if (tag.value) frame = requestAnimationFrame(place)
 }
-watch(marked, () => {
+watch([marked, group], () => {
     cancelAnimationFrame(frame)
     place()
 })
@@ -160,20 +196,26 @@ const openTag = () => {
     if (tag.value && performance.now() - tagAt > 350) open(tag.value.id)
 }
 
-const open = (pinId) => {
-    const page = PINS.find((p) => p.id === pinId)?.page
+const open = (targetId) => {
+    const g = groupOf(targetId)
+    if (g) return toggle(g.id)
+    if (targetId === LIST_ID) return listOpen.value || router.push(LIST)
+    const page = PINS.find((p) => p.id === targetId)?.page
     if (page && page !== id.value) router.push(`/projects/${page}`)
 }
 
 // A mouse click opens a pin at once. On touch the first tap names the pin and the second
-// tap, on the pin or its tag, opens it. A tap on bare cork clears the mark.
+// tap, on the pin or its tag, opens it. A label or the list post-it acts on the first tap,
+// because a zoom or the list costs the visitor nothing to undo. A tap on bare cork clears
+// the mark.
 watch(wall.picked, (tap) => {
     if (!tap || id.value) return
     if (!tap.id) {
         mark(null, marked.value?.source)
         return
     }
-    if (tap.touch && marked.value?.id !== tap.id) mark(tap.id, 'tap')
+    const pin = PINS.some((p) => p.id === tap.id)
+    if (pin && tap.touch && marked.value?.id !== tap.id) mark(tap.id, 'tap')
     else open(tap.id)
 })
 
@@ -204,11 +246,21 @@ watch(
 // A folder opened from the wall closes by going back, so Back never reopens it. A folder from
 // a deep link has no wall entry behind it, so it swaps to the wall. A tab to a linked case
 // replaces the open one, so Back still returns to the wall in one step.
+const fromWall = () => ['/projects', '/projects?list'].includes(window.history.state?.back)
 const close = () => {
-    if (window.history.state?.back === '/projects') router.back()
+    if (fromWall()) router.back()
     else router.replace('/projects')
 }
 const follow = (page) => router.replace(`/projects/${page}`)
+
+// The list sheet closes in the same way, and keyboard focus goes back to the post-it.
+const closeList = () => {
+    if (window.history.state?.back === '/projects') router.back()
+    else router.replace('/projects')
+}
+watch(listOpen, (open, wasOpen) => {
+    if (!open && wasOpen && !id.value) nextTick(() => links[LIST_ID]?.focus({ preventScroll: true }))
+})
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', onKeyInput, true)
@@ -296,7 +348,7 @@ onBeforeUnmount(() => {
 }
 
 /* Off screen until it has focus. Then it shows as a small label above the pad and the navbar. */
-.wall-index a {
+.wall-index :is(a, button) {
     position: fixed;
     z-index: 25;
     bottom: 4.25rem;
@@ -310,7 +362,7 @@ onBeforeUnmount(() => {
     white-space: nowrap;
 }
 
-.wall-index a:focus-visible {
+.wall-index :is(a, button):focus-visible {
     left: 1rem;
     outline: none;
 }

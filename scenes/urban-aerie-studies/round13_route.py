@@ -11,7 +11,7 @@ the berm box up to the lawn, so nothing reads r19 now. The berm now moves lawn v
 
 The script saves a new revision, island_b_route_r20.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why (the round 12 review):
 - The lookout deck, the flagstone path and the bridge-end step stood about 0.18 m above the lawn

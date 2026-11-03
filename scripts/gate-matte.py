@@ -1,7 +1,7 @@
 """Turns the gate lantern lab frames into transparent WebP layers for index.html.
 
 lab/gate-lantern.html renders each layer twice, on a dark and on a light flat background,
-and the empty scene the same way. The grade pass of the island look changes the background
+and the empty scene the same way. The grade pass of the aerie look changes the background
 colour too, so this script compares each pair against the empty pair: where the layer
 covers the background fully, the dark and light frames match. Where it does not, they
 differ as much as the empty frames do.

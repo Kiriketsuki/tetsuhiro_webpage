@@ -12,7 +12,7 @@ the shoulder stood above the lawn by the ramp and read as a step. Nothing reads 
 
 The script saves a new revision, island_b_route_r16.blend, before it changes anything, and only
 ever writes that new file. It refuses to run when the new file already exists, so it never
-overwrites a .blend. export_island_b.py then reads the new revision.
+overwrites a .blend. export_aerie.py then reads the new revision.
 
 What changes, and why (the round 9 review):
 - The pad footing still read as a stone drum on the cliff edge, with a dark rock lump under it.

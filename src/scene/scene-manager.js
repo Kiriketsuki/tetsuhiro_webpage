@@ -1,16 +1,16 @@
 import * as THREE from 'three'
-import { islandUrl, islandLod, isSmallScreen } from './assets.js'
+import { aerieUrl, aerieLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
 import { doorway, bedroomDoor } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
-import { applyIslandLook } from './aerie/island-look.js'
+import { applyAerieLook } from './aerie/aerie-look.js'
 import { createLookWorker } from './aerie/look-client.js'
 import { createDetailTexture } from './aerie/detail-texture.js'
 import { createLeafCarpet } from './aerie/leaf-carpet.js'
 import { createGlowSprites } from './aerie/glow-sprites.js'
 import { createCityBackdrop } from './aerie/city-backdrop.js'
-import { createSky, NIGHT_SKY, ISLAND_HAZE_DENSITY } from './aerie/sky.js'
+import { createSky, NIGHT_SKY, AERIE_HAZE_DENSITY } from './aerie/sky.js'
 import { CAMPFIRE_BOUNCE, SURFACE } from './aerie/toon-material.js'
 import { softenGeometry } from './aerie/soft-normals.js'
 import { createLeafCards } from './aerie/leaf-cards.js'
@@ -69,7 +69,7 @@ const doorFor = (from, to, position) => {
     const door = from === 'board' ? DOORS[0] : DOORS.find((d) => d.room.containsPoint(position))
     return to !== 'board' && door ? { side: 'out', ...door } : null
 }
-// The kit board hangs a little in front of the old board, which stays in the island GLB
+// The kit board hangs a little in front of the old board, which stays in the aerie GLB
 // (corkboard-kit.md, case 1). Offsets along the anchor's right and normal, in metres.
 const BOARD_OFFSET = { right: 0.02, out: 0.073 }
 // A moon direction for the shadow and the toon ramp until the GLB anchor is read.
@@ -87,7 +87,7 @@ const SKY_FONTS = ['30px "JetBrains Mono"', 'italic 42px "Instrument Serif"']
 // evidence wall, so `ready` waits for it.
 export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', wall = false, hooks = {}, lensTarget = null }) {
     const small = isSmallScreen()
-    const useLod = lod ?? islandLod()
+    const useLod = lod ?? aerieLod()
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
     renderer.toneMapping = THREE.NoToneMapping
     // The scene draws into a linear half-float target, and the composite pass encodes sRGB
@@ -100,8 +100,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     renderer.setSize(...size(), false)
 
     const scene = new THREE.Scene()
-    // The island haze matches the sky haze below the horizon and the city haze.
-    scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, ISLAND_HAZE_DENSITY)
+    // The aerie haze matches the sky haze below the horizon and the city haze.
+    scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, AERIE_HAZE_DENSITY)
     const camera = new THREE.PerspectiveCamera(35, size()[0] / size()[1], 0.1, 12000)
     const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
 
@@ -109,9 +109,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, constellation: null, wall: null, roomBoard: null }
     // The even darkening during the move into the bedroom: { t, duration } while it runs.
     let fade = null
-    // 'island', 'sky' or 'wall'. The sky is the telescope's view of the skills, and the wall is
+    // 'aerie', 'sky' or 'wall'. The sky is the telescope's view of the skills, and the wall is
     // the corkboard in the workshop, the Projects view.
-    let view = 'island'
+    let view = 'aerie'
     // The move to or from the wall while it runs: { t, on, legs, start, lamp, lit, leave }. lamp
     // is the lamp switch, which starts at the time `start`.
     let boardMove = null
@@ -239,13 +239,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         state.dirty = lensBusy
     }
 
-    // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
+    // Swaps the picture between the aerie and the skill sky. `reveal` lights the stars up in
     // order. Without it they all show at once.
     const showSky = (on, { reveal = true } = {}) => {
         if (!parts.constellation) return
         // Off leaves any other view alone, so it never drops the wall.
         if (!on && view !== 'sky') return
-        view = on ? 'sky' : 'island'
+        view = on ? 'sky' : 'aerie'
         if (on) {
             parts.constellation.open()
             if (!reveal || state.reduced) parts.constellation.showAll()
@@ -266,11 +266,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     }
 
     // Lights the room and the wall for the place p on the lamp switch track. The room dims
-    // only while the island shows, and the wall lamp only warms past the swap.
+    // only while the aerie shows, and the wall lamp only warms past the swap.
     const lightAt = (p, dark = lampDark) => {
         lampAt = p
         lampDark = dark
-        roomLight = view === 'island' && lamps ? lamps.roomLight(p, dark) : 1
+        roomLight = view === 'aerie' && lamps ? lamps.roomLight(p, dark) : 1
         parts.wall?.setLamp(Math.max(0, p - 1), dark)
         parts.roomBoard?.setGlow(Math.min(1, p), roomLight)
         shade()
@@ -307,7 +307,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig.jump(last ?? rig.current)
     }
 
-    // Swaps the picture between the island and the evidence wall. A call before the wall has
+    // Swaps the picture between the aerie and the evidence wall. A call before the wall has
     // built waits for it, and runs only if no later call has turned the wall off.
     const showWall = (on) => {
         wallWanted = on
@@ -316,7 +316,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             return
         }
         if (on === (view === 'wall')) return
-        view = on ? 'wall' : 'island'
+        view = on ? 'wall' : 'aerie'
         pipeline.setView(on ? parts.wall.scene : scene, on ? parts.wall.camera : camera)
         // A swap outside the lamp switch shows the view at its steady light.
         if (!boardMove?.lamp) lightAt(on ? 2 : 0)
@@ -535,32 +535,32 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
 
-    // The painted detail texture and the leaf carpet build in small slices while the island
+    // The painted detail texture and the leaf carpet build in small slices while the aerie
     // downloads. The fonts and the skill sky chunk load at the same time, so the build after
     // the download does not wait on them one after the other.
     const detailBuild = createDetailTexture({ anisotropy: small ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy()) })
     const carpetBuild = createLeafCarpet({ sliced: true })
-    // The look worker loads beside the island, so it is ready when the island arrives.
+    // The look worker loads beside the aerie, so it is ready when the aerie arrives.
     const lookWorker = createLookWorker()
     const skyFonts = Promise.all(SKY_FONTS.map((font) => document.fonts.load(font))).catch(() => {})
     const skyModule = import('./aerie/constellation.js')
     skyModule.catch(() => {})
     // The camera moves sit in their own chunk too, so the scene chunk stays in its budget. They
-    // arrive long before the island, and the rig cuts until they do, behind the loading gate.
+    // arrive long before the aerie, and the rig cuts until they do, behind the loading gate.
     const moveModule = import('./aerie/camera-move.js').then((module) => {
         rig.setMoves(module)
         return module
     })
     moveModule.catch(() => {})
-    // The campfire and its kit of seats load in their own chunk beside the island. A failed
-    // campfire leaves the lawn bare and the rest of the island as it is.
+    // The campfire and its kit of seats load in their own chunk beside the aerie. A failed
+    // campfire leaves the lawn bare and the rest of the aerie as it is.
     const campfireBuild = import('./aerie/campfire.js').then(async (module) => ({ module, kit: await module.loadCampfireKit(loaders.gltf) }))
     campfireBuild.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
 
-    // The evidence wall sits in its own chunk too. It builds after the island reveal, or before the
+    // The evidence wall sits in its own chunk too. It builds after the aerie reveal, or before the
     // reveal on a direct visit to /projects. A failed wall leaves Projects on its list page.
     let wallBuild = null
     let wallFailed = false
@@ -580,7 +580,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 built.resize(...size())
                 if (boardFrame) placeRoomBoard(built)
                 await compiled(built.scene, built.camera)
-                // The room copy joins the island scene, so its programs and its atlas get ready
+                // The room copy joins the aerie scene, so its programs and its atlas get ready
                 // before its first frame too.
                 if (parts.roomBoard) {
                     await compiled(scene, camera)
@@ -622,22 +622,22 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     let shots = null
     let planner = null
-    let islandBytes = 0
+    let aerieBytes = 0
     // The download is half of the reported share. The build after it is the other half, in
     // steps (BUILD_SHARE). On a slow phone the build takes as long as the download, so a share
     // that reached 1 with the last byte left the gate at 100 percent for seconds.
-    const report = (files) => onProgress(Math.min(1, 0.4 * islandBytes + 0.1 * files))
+    const report = (files) => onProgress(Math.min(1, 0.4 * aerieBytes + 0.1 * files))
     const reached = (step) => onProgress(BUILD_SHARE[step])
     loaders.manager.onProgress = (url, loaded, total) => report(total ? loaded / total : 0)
 
     const ready = loaders.gltf
-        .loadAsync(islandUrl(useLod), (event) => {
-            if (event.lengthComputable) islandBytes = event.loaded / event.total
+        .loadAsync(aerieUrl(useLod), (event) => {
+            if (event.lengthComputable) aerieBytes = event.loaded / event.total
             report(0)
         })
         .then(async (gltf) => {
             reached('downloaded')
-            const look = await applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild, worker: lookWorker }).finally(() => lookWorker.dispose())
+            const look = await applyAerieLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild, worker: lookWorker }).finally(() => lookWorker.dispose())
             reached('look')
             parts.look = look
             lookControl = createLookControl(look.uniforms)
@@ -682,7 +682,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
             const top = anchor(root, 'Anchor_Waterfall_Top')
             const base = anchor(root, 'Anchor_Waterfall_Base')
-            // The ribbon starts on the stream mouth that applyIslandLook found. The two anchors
+            // The ribbon starts on the stream mouth that applyAerieLook found. The two anchors
             // only build a fallback mouth when the water mesh gave none.
             if (look.waterMouth || (top && base)) {
                 parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base })
@@ -725,7 +725,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             return { anchors: (name) => anchor(root, name), root, gltf }
         })
 
-    // A failed island never needs the look worker.
+    // A failed aerie never needs the look worker.
     ready.catch(() => lookWorker.dispose())
     // Resolves once the camera planner has built and planned ahead, or failed to.
     const planned = ready.then(() => planner)
@@ -975,7 +975,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         get lod() {
             return useLod
         },
-        // 'island', 'sky' or 'wall': the scene the pipeline draws now.
+        // 'aerie', 'sky' or 'wall': the scene the pipeline draws now.
         get view() {
             return view
         },

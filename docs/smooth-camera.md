@@ -44,7 +44,7 @@ and the quality governor never changed tier.
 7. **Small fixes.** The pointer drift applies during a move. The lens fade keeps its level
    when a move takes over. The governor waits for the end of a move to change tier.
 8. **Its own chunk.** The move code (`camera-move.js` and `walk-curve.js`, 1.96 kB gzip)
-   loads beside the island, like the skill sky. The new city had left the scene chunk 0.6 kB
+   loads beside the aerie, like the skill sky. The new city had left the scene chunk 0.6 kB
    under its 200 kB budget. Until the chunk arrives, a move cuts, and the loading gate
    still covers the scene then.
 
@@ -203,7 +203,7 @@ to 164 m/s2, the workshop to the board 588 to 9 m/s2, the workshop to the campfi
 ### Left open
 
 - Seven phone moves and four desktop moves stay over 150 m/s2. All are arcs between the
-  workshop or the board and the back of the island (the telescope and the campfire). The
+  workshop or the board and the back of the aerie (the telescope and the campfire). The
   worst is the campfire to the board, 295 to 336 m/s2. Each is lower than on master.
 - The long moves take up to 4.4 s, against 3.6 s before. The workshop to the board on a phone
   takes 3.1 s against 2.1 s: the camera now dollies through the door.
@@ -225,8 +225,8 @@ traced the stair flights. Jumps rose in arcs over a box round the house.
 
 ### What changed
 
-1. **Clearance field** (`clearance.js`). After the island loads, the meshes of the aerie (the
-   island, the house, the trees and their leaf crowns, the props and the campfire kit) mark a
+1. **Clearance field** (`clearance.js`). After the aerie loads, the meshes of the aerie (the
+   aerie, the house, the trees and their leaf crowns, the props and the campfire kit) mark a
    1 m grid, and an exact distance transform gives the distance to the nearest surface. The
    build runs in slices of at most 4 ms behind the gate: 78 ms in all on a desktop, 290 ms on
    a phone at 4x CPU throttle.

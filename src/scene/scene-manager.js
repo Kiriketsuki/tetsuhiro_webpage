@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
-import { route, doorway } from '../data/route.js'
+import { doorway } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -38,8 +38,6 @@ const STEER_MS = 250
 // program until the driver reports it ready, and a lost WebGL context never reports, so the
 // gate stayed at 100 percent. Any program that is not ready by then compiles on first use.
 const COMPILE_WAIT_MS = 8000
-// How far a camera arc keeps clear of the house, in metres.
-const HOUSE_MARGIN = 0.5
 // The share of the bedroom move that the fade takes to rise, and again to fall.
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
@@ -92,24 +90,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The island haze matches the sky haze below the horizon and the city haze.
     scene.fog = new THREE.FogExp2(NIGHT_SKY.haze, ISLAND_HAZE_DENSITY)
     const camera = new THREE.PerspectiveCamera(35, size()[0] / size()[1], 0.1, 12000)
-    // The boxes round the house that a camera arc must not pass through. They fill in once the
-    // GLB loads. A ray test on the house triangles took up to 200 ms at the start of a move, a
-    // visible hitch, and a box test takes microseconds. A box that holds either end of the move
-    // (ends) does not count, so a move to a stop inside the house, such as the eyepiece, still
-    // works.
-    let solids = []
-    const ray = new THREE.Ray()
-    const hit = new THREE.Vector3()
-    const blocked = (a, b, ends = [a, b]) => {
-        const length = a.distanceTo(b)
-        if (length < 1e-3) return false
-        ray.set(a, b.clone().sub(a).divideScalar(length))
-        return solids.some((box) => !ends.some((end) => box.containsPoint(end)) && ray.intersectBox(box, hit) && a.distanceTo(hit) <= length)
-    }
-    const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start, blocked })
-    // The story legs between neighbouring stops (camera-move.js). They build once the move
-    // chunk and the GLB with its route empties are in. Until then every move cuts.
-    let legs = {}
+    const rig = createCameraRig({ camera, shots: shotsFromStops(stops), start })
 
     const state = { wanted: false, hidden: document.hidden, lost: false, ready: false, reduced: reducedMotion, dirty: true }
     const parts = { glow: null, waterfall: null, stars: null, city: null, sky: null, campfire: null, look: null, leaves: null, constellation: null, wall: null, roomBoard: null }
@@ -638,11 +619,6 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // Without the move chunk, a failed download, every move cuts.
             const moves = await moveModule.catch(() => null)
             rig.setShots(shots)
-            legs = moves ? moves.legsFromRoute(route, (name) => anchor(root, name)) : {}
-            solids = []
-            root.traverse((node) => {
-                if (node.isMesh && /^(House|Glass)/.test(node.name)) solids.push(new THREE.Box3().setFromObject(node).expandByScalar(HOUSE_MARGIN))
-            })
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
             // through the telescope do not stall.
@@ -654,6 +630,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             onProgress(1)
             update()
             requestRender()
+            // The planner's clearance field builds in short slices behind the gate, then the
+            // flights between the stops plan ahead. Until the field is in, a move flies straight.
+            moves?.createClearance(scene).then((field) => {
+                rig.setField(field)
+                return moves.warmPlans(field, [...Object.values(shots).map((shot) => shot.position), DOOR.outside])
+            }).catch((error) => console.error('The camera planner did not build.', error))
             return { anchors: (name) => anchor(root, name), root, gltf }
         })
 
@@ -670,20 +652,19 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig,
         parts,
         loaders,
-        // A move into or out of the board view goes through the workshop doorway.
-        // A move to a neighbouring story stop follows its leg. Any other move takes the
-        // lifted arc, and a zero duration cuts. Without a duration the move takes one from its
-        // path length. A move that starts in the middle of a leg starts from the camera at its
-        // speed, and rig.current is already that leg's end stop.
+        // A move into or out of the board view goes through the workshop doorway. Every move
+        // flies a planned path clear of the aerie (path-plan.js), and a zero duration cuts.
+        // Without a duration the move takes one from its path length. A move that starts in
+        // the middle of another one starts from the camera at its
+        // speed, and rig.current is already that move's end stop.
         goTo: (id, { duration = null } = {}) => {
             // A move asked for on the way out of the wall replaces the out leg that has not
             // started yet. The page that comes back can pick a new section after the route
             // change has picked its stop, and the camera follows the page.
             if (boardMove && !boardMove.on) boardMove.legs.length = 0
             const cut = state.reduced || (duration !== null && duration <= 0)
-            const leg = cut ? null : (legs[`${rig.current}>${id}`] ?? null)
             const from = rig.current
-            rig.goTo(id, { duration: cut ? 0 : duration, leg, door: doorFor(from, id, camera.position) })
+            rig.goTo(id, { duration: cut ? 0 : duration, door: doorFor(from, id, camera.position) })
             const time = rig.moveDuration
             fade = id === 'bedroom' && time > 0 && from !== 'bedroom' ? { t: 0, duration: time } : null
             pipeline.grade.uniforms.uFade.value = 0

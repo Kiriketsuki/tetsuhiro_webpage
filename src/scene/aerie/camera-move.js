@@ -1,45 +1,26 @@
 import * as THREE from 'three'
 import { createWalkCurve, tableIndex } from './walk-curve.js'
+import { plannedPath } from './path-plan.js'
+
+export { createClearance } from './clearance.js'
+export { warmPlans } from './path-plan.js'
 
 // One camera move between two stops as two smooth paths: one for the camera and one for the
 // point it looks at. The rig (camera-rig.js) runs along both paths with one speed curve.
 //
-// The old moves eased a straight line or a drone follow, then blended in from the start shot
-// and out into the end shot. Each blend added its own speed, so a leg had three or four
-// speed surges and turned at up to 480 degrees a second. Here the shots and the follow
-// frames are control points of one spline, so the path has no seams.
+// The camera path comes from a planner (path-plan.js) that flies one smooth curve through the
+// free space round the aerie, clear of the house, the trees and the props. The view eases from
+// the start shot's direction to the end shot's direction along the way. The old moves rode a
+// drone follow along the walk spline of each story leg, so the camera traced the stair flights
+// up the tower, and jumps rose in arcs over a box round the house.
 
-// Long moves rise over the aerie instead of cutting through it. An arc that still meets the
-// aerie rises by LIFT_STEP metres at a time until it clears, up to MAX_LIFT. The test runs on
-// ARC_CHECKS straight pieces of the arc.
-const LIFT_PER_METRE = 0.18
-const MAX_LIFT = 40
-const LIFT_STEP = 2
-const ARC_CHECKS = 12
-// An arc that a lift of LIFT_TRIES more metres does not clear becomes a crane move: it rises
-// CRANE metres straight up from the start shot, crosses, and comes straight down CRANE metres
-// onto the end shot. A stop low beside the house, such as the telescope, needs the camera to
-// come down onto it, as a lift in the middle cannot clear the last stretch.
-const LIFT_TRIES = 10
-const CRANE = 5
 // The look points sit this far ahead of their camera points, in metres. A look point far
 // away from its camera point would swing the view faster than the camera moves.
 const LOOK_DISTANCE = 10
-// A story leg (src/data/route.js): the camera rides FOLLOW_UP metres above and FOLLOW_BACK
-// metres behind the walk spline, a drone follow, unless the leg sets `up` and `back`. It
-// looks LOOK_AHEAD metres ahead on the spline. LEG_SAMPLES are the shares of the walk that give
-// the follow frames between the two shots.
-const FOLLOW_BACK = 5
-const FOLLOW_UP = 4
-const LOOK_AHEAD = 3
-const FOLLOW_LEAD = 0.5
-// The most route empties one leg can have in the GLB.
-const MAX_ROUTE_POINTS = 99
-const LEG_SAMPLES = [0.5]
-// A move that starts in mid-air, when it takes over from another one, skips a follow frame
-// that is a detour of more than DETOUR times the straight distance. A scroll back up passes
-// the follow frame of the leg it reverses, and the path doubled back on itself through it.
-const DETOUR = 1.4
+// How far the view leans toward the way the camera flies, at most, in the middle of a flight,
+// and how much of the climb or dive of the path it follows.
+const TRAVEL_LEAN = 0.6
+const TRAVEL_TILT = 0.4
 // How far from the door axis, in metres, the start or end of a move counts as in the doorway.
 const DOOR_CORRIDOR = 1.5
 // A move through a doorway runs DOOR_SLOW times slower than its cruise within DOOR_ZONE.near
@@ -92,140 +73,49 @@ export function moveProgress(tau, v0 = 0) {
     return 1 - b * cruise * rampArea((1 - tau) / b)
 }
 
-// The points of one leg from the GLB empties Route_<from>_<to>_01, _02 and on, or null when
-// the GLB has fewer than two of them.
-function routeEmpties(from, to, anchorAt) {
-    const points = []
-    for (let i = 1; i <= MAX_ROUTE_POINTS; i += 1) {
-        const point = anchorAt(`Route_${from}_${to}_${String(i).padStart(2, '0')}`)
-        if (!point) break
-        points.push(point)
-    }
-    return points.length >= 2 ? points : null
-}
-
-// Builds one leg per direction for each pair of neighbouring stops in `route`, keyed
-// `<from>><to>`. anchorAt(name) returns the world position of a GLB node, or null. The
-// Blender empties of a leg win over its fallback points. The leg the other way plays the
-// same camera path backward, so a scroll up retraces the scroll down. A follow camera that
-// walked the spline backward would sit on the other side of the walker, where the house
-// stands on some legs.
-export function legsFromRoute(route, anchorAt = () => null) {
-    return Object.fromEntries(
-        Object.entries(route).flatMap(([key, leg]) => {
-            const [from, to] = key.split('>')
-            const points = routeEmpties(from, to, anchorAt) ?? leg.points.map((point) => new THREE.Vector3(...point))
-            const curve = createWalkCurve(points)
-            const forward = { curve, length: curve.length, back: leg.back ?? FOLLOW_BACK, up: leg.up ?? FOLLOW_UP, reverse: false }
-            return [
-                [key, forward],
-                [`${to}>${from}`, { ...forward, reverse: true }],
-            ]
-        })
-    )
-}
-
 // The look point LOOK_DISTANCE metres from `position` toward `target`.
 const aim = (position, target) => target.clone().sub(position).setLength(LOOK_DISTANCE).add(position)
 
-// The follow frames of a story leg (legsFromRoute in camera-rig.js), in the order of the move.
-// A reverse leg replays the forward camera path backward. Each frame has two looks: `look`
-// along the walk, and `lead`, FOLLOW_LEAD of the way from there toward the end shot's subject,
-// as an operator leads a pan. The look along the walk alone left most of the turn for the last
-// stretch of the move. createMove takes the one that turns the view less.
-function followFrames(leg, shot) {
-    const { curve, length, back, up, reverse } = leg
-    const heading = new THREE.Vector3()
-    const fallback = curve.points.at(-1).clone().sub(curve.points[0]).setY(0).normalize()
-    const shares = reverse ? [...LEG_SAMPLES].reverse() : LEG_SAMPLES
-    return shares.map((u) => {
-        const at = curve.pointAt(u, new THREE.Vector3())
-        const ahead = curve.pointAt(Math.min(1, u + LOOK_AHEAD / length), new THREE.Vector3())
-        curve.tangentAt(u, heading).setY(0)
-        if (heading.lengthSq() < 1e-6) heading.copy(fallback)
-        const position = at.addScaledVector(heading.normalize(), -back)
-        position.y += up
-        const view = ahead.sub(position).normalize()
-        const subject = shot.target.clone().sub(position).normalize()
-        const lead = view.clone().lerp(subject, FOLLOW_LEAD).normalize()
-        return { position, look: position.clone().addScaledVector(view, LOOK_DISTANCE), lead: position.clone().addScaledVector(lead, LOOK_DISTANCE) }
+// The direction share w of the way from unit vector a to unit vector b, along the great
+// circle. Two views that face almost apart turn round the vertical.
+function blendView(a, b, w) {
+    const angle = a.angleTo(b)
+    if (angle < 1e-4) return a.clone()
+    const axis = new THREE.Vector3().crossVectors(a, b)
+    if (axis.lengthSq() < 1e-8) axis.set(0, 1, 0)
+    return a.clone().applyAxisAngle(axis.normalize(), angle * w)
+}
+
+// One flight from `from` to `to`, each { position, look }. The camera points come from the
+// planner when a clearance field is in, and are the two ends without one. The view turns
+// evenly along the distance flown, from the start view to the end view, and the look distance
+// blends in the same way. Returns the camera and look control points, ends included.
+function flight(from, to, field) {
+    const cams = field ? plannedPath(field, from.position, to.position) : [from.position.clone(), to.position.clone()]
+    const views = [from, to].map((end) => end.look.clone().sub(end.position))
+    const [near, far] = views.map((view) => view.length())
+    const [start, end] = views.map((view) => view.normalize())
+    const lengths = [0]
+    for (let i = 1; i < cams.length; i += 1) lengths.push(lengths[i - 1] + cams[i].distanceTo(cams[i - 1]))
+    const total = lengths.at(-1) || 1
+    const travel = new THREE.Vector3()
+    const looks = cams.map((cam, i) => {
+        if (i === 0) return from.look.clone()
+        if (i === cams.length - 1) return to.look.clone()
+        const w = lengths[i] / total
+        const view = blendView(start, end, w)
+        // In the middle of the flight the view leans toward the way the camera flies, flatter
+        // than the path, as a pilot looks ahead. A view that only blended the two shots stared
+        // at the workshop wall from 2 m on the way from the pad to the telescope. The lean
+        // fades out where the camera flies away from the view, so a pull-back never turns round.
+        travel.subVectors(cams[i + 1], cams[i - 1])
+        travel.y *= TRAVEL_TILT
+        travel.normalize()
+        const lean = TRAVEL_LEAN * Math.sin(Math.PI * w) ** 2 * Math.max(0, view.dot(travel))
+        view.multiplyScalar(1 - lean).addScaledVector(travel, lean).normalize()
+        return cam.clone().addScaledVector(view, THREE.MathUtils.lerp(near, far, w))
     })
-}
-
-// The sum of the view turns, in radians, between neighbouring control points.
-function viewTurn(cams, looks) {
-    let sum = 0
-    for (let i = 1; i < cams.length; i += 1) sum += looks[i - 1].clone().sub(cams[i - 1]).angleTo(looks[i].clone().sub(cams[i]))
-    return sum
-}
-
-// True if blocked(a, b, ends) finds the aerie on any of ARC_CHECKS straight pieces along path.
-// ends are the two ends of the whole path.
-function meets(path, blocked) {
-    const a = new THREE.Vector3()
-    const b = path.pointAt(0, new THREE.Vector3())
-    const ends = [b.clone(), path.pointAt(1, new THREE.Vector3())]
-    for (let i = 1; i <= ARC_CHECKS; i += 1) {
-        a.copy(b)
-        path.pointAt(i / ARC_CHECKS, b)
-        if (blocked(a, b, ends)) return true
-    }
-    return false
-}
-
-// The point `distance` metres straight above `position`, and the look point from there, still
-// on the subject at `look`. The crane once backed away behind the shot, and the path reversed
-// there at corners of up to 145 degrees.
-function above(position, look, distance) {
-    const point = position.clone()
-    point.y += distance
-    return { cam: point, look: aim(point, look) }
-}
-
-// The control points of an arc from position to shot, lifted `lift` metres in the middle. A
-// crane arc also rises straight up from the start and comes straight down onto the end.
-function arcPoints(position, look, shot, lift, crane) {
-    const end = aim(shot.position, shot.target)
-    if (lift <= 0.5 && !crane) return { cams: [position.clone(), shot.position.clone()], looks: [look, end] }
-    // The top of the arc is flat: two points at full lift, a third and two thirds of the way.
-    // One point at the top made a peak that the centripetal spline turned in about 0.5 m.
-    const lifted = [1 / 3, 2 / 3].map((k) => {
-        const cam = position.clone().lerp(shot.position, k)
-        cam.y += lift
-        const at = look.clone().lerp(end, k)
-        at.y += lift / 2
-        return { cam, look: at }
-    })
-    const middle = { cams: lifted.map((point) => point.cam), looks: lifted.map((point) => point.look) }
-    if (!crane) return { cams: [position.clone(), ...middle.cams, shot.position.clone()], looks: [look, ...middle.looks, end] }
-    const away = above(position, look, CRANE)
-    const back = above(shot.position, end, CRANE)
-    return {
-        cams: [position.clone(), away.cam, ...middle.cams, back.cam, shot.position.clone()],
-        looks: [look, away.look, ...middle.looks, back.look, end],
-    }
-}
-
-// Builds a move from the camera as it is now to `shot`. With a leg the path runs through the
-// leg's follow frames. Without one it rises in an arc, high enough that blocked(a, b, ends),
-// which says if the aerie lies between two points, finds nothing. duration is in seconds, or null
-// for a duration from the path length. midway is true for a move that takes over from another
-// one. door, if given, sends the move through a doorway (doorFrames). The two paths have the same number of points, so the rig runs both on one spline
-// parameter and the view turns in step with the camera.
-// An arc from position, looking at look, to shot, raised until blocked finds nothing. It
-// returns the control points, start and end included.
-function arcTo(position, look, shot, blocked) {
-    const start = Math.min(MAX_LIFT, position.distanceTo(shot.position) * LIFT_PER_METRE)
-    let lift = start
-    let crane = false
-    for (;;) {
-        const arc = arcPoints(position, look, shot, lift, crane)
-        if (lift >= MAX_LIFT || !meets(createWalkCurve(arc.cams), blocked)) return arc
-        if (!crane && lift >= start + LIFT_TRIES) {
-            crane = true
-            lift = start
-        } else lift = Math.min(MAX_LIFT, Math.max(lift, 0.5) + LIFT_STEP)
-    }
+    return { cams, looks }
 }
 
 // The doorway frames of a move through a door, in the order of the move. door.side is 'in' or
@@ -281,58 +171,40 @@ function splitTurns(cams, looks) {
     }
 }
 
-export function createMove({ position, target, shot, leg = null, duration = null, blocked = () => false, midway = false, door = null }) {
-    let cams = [position.clone()]
+// Builds a move from the camera as it is now to `shot`. field is the clearance field
+// (clearance.js), or null until it is built. duration is in seconds, or null for a duration
+// from the path length. midway is true for a move that takes over from another one. door, if
+// given, sends the move through a doorway (doorFrames). The two paths have the same number of
+// points and the same knots, so the rig runs both on one spline parameter.
+export function createMove({ position, target, shot, duration = null, field = null, midway = false, door = null }) {
     // A move that takes over starts its look path at the look point in use, at its distance.
     // The rig keeps the speed of that point, and a jump to LOOK_DISTANCE halved the turn rate
     // in one frame.
-    let looks = [midway ? target.clone() : aim(position, target)]
-    let camPath = null
-    if (door) {
-        // In: an arc to the first doorway frame, then through the door to the shot. Out:
-        // through the door from the shot inside, then an arc to the end shot.
-        const frames = doorFrames(door, position, shot)
-        const frameShot = (frame) => ({ position: frame.position, target: frame.look })
-        if (!frames.length) ({ cams, looks } = arcTo(position, looks[0], shot, blocked))
-        else if (door.side === 'in') {
-            ;({ cams, looks } = arcTo(position, looks[0], frameShot(frames[0]), blocked))
-            frames.slice(1).forEach((frame) => {
-                cams.push(frame.position)
-                looks.push(frame.look)
-            })
-            cams.push(shot.position.clone())
-            looks.push(aim(shot.position, shot.target))
-        } else {
-            frames.forEach((frame) => {
-                cams.push(frame.position)
-                looks.push(frame.look)
-            })
-            const last = frames.at(-1)
-            const arc = arcTo(last.position, last.look, shot, blocked)
-            cams.push(...arc.cams.slice(1))
-            looks.push(...arc.looks.slice(1))
-        }
-        splitTurns(cams, looks)
-        camPath = createWalkCurve(cams)
-    } else if (leg) {
-        const straight = position.distanceTo(shot.position)
-        // A move that takes over also skips a follow frame where the path folds back. A scroll
-        // back up early in a leg left the frame ahead of the camera: the path ran on to it and
-        // came back through a cusp, and the brake (camera-rig.js) never started.
-        const foldsBack = (frame) => frame.position.clone().sub(position).dot(shot.position.clone().sub(frame.position)) < 0
-        const frames = followFrames(leg, shot).filter((frame) => !midway || (position.distanceTo(frame.position) + frame.position.distanceTo(shot.position) <= DETOUR * straight && !foldsBack(frame)))
-        cams.push(...frames.map((frame) => frame.position), shot.position.clone())
-        const end = aim(shot.position, shot.target)
-        const along = [looks[0], ...frames.map((frame) => frame.look), end]
-        const lead = [looks[0], ...frames.map((frame) => frame.lead), end]
-        // The lead wins when it turns the view less in all. On a leg that walks away from the
-        // end subject, as a reverse leg can, the lead turned the view out and back.
-        looks = viewTurn(cams, lead) < viewTurn(cams, along) ? lead : along
-        camPath = createWalkCurve(cams)
+    const start = { position: position.clone(), look: midway ? target.clone() : aim(position, target) }
+    const end = { position: shot.position.clone(), look: aim(shot.position, shot.target) }
+    let cams = null
+    let looks = null
+    const frames = door ? doorFrames(door, position, shot) : []
+    if (!frames.length) ({ cams, looks } = flight(start, end, field))
+    else if (door.side === 'in') {
+        // A flight to the first doorway frame, then through the door to the shot.
+        ;({ cams, looks } = flight(start, frames[0], field))
+        frames.slice(1).forEach((frame) => {
+            cams.push(frame.position)
+            looks.push(frame.look)
+        })
+        cams.push(end.position)
+        looks.push(end.look)
     } else {
-        ;({ cams, looks } = arcTo(position, looks[0], shot, blocked))
-        camPath = createWalkCurve(cams)
+        // Through the door from the shot inside, then a flight to the end shot.
+        cams = [start.position, ...frames.map((frame) => frame.position)]
+        looks = [start.look, ...frames.map((frame) => frame.look)]
+        const out = flight(frames.at(-1), end, field)
+        cams.push(...out.cams.slice(1))
+        looks.push(...out.looks.slice(1))
     }
+    if (door) splitTurns(cams, looks)
+    const camPath = createWalkCurve(cams)
     const lookPath = createWalkCurve(looks, camPath.gaps)
     // The camera metres and the view turn in radians of each pace sample along the shared
     // spline parameter.

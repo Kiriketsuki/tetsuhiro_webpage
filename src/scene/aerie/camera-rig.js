@@ -59,10 +59,7 @@ export function shotsFromStops(stops, cameras = [], anchorAt = () => null) {
     )
 }
 
-// blocked(a, b, ends) says if the aerie lies on the straight line from a to b, for a move
-// between the two points `ends`. An arc between two stops rises until it finds nothing
-// (camera-move.js).
-export function createCameraRig({ camera, shots, start = 'overview', blocked = () => false }) {
+export function createCameraRig({ camera, shots, start = 'overview' }) {
     let all = shots
     let current = start
     let tween = null
@@ -88,6 +85,8 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     // createMove and moveProgress from camera-move.js. The scene manager loads that module as
     // its own chunk beside the island and hands it over with setMoves. Until then a move cuts.
     let moves = null
+    // The clearance field (clearance.js) that the planner steers by, once it is built.
+    let field = null
 
     const frameOf = (shot) => ({ sx: shot.shift[0], sy: shot.shift[1], tx: shot.tall[0], ty: shot.tall[1], zoom: shot.zoom, tzoom: shot.tallZoom, fov: shot.fov })
 
@@ -146,13 +145,11 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     }
 
     // Starts a move from wherever the camera is now, at the speed it moves now. A zero
-    // duration cuts. The second argument is the duration in seconds, or { duration, leg, door }.
-    // door sends the move through a doorway (camera-move.js).
-    // Without a duration the move takes one from its path length (camera-move.js). With a leg
-    // (legsFromRoute) the path runs through the leg's follow frames. Without one it rises in
-    // an arc.
+    // duration cuts. The second argument is the duration in seconds, or { duration, door }.
+    // door sends the move through a doorway (camera-move.js). Without a duration the move takes
+    // one from its path length (camera-move.js).
     const goTo = (id, options = {}) => {
-        const { duration = null, leg = null, door = null } = typeof options === 'number' ? { duration: options } : options
+        const { duration = null, door = null } = typeof options === 'number' ? { duration: options } : options
         if (!all[id]) return
         if (!moves || (duration !== null && duration <= 0)) {
             jump(id)
@@ -166,14 +163,14 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         const travelFrom = tween ? Math.sin(Math.PI * tween.s) : 0
         const coast = velocity.lengthSq() + lookVelocity.lengthSq() > 1e-6 ? { position, look: baseLook.clone(), velocity: velocity.clone(), lookVelocity: lookVelocity.clone(), brake: false } : null
         const midway = Boolean(coast)
-        let move = moves.createMove({ position, target: from, shot, leg, duration, blocked, midway, door })
+        let move = moves.createMove({ position, target: from, shot, duration, field, midway, door })
         let v0 = 0
         const along = move.camPath.tangentAt(0, new THREE.Vector3()).dot(velocity)
         if (coast && along < BRAKE_SHARE * velocity.length()) {
             // The coast covers half its start speed times TAKE_OVER before it stops.
             const stop = position.clone().addScaledVector(velocity, TAKE_OVER / 2)
             const stopLook = coast.look.clone().addScaledVector(lookVelocity, TAKE_OVER / 2)
-            move = moves.createMove({ position: stop, target: stopLook, shot, leg, duration, blocked, midway, door })
+            move = moves.createMove({ position: stop, target: stopLook, shot, duration, field, midway, door })
             coast.brake = true
         } else if (coast) {
             // The new path takes the speed along it, and the rest of the motion fades out.
@@ -322,6 +319,9 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
     const setMoves = (module) => {
         moves = module
     }
+    const setField = (next) => {
+        field = next
+    }
     sidePanels.addEventListener('change', applyLens)
     jump(start)
 
@@ -336,6 +336,7 @@ export function createCameraRig({ camera, shots, start = 'overview', blocked = (
         setShots,
         addShot,
         setMoves,
+        setField,
         resize,
         get current() {
             return current

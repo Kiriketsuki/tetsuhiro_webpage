@@ -1,6 +1,7 @@
 <template>
     <main v-if="onWall">
-        <ExplorePad :to="id ? '/projects' : '/'" back="">
+        <!-- Escape closes the sheet first (onKey below), then leaves the wall. -->
+        <ExplorePad :to="id ? null : '/'" back="">
             <template #top>
                 <header class="wall-head">
                     <p class="label">
@@ -40,7 +41,7 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ExplorePad from '../components/ExplorePad.vue'
 import ProjectList from '../components/ProjectList.vue'
@@ -56,7 +57,14 @@ const ProjectDetail = defineAsyncComponent(() => import('./ProjectDetail.vue'))
 const route = useRoute()
 const router = useRouter()
 const wall = useWall()
-const onWall = computed(() => wall.shown.value && !('list' in route.query))
+watch(
+    () => 'list' in route.query,
+    (list) => {
+        if (list) wall.listed.value = true
+    },
+    { immediate: true },
+)
+const onWall = computed(() => wall.shown.value && !wall.listed.value)
 const id = computed(() => (route.name === 'Project' ? route.params.id : null))
 const pinOf = (page) => PINS.find((pin) => pin.page === page)?.id ?? null
 
@@ -73,7 +81,9 @@ watch(
         if (next) wall.focus(pinOf(next))
         else if (previous) {
             wall.unfocus()
-            links[pinOf(previous)]?.focus({ preventScroll: true })
+            // A project with no pin (it opened from a link) hands focus to the wall's own links.
+            const target = links[pinOf(previous)] ?? document.querySelector('.wall-actions a')
+            target?.focus({ preventScroll: true })
         }
     },
     { immediate: true },
@@ -87,9 +97,21 @@ watch(wall.picked, (pin) => {
     if (page && page !== id.value) router.push(`/projects/${page}`)
 })
 
-const close = () => router.push('/projects')
+// A sheet opened from the wall closes by going back, so Back never reopens it. A sheet from
+// a deep link has no wall entry behind it, so it swaps to the wall.
+const close = () => {
+    if (window.history.state?.back === '/projects') router.back()
+    else router.replace('/projects')
+}
 
-onBeforeUnmount(() => wall.highlight(null))
+const onKey = (e) => {
+    if (e.key === 'Escape' && id.value && onWall.value) close()
+}
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKey)
+    wall.highlight(null)
+})
 </script>
 
 <style scoped>

@@ -22,6 +22,7 @@ const clamp = THREE.MathUtils.clamp
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 
 export function createView(reducedMotion) {
+    let reduced = reducedMotion
     const camera = new THREE.PerspectiveCamera(FOV, 1, 0.02, 20)
     const state = { x: 0, y: 0, d: 3 }
     let W = 1
@@ -60,7 +61,7 @@ export function createView(reducedMotion) {
     }
 
     const go = (to, instant) => {
-        if (instant || reducedMotion) {
+        if (instant || reduced) {
             tween = null
             Object.assign(state, to)
             return apply()
@@ -139,11 +140,19 @@ export function createView(reducedMotion) {
 
     const snapshot = () => ({ ...(tween ? tween.to : state) })
 
+    const goHome = () => {
+        tween = null
+        Object.assign(state, home)
+        atHome = true
+        apply()
+    }
+
     // The view now: the cork point at the screen centre, metres per CSS pixel, and the size.
     const frame = () => ({ x: state.x, y: state.y, k: kOf(state.d), w: W, h: H })
 
     return {
-        camera, resize, step, pan, zoom, focusOn, reveal, go, snapshot, frame,
+        camera, resize, step, pan, zoom, focusOn, reveal, go, goHome, snapshot, frame,
+        setReducedMotion: (value) => (reduced = value),
         get moving() { return Boolean(tween) },
         // The overview: the cork point at the screen centre and the camera distance.
         get home() { return { ...home } },

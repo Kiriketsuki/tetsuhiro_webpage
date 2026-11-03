@@ -12,7 +12,7 @@ import { createLight, corkGrain, haloTexture } from './wall-light.js'
 // casts a soft shadow on the cork. The scene is still, so it needs frames only while the view
 // or a pin moves, and the shadow map renders again only when a pin lifts.
 //
-// All paper faces share one overview atlas at half size. When the view comes close, the few
+// All paper faces share one overview atlas at a part of full size. When the view comes close, the few
 // pins on screen get a sharp page each (SLOTS), so the text stays sharp at the maximum zoom.
 
 // The kit pieces are real size. These scales fit them to the pin spacing in wall.js.
@@ -67,12 +67,39 @@ function yarn(a, b, slack) {
     return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a, mid, b), 32, 0.0011, 5)
 }
 
+// Joins meshes into one geometry in the frame of their common root, with only the attributes
+// an unlit material reads: the position, the UV when it has a map, and the vertex colour.
+function joinMeshes(meshes, material) {
+    const parts = meshes.map((mesh) => {
+        const geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone()
+        return geometry.applyMatrix4(mesh.matrixWorld)
+    })
+    const count = parts.reduce((sum, g) => sum + g.attributes.position.count, 0)
+    const out = new THREE.BufferGeometry()
+    const fill = (name, size, read) => {
+        const array = new Float32Array(count * size)
+        let at = 0
+        for (const g of parts) {
+            const source = g.attributes[name]
+            for (let i = 0; i < g.attributes.position.count; i++, at += size) read(source, i, array, at)
+        }
+        out.setAttribute(name, new THREE.BufferAttribute(array, size))
+    }
+    fill('position', 3, (s, i, a, at) => a.set([s.getX(i), s.getY(i), s.getZ(i)], at))
+    if (material.map) fill('uv', 2, (s, i, a, at) => s && a.set([s.getX(i), s.getY(i)], at))
+    if (material.vertexColors) fill('color', 3, (s, i, a, at) => a.set(s ? [s.getX(i), s.getY(i), s.getZ(i)] : [1, 1, 1], at))
+    parts.forEach((g) => g.dispose())
+    out.computeBoundingSphere()
+    return out
+}
+
 // loaders: the scene's loaders, so the kit shares the Draco decoder with the island.
 // request: asks the manager for a frame, for the sharp pages after the view comes to rest.
 export async function createWall({ loaders, small, reducedMotion, anisotropy, pixelRatio = 1, request = () => {} }) {
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x120d0a)
     const view = createView(reducedMotion)
+    let reduced = reducedMotion
     const raycaster = new THREE.Raycaster()
     const items = new Map()
     const yarns = []
@@ -92,7 +119,7 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         let changed = false
         for (const item of items.values()) {
             if (item.lift === item.target) continue
-            const next = reducedMotion ? item.target : item.lift + (item.target - item.lift) * Math.min(1, dt * 10)
+            const next = reduced ? item.target : item.lift + (item.target - item.lift) * Math.min(1, dt * 10)
             item.lift = Math.abs(next - item.target) < 2e-4 ? item.target : next
             item.group.position.z = item.base + item.lift
             item.group.scale.setScalar(1 + item.lift * 2)
@@ -113,7 +140,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     const [gltf, pictures] = await Promise.all([loaders.gltf.loadAsync(kitUrl), loadFonts().then(() => loadPictures(PINS, images))])
     const kit = gltf.scene
-    const atlas = drawAtlas({ pins: PINS, groups: GROUPS, pictures, anisotropy })
+    const scale = small ? ATLAS_SCALE.small : ATLAS_SCALE.wide
+    const atlas = drawAtlas({ pins: PINS, groups: GROUPS, pictures, anisotropy, scale })
     const paper = new THREE.MeshLambertMaterial({ map: atlas.texture })
     const ink = new THREE.MeshLambertMaterial({ map: atlas.texture, transparent: true, depthWrite: false })
     const mats = {
@@ -199,7 +227,7 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         const full = pin.kind === 'hero' ? SIZE.cover[0] : SIZE[pin.kind][0]
         items.set(pin.id, {
             id: pin.id, pin: head, group, base, lift: 0, target: 0, w, h, x: pin.at[0], y: pin.at[1], tilt: group.rotation.z,
-            faces, texels: full * ATLAS_SCALE, picture: pictures[i], note: pin.kind === 'note' ? notes++ : 0, slot: null, source: pin,
+            faces, texels: full * scale, picture: pictures[i], note: pin.kind === 'note' ? notes++ : 0, slot: null, source: pin,
         })
     })
 
@@ -347,17 +375,19 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
     // A copy of the board and its papers for the workshop wall, in the board's own metres.
     // It shares the geometry and the atlas, with unlit materials, because the island has no
     // lights. The workshop shows it from across the room, so it takes no sharp pages.
+    // The copy merges into one mesh per material. The workshop is in frame from many stops,
+    // and one mesh per sheet, pin and strand cost the island about 80 draw calls. The merged
+    // geometry is its own, so the sharp pages and the yarn rebuilds never reach it.
     const roomCopy = () => {
-        const room = board.clone(true)
+        board.updateMatrixWorld(true)
         const unlit = new Map()
-        room.traverse((mesh) => {
+        const meshes = new Map()
+        board.traverse((mesh) => {
             if (!mesh.isMesh) return
-            // Its own geometry: the wall moves face UVs to its sharp pages and rebuilds yarn.
-            mesh.geometry = mesh.geometry.clone()
             const source = mesh.material
             if (!unlit.has(source)) {
                 const basic = new THREE.MeshBasicMaterial({
-                    map: source.map,
+                    map: source.map === paper.map || source.map === ink.map ? atlas.texture : source.map,
                     vertexColors: source.vertexColors,
                     transparent: source.transparent,
                     opacity: source.opacity,
@@ -365,18 +395,28 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
                 })
                 basic.color.copy(source.color).multiply(ROOM_TINT)
                 unlit.set(source, basic)
+                meshes.set(basic, [])
             }
-            mesh.material = unlit.get(source)
-            mesh.castShadow = false
-            mesh.receiveShadow = false
+            meshes.get(unlit.get(source)).push(mesh)
         })
+        const room = new THREE.Group()
+        meshes.forEach((list, material) => room.add(new THREE.Mesh(joinMeshes(list, material), material)))
         room.scale.setScalar(BOARD_SCALE)
         room.name = 'WallRoomCopy'
         const dispose = () => {
-            room.traverse((mesh) => mesh.geometry?.dispose())
+            room.children.forEach((mesh) => mesh.geometry.dispose())
             unlit.forEach((m) => m.dispose())
         }
         return { group: room, dispose }
+    }
+
+    // Back to the overview, with no pin marked and no lift, at once.
+    const reset = () => {
+        highlight(null)
+        lift(1)
+        before = null
+        view.goHome()
+        changed()
     }
 
     const dispose = () => {
@@ -430,6 +470,11 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
             return view.home
         },
         roomCopy,
+        reset,
+        setReducedMotion: (value) => {
+            reduced = value
+            view.setReducedMotion(value)
+        },
         dispose,
     }
 }

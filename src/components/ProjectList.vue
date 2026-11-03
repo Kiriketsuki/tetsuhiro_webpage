@@ -83,7 +83,7 @@
         </div>
 
         <div class="flex flex-wrap justify-center gap-3 self-center">
-            <router-link v-if="wallShown" to="/projects" class="action">Back to the wall</router-link>
+            <router-link v-if="wallShown" to="/projects" class="action" @click="listed = false">Back to the wall</router-link>
             <router-link to="/" class="action">Back to the aerie</router-link>
         </div>
     </main>
@@ -96,7 +96,7 @@ import { monogram, projects } from '../data/projects.js'
 import { GROUPS, archive, otherWork, withPage } from '../data/project-pages.js'
 import { useWall } from '../composables/useWall.js'
 
-const { shown: wallShown } = useWall()
+const { shown: wallShown, listed } = useWall()
 
 const all = projects.map(withPage)
 

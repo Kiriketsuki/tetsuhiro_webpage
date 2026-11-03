@@ -7,15 +7,15 @@ import * as THREE from 'three'
 
 const WARM = 0xffead0
 
-// A phone takes a smaller shadow map. The wall draws it only when a pin lifts, so the size
-// costs memory and not frame time.
+// The wall draws the shadow map only when a pin lifts, so its size costs memory, not frame time.
 export function createLight(small) {
     // The scene pipeline has no tone mapping, so the lamp stays below the clip on white paper.
     const lamp = new THREE.SpotLight(WARM, 2.4, 0, 0.95, 1, 1.6)
     lamp.position.set(0, 0.6, 0.34)
     lamp.target.position.set(0, -0.12, 0)
     lamp.castShadow = true
-    lamp.shadow.mapSize.setScalar(small ? 1024 : 2048)
+    // The light covers only the board, so 1024 texels give about 1.5 mm each on every screen.
+    lamp.shadow.mapSize.setScalar(1024)
     lamp.shadow.camera.near = 0.05
     lamp.shadow.camera.far = 3
     lamp.shadow.bias = -0.0003

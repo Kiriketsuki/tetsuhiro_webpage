@@ -6,6 +6,9 @@ import { ref } from 'vue'
 // scene lands on a pin.
 const shown = ref(false)
 const picked = ref(null)
+// The visitor asked for the list (?list). It stays on across the project pages until they go
+// back to the wall, so a link from the list does not drop them onto the wall.
+const listed = ref(false)
 let controls = null
 
 export function useWall() {
@@ -20,5 +23,5 @@ export function useWall() {
     const focus = (id) => controls?.focus(id)
     const unfocus = () => controls?.unfocus()
 
-    return { shown, picked, connect, highlight, focus, unfocus }
+    return { shown, picked, listed, connect, highlight, focus, unfocus }
 }

@@ -181,6 +181,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (on && !skyFailed) skyReady.then(() => skyWanted && showSky(true, { reveal }), () => {})
             return
         }
+        // Off leaves any other view alone, so it never drops the wall.
+        if (!on && view !== 'sky') return
         view = on ? 'sky' : 'island'
         if (on) {
             parts.constellation.open()
@@ -190,7 +192,32 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.constellation.close()
             pipeline.setView(scene, camera)
         }
+        // A context restore during another view leaves this view's shadow map to redraw.
+        renderer.shadowMap.needsUpdate = true
         requestRender()
+    }
+
+    // Ends the eyepiece move and the board move at once. A new move of either kind, or a route
+    // that drops the sky or the wall at once, starts from rest.
+    const settle = () => {
+        scope = null
+        boardMove = null
+        pipeline.grade.uniforms.uIris.value = 0
+        pipeline.grade.uniforms.uFade.value = 0
+    }
+
+    // Turning on reduced motion mid move finishes the move: the camera cuts to its last stop,
+    // and a swap that has not run yet runs now.
+    const finishMoves = () => {
+        const move = scope ?? boardMove
+        if (!move) return
+        const last = move.legs.at(-1)?.[1]
+        if (!move.swapped) {
+            if (move === scope) showSky(move.on)
+            else showWall(move.on)
+        }
+        settle()
+        rig.jump(last ?? rig.current)
     }
 
     // Swaps the picture between the island and the evidence wall. A call before the wall has
@@ -346,6 +373,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig.resize()
         parts.constellation?.resize(width / height)
         parts.wall?.resize(width, height)
+        if (parts.wall && parts.roomBoard) boardShot(parts.wall)
         resizeSprites()
         requestRender()
     }
@@ -445,6 +473,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 built.resize(...size())
                 if (boardFrame) placeRoomBoard(built)
                 await compiled(built.scene, built.camera)
+                // The room copy joins the island scene, so its programs and its atlas get ready
+                // before its first frame too.
+                if (parts.roomBoard) {
+                    await compiled(scene, camera)
+                    parts.roomBoard.group.traverse((node) => node.material?.map && renderer.initTexture(node.material.map))
+                }
                 parts.wall = built
             })
             .catch((error) => {
@@ -461,15 +495,22 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         room.group.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, normal))
         scene.add(room.group)
         parts.roomBoard = room
+        boardShot(built)
+        renderer.shadowMap.needsUpdate = true
+    }
+
+    // The board stop depends on the wall's overview, which depends on the screen, so a resize
+    // places it again. addShot keeps a move that runs now going.
+    const boardShot = (built) => {
+        const { centre, normal, right, up } = boardFrame
         const home = built.home
-        const k = room.group.scale.x
+        const k = parts.roomBoard.group.scale.x
         // A narrow screen widens the rig's lens (fitFov), so the stop comes closer by as much.
         const lens = Math.tan(THREE.MathUtils.degToRad(15)) / Math.tan(THREE.MathUtils.degToRad(fitFov(30, camera.aspect) / 2))
         const target = centre.clone().addScaledVector(right, home.x * k).addScaledVector(up, home.y * k)
         const position = target.clone().addScaledVector(normal, home.d * k * lens)
         shots.board = { position, target, focus: target.clone(), fov: 30, shift: [0, 0], tall: [0, 0], zoom: 1, tallZoom: 1 }
-        rig.setShots(shots)
-        renderer.shadowMap.needsUpdate = true
+        rig.addShot('board', shots.board)
     }
 
     let shots = null
@@ -570,8 +611,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         setQuality: (index) => buildPipeline(THREE.MathUtils.clamp(index, 0, TIERS.length - 1)),
         setReducedMotion: (value) => {
             state.reduced = value
+            if (value) finishMoves()
+            parts.wall?.setReducedMotion(value)
             update()
         },
+        settle,
         pause: () => {
             state.wanted = false
             update()
@@ -619,14 +663,22 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 requestRender()
             },
             // Resolves true once the wall has built, false when it failed.
-            built: () => wallReady.then(() => Boolean(parts.wall)),
+            // A build that has started already, as on a direct visit, does not wait for the sky.
+            built: () => (wallBuild ?? wallReady).then(() => Boolean(parts.wall)),
+            // Back to the overview with no pin marked, so the dissolve from the room copy lines up.
+            reset: () => {
+                parts.wall?.reset()
+                requestRender()
+            },
         },
         // The move to the evidence wall: the camera flies to the workshop (from any other
         // stop), on to the board stop in front of the room board, and the room board dissolves
         // into the lit wall. Off dissolves back and flies on to the stop `back`. Reduced motion
         // cuts the camera and keeps only the dissolve, which is a fade and not a motion.
         enterWall: (on, back = 'workshop') => {
-            boardMove = null
+            settle()
+            // The room copy shows the overview, so the wall starts there too.
+            if (on) parts.wall?.reset()
             if (on === (view === 'wall') || !shots?.board || wallFailed) {
                 if (!on) api.goTo(back)
                 return
@@ -660,6 +712,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const from = iris.value
             iris.value = 0
             scope = null
+            boardMove = null
             if (on === (view === 'sky') || state.reduced) {
                 if (on !== (view === 'sky')) showSky(on)
                 if (!on) api.goTo(back)
@@ -716,6 +769,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         },
         get lod() {
             return useLod
+        },
+        // 'island', 'sky' or 'wall': the scene the pipeline draws now.
+        get view() {
+            return view
         },
         get pipeline() {
             return pipeline

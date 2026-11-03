@@ -4,14 +4,17 @@ import * as THREE from 'three'
 // the group labels. Every face is drawn at its full size (SIZE, in canvas pixels), where a
 // card at the maximum zoom on a 2x phone shows about one texel per device pixel.
 //
-// The wall keeps two kinds of texture. The overview atlas holds every face at ATLAS_SCALE of
-// full size, which is sharp up to a mid zoom and costs about a quarter of a full atlas. A
-// sharp page holds the faces of one pin at full size. The wall draws one only for the few
-// pins on screen at a close zoom (wall.js), so GPU memory stays near 20 MB.
+// The wall keeps two kinds of texture. The overview atlas holds every face at a part of full
+// size (ATLAS_SCALE), which is sharp up to a mid zoom. A sharp page holds the faces of one
+// pin at full size. The wall draws one only for the few pins on screen at a close zoom
+// (wall.js). Measured on 3 November 2026: the desktop atlas is 2048 x 1544 (about 17 MB with
+// mipmaps) beside three 4 MB pages, and the phone atlas is about 8 MB beside two pages. With
+// the 4 MB shadow map that is about 33 MB on a desktop and about 20 MB on a phone.
 
 const WIDTH = 4096
 const GAP = 12
-export const ATLAS_SCALE = 0.5
+// A phone screen shows a card at under half the size of a desktop screen, so its atlas is smaller.
+export const ATLAS_SCALE = { wide: 0.5, small: 0.35 }
 // The sharp page of one pin: a hero keeps its photo above its caption strip.
 export const SHARP = { width: 1024, height: 1024 }
 export const SIZE = { card: [1024, 612], note: [640, 640], cover: [704, 704], strip: [768, 200], label: [1024, 176] }
@@ -281,26 +284,26 @@ function paint(ctx, item, scale) {
 }
 
 // The overview atlas. Returns the texture and the cell of every face by key.
-export function drawAtlas({ pins, groups, pictures, anisotropy }) {
+export function drawAtlas({ pins, groups, pictures, anisotropy, scale }) {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    const width = WIDTH * ATLAS_SCALE
+    const width = Math.round(WIDTH * scale)
     const items = []
     let notes = 0
     pins.forEach((pin, i) => {
         for (const face of facesOf(pin, pictures[i], pin.kind === 'note' ? notes++ : 0)) {
-            items.push({ ...face, w: Math.round(face.size[0] * ATLAS_SCALE), h: Math.round(face.size[1] * ATLAS_SCALE) })
+            items.push({ ...face, w: Math.round(face.size[0] * scale), h: Math.round(face.size[1] * scale) })
         }
     })
     groups.forEach((group) => {
         const size = [labelWidth(ctx, group), SIZE.label[1]]
-        items.push({ key: `group:${group.id}`, draw: (c, w, h) => drawLabel(c, group, w, h), w: Math.round(size[0] * ATLAS_SCALE), h: Math.round(size[1] * ATLAS_SCALE) })
+        items.push({ key: `group:${group.id}`, draw: (c, w, h) => drawLabel(c, group, w, h), w: Math.round(size[0] * scale), h: Math.round(size[1] * scale) })
     })
     canvas.width = width
     canvas.height = pack(items, width) + GAP
     const cells = new Map()
     for (const item of items) {
-        paint(ctx, item, ATLAS_SCALE)
+        paint(ctx, item, scale)
         cells.set(item.key, cellOf(item, width, canvas.height))
     }
     const texture = new THREE.CanvasTexture(canvas)

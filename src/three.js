@@ -77,6 +77,8 @@ function board(toWall, back) {
 function leaveViewNow() {
     if (!inSky && !inWall) return
     crossfade()
+    // A move that still runs would swap its view back in later, so it ends here.
+    manager.settle()
     manager.showSky(false)
     manager.showWall(false)
     inSky = false
@@ -208,6 +210,7 @@ export function setRoute(name, { cut = false } = {}) {
             manager.wall.built().then((ok) => {
                 if (!ok || !inWall) return
                 manager.rig.jump('board')
+                manager.wall.reset()
                 manager.showWall(true)
                 wall.shown.value = true
             })

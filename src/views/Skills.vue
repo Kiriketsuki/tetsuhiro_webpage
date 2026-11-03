@@ -8,7 +8,7 @@
                         <span class="text-text-muted">&middot; tap a constellation, then a star</span>
                     </p>
                     <h1 class="font-slab text-[clamp(1.9rem,5vw,3.25rem)] leading-none text-text-strong">Skill tree</h1>
-                    <router-link to="/" class="action back" @pointerdown.stop>back to the island</router-link>
+                    <router-link to="/" class="action back" @pointerdown.stop>back to the aerie</router-link>
                 </header>
             </template>
         </ExplorePad>

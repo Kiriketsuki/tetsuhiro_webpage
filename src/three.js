@@ -45,7 +45,7 @@ function eyepiece(toSky, back) {
 function fallBack(error) {
     console.error('The island cannot render here.', error)
     canvas?.classList.add('scene-fallback')
-    loadError.value = 'This browser cannot draw the island. The pages still work.'
+    loadError.value = 'This browser cannot draw the aerie. The pages still work.'
     progress.value = 1
     ready.value = true
 }
@@ -81,7 +81,7 @@ function boot() {
         })
         .catch((error) => {
             console.error('island_b.glb failed to load', error)
-            loadError.value = 'The island did not load. A reload usually sorts it out.'
+            loadError.value = 'The aerie did not load. A reload usually sorts it out.'
             progress.value = 1
             ready.value = true
         })

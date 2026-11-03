@@ -1,15 +1,15 @@
 import * as THREE from 'three'
 import kitUrl from '../../assets/models/corkboard_kit.glb?url'
-import { BOARD_SCALE, GROUPS, PINS, STRINGS } from '../../data/wall.js'
-import { ATLAS_SCALE, SHARP, SIZE, drawAtlas, drawSharp, loadFonts, loadPictures } from './wall-atlas.js'
+import { BOARD_SCALE, GROUPS, LIST_ID, PINS, STRINGS, labelId } from '../../data/wall.js'
+import { ATLAS_SCALE, SHARP, SIZE, drawAtlas, drawListNote, drawSharp, loadFonts, loadPictures } from './wall-atlas.js'
 import { createView } from './wall-view.js'
 import { createLight, corkGrain, haloTexture } from './wall-light.js'
 
 // The evidence wall in the workshop, the Projects view. scene-manager.js loads this module
 // in its own chunk after the island, like the skill sky, and draws the scene through the same
 // pipeline. The board, the papers, the pins, the tape and the red yarn are kit meshes. The
-// brass picture light is one spot light with a shadow map, so every sheet and every string
-// casts a soft shadow on the cork. The scene is still, so it needs frames only while the view
+// brass picture light is one masked spot light with a shadow map (wall-light.js), so every
+// sheet and every string casts a soft shadow on the cork. The scene is still, so it needs frames only while the view
 // or a pin moves, and the shadow map renders again only when a pin lifts.
 //
 // All paper faces share one overview atlas at a part of full size. When the view comes close, the few
@@ -23,6 +23,9 @@ const PIN_SCALE = 1.2
 const PIN_TINTS = [0xa8443a, 0xc0913a, 0x4f7a8c, 0x6f8a5c, 0xd9cdb8]
 const LIFT = 0.016
 const YARN = 0x9e1f22
+// The post-it that opens the list: free cork at the right edge, between the cards and the
+// note in the lower right corner.
+const LIST_AT = { at: [0.665, -0.075], tilt: 5 }
 // Sharp pages: how many, and when a pin takes one. A pin takes a page when the screen shows
 // more than SHARP_AT device pixels for each texel of its overview cell. The pages change only
 // when the view has been still for SHARP_WAIT milliseconds, so a pinch never stalls on a redraw.
@@ -231,15 +234,60 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         })
     })
 
+    // A target that is not a pin: a group label or the list post-it. It lifts and takes the
+    // halo like a pin. The tag hangs from `head`, a point on its top or bottom edge (edge 1 or -1).
+    const addTarget = (id, holder, { x, y, w, h, base, tilt, edge = 1 }) => {
+        const head = new THREE.Object3D()
+        head.position.set(0, (edge * h) / 2, 0)
+        holder.add(head)
+        holder.position.set(x, y, base)
+        holder.rotation.z = tilt
+        holder.userData.id = id
+        board.add(holder)
+        holder.updateMatrixWorld(true)
+        pickables.push(holder)
+        items.set(id, {
+            id, pin: head, group: holder, base, lift: 0, target: 0, w, h, x, y, tilt,
+            faces: [], texels: Infinity, slot: null, source: { id, group: null },
+        })
+    }
+
+    // The tape labels. Each one is a click target that frames its group.
     GROUPS.forEach((group, i) => {
         const cell = atlas.cells.get(`group:${group.id}`)
-        const label = new THREE.Mesh(new THREE.PlaneGeometry(0.052 * cell.aspect, 0.052), ink)
+        const w = 0.052 * cell.aspect
+        const label = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.052), ink)
         toCell(label.geometry.attributes.uv.clone(), cell, false, label.geometry.attributes.uv)
-        label.position.set(group.at[0], group.at[1], 0.003)
-        label.rotation.z = Math.sin(i * 3.1 + 1) * 0.035
         label.receiveShadow = true
-        board.add(label)
+        const holder = new THREE.Group()
+        holder.add(label)
+        // The tag hangs under the tape, so it never covers the name of the group.
+        addTarget(labelId(group.id), holder, { x: group.at[0], y: group.at[1], w, h: 0.052, base: 0.003, tilt: Math.sin(i * 3.1 + 1) * 0.035, edge: -1 })
     })
+
+    // The post-it that opens the list, pinned like the paper notes.
+    {
+        const note = kit.getObjectByName(NODE.note).clone()
+        const face = new THREE.MeshLambertMaterial({ map: drawListNote(anisotropy) })
+        const i = PINS.length
+        note.traverse((mesh) => {
+            if (!mesh.isMesh) return
+            mesh.material = mesh.material.name === 'kit_note' ? face : material(mesh.material, i)
+            mesh.castShadow = true
+            mesh.receiveShadow = true
+        })
+        note.scale.setScalar(SCALE.note)
+        const w = KIT.note[0] * SCALE.note
+        const h = KIT.note[1] * SCALE.note
+        const holder = new THREE.Group()
+        holder.add(note)
+        const head = copy('Pin_Push', 1)
+        head.scale.setScalar(PIN_SCALE)
+        head.position.set(0, h / 2 - 0.0085, 0.0012)
+        head.rotation.set(-0.3, 0.2, 0)
+        holder.add(head)
+        addTarget(LIST_ID, holder, { x: LIST_AT.at[0], y: LIST_AT.at[1], w, h, base: 0.0004 + 0.0006 * i, tilt: deg(LIST_AT.tilt) })
+    }
 
     const red = new THREE.MeshLambertMaterial({ color: YARN })
     STRINGS.forEach(({ from, to }, i) => {
@@ -256,8 +304,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         new THREE.PlaneGeometry(1, 1),
         new THREE.MeshBasicMaterial({ map: haloTexture(), color: 0xffc27a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
     )
-    const light = createLight(small)
-    scene.add(board, halo, ...light.objects)
+    const lights = createLight(small)
+    scene.add(board, halo, ...lights)
 
     // The sharp pages. Each one is a canvas texture with its own two materials.
     for (let k = 0; k < (small ? SLOTS.small : SLOTS.wide); k++) {
@@ -328,9 +376,7 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     // Steps the wall by dt seconds. Returns true while it needs more frames.
     const update = (dt) => {
-        const aiming = light.aim.step(dt)
-        if (aiming) shadowDirty = true
-        const moving = Boolean(view.step(dt) | lift(dt) | aiming)
+        const moving = Boolean(view.step(dt) | lift(dt))
         if (wasMoving && !moving) changed()
         wasMoving = moving
         if (moving || !due || performance.now() < due) return moving
@@ -365,8 +411,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
 
     // A case folder is open: the top row of pins moves into sight above it. unfocus goes back.
     const peek = ({ instant = false } = {}) => {
-        // With one group under the lamp the view already frames it, so it stays.
-        if (small || lit) return
+        // With one group framed the view already shows it, so it stays.
+        if (small || framed) return
         before ??= view.snapshot()
         view.peekTop(instant || reduced)
         changed()
@@ -378,31 +424,30 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         changed()
     }
 
-    // One group under a narrow lamp, framed on screen. null opens the lamp to the whole board
-    // and goes back to the overview.
-    let lit = null
+    // Zooms the view in to frame one group, its label and its pins. The lamp stays where it
+    // is and the other groups keep their light, so the visitor sees where the group sits.
+    // null goes back to the overview.
+    let framed = null
     const filter = (id) => {
         const members = [...items.values()].filter((item) => item.source.group === id)
-        lit = members.length ? id : null
-        // The lamp moves, so its shadow map draws again, also when the move is instant.
-        shadowDirty = true
+        framed = members.length ? id : null
+        before = null
         if (!members.length) {
-            light.aim.to(null, reduced)
             view.go(view.home, reduced)
             changed()
             return
         }
+        const label = items.get(labelId(id))
+        if (label) members.push(label)
         const left = Math.min(...members.map((m) => m.x - m.w / 2))
         const right = Math.max(...members.map((m) => m.x + m.w / 2))
         const low = Math.min(...members.map((m) => m.y - m.h / 2))
         const high = Math.max(...members.map((m) => m.y + m.h / 2))
-        const centre = [(left + right) / 2, (low + high) / 2]
-        light.aim.to(centre, reduced, Math.hypot(right - left, high - low) / 2)
-        view.frameRect({ x: centre[0], y: centre[1], w: right - left + 0.08, h: high - low + 0.08 }, reduced)
+        view.frameRect({ x: (left + right) / 2, y: (low + high) / 2, w: right - left + 0.08, h: high - low + 0.08 }, reduced)
         changed()
     }
 
-    // The client point of a pin head, for the tag that names it on screen.
+    // The client point of a pin head or a label top, for the tag that names it on screen.
     const screenOf = (id) => {
         const item = items.get(id)
         if (!item) return null
@@ -460,6 +505,7 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         highlight(null)
         lift(1)
         before = null
+        framed = null
         view.goHome()
         changed()
     }
@@ -467,6 +513,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
     const dispose = () => {
         clearTimeout(timer)
         scene.traverse((node) => {
+            // The lamp mask is the one texture that hangs on a light and not on a material.
+            if (node.isSpotLight) node.map?.dispose()
             node.geometry?.dispose()
             ;[node.material].flat().forEach((m) => {
                 m?.map?.dispose()

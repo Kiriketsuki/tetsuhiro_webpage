@@ -16,6 +16,13 @@ const reducedMotion = ref(false)
 const progress = ref(0)
 const entered = ref(false)
 const loadError = ref('')
+// The section index that a nav click or a number key scrolls to, or null. The scroll passes
+// the sections between, and the camera waits for the last one, so a jump of two or more
+// stops takes one arc and no chain of legs.
+const jumping = ref(null)
+// A scroll that never reaches its section (the visitor scrolls away) ends the jump.
+const JUMP_TIMEOUT_MS = 1500
+let jumpTimer = null
 
 if (typeof window !== 'undefined' && window.matchMedia) {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -37,9 +44,16 @@ export function useWaypoints() {
     const goTo = (index) => {
         const el = document.querySelector(`.${sections[clamp(index)]}`)
         if (!el) return false
+        if (clamp(index) !== active.value) {
+            jumping.value = clamp(index)
+            clearTimeout(jumpTimer)
+            jumpTimer = setTimeout(() => {
+                jumping.value = null
+            }, JUMP_TIMEOUT_MS)
+        }
         el.scrollIntoView({ behavior: reducedMotion.value ? 'auto' : 'smooth' })
         return true
     }
 
-    return { active, ready, reducedMotion, progress, entered, loadError, setActive, goTo }
+    return { active, ready, reducedMotion, progress, entered, loadError, jumping, setActive, goTo }
 }

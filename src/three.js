@@ -11,7 +11,7 @@ import { waypoints } from './data/waypoints.js'
 // route changes, so a route change is a camera move. The scene itself lives behind
 // createSceneManager, which knows nothing about Vue.
 
-const { active, ready, reducedMotion, progress, entered, loadError } = useWaypoints()
+const { active, ready, reducedMotion, progress, entered, loadError, jumping } = useWaypoints()
 const canvas = document.getElementById('webgl')
 history.scrollRestoration = 'manual'
 
@@ -90,7 +90,16 @@ function boot() {
     watch(entered, (value) => {
         if (value) manager.goTo(currentStop(), { duration: 2.4 })
     })
-    watch(active, () => manager.goTo(currentStop()))
+    // During a jump the camera waits for the target section, then takes one move there.
+    watch(active, (index) => {
+        if (jumping.value !== null && index !== jumping.value) return
+        jumping.value = null
+        manager.goTo(currentStop())
+    })
+    // A jump that timed out leaves the camera short of the section in view.
+    watch(jumping, (index) => {
+        if (index === null && currentStop() !== manager.rig.current) manager.goTo(currentStop())
+    })
     watch(reducedMotion, (value) => manager.setReducedMotion(value))
 
     // Drag and pinch from ExplorePad.vue look around the current stop.

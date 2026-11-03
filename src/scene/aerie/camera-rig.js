@@ -17,6 +17,19 @@ const LOOK_RETURN = 0.8
 const PARALLAX = 0.012
 // Wide screens put the text in side panels, the same test as the .stop layout in index.css.
 const SIDE_PANELS = '(orientation: landscape) and (min-width: 768px)'
+// A story leg (src/data/route.js). The camera rides FOLLOW_UP metres above and FOLLOW_BACK
+// metres behind the walk spline, a drone follow, and looks LOOK_AHEAD metres ahead on it.
+const FOLLOW_BACK = 5
+const FOLLOW_UP = 4
+const LOOK_AHEAD = 3
+// The shares of a leg that blend in from the start shot and out into the end shot.
+const LEG_IN = 0.2
+const LEG_OUT = 0.25
+// A leg takes LEG_TIME.base seconds plus LEG_TIME.perMetre for each metre of spline, held
+// between LEG_TIME.min and LEG_TIME.max.
+const LEG_TIME = { base: 1.4, perMetre: 0.06, min: 2.0, max: 3.2 }
+// The most route empties one leg can have in the GLB.
+const MAX_ROUTE_POINTS = 99
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 
@@ -50,6 +63,41 @@ export function shotsFromStops(stops, cameras = [], anchorAt = () => null) {
     )
 }
 
+// The points of one leg from the GLB empties Route_<from>_<to>_01, _02 and on, or null when
+// the GLB has fewer than two of them.
+function routeEmpties(from, to, anchorAt) {
+    const points = []
+    for (let i = 1; i <= MAX_ROUTE_POINTS; i += 1) {
+        const point = anchorAt(`Route_${from}_${to}_${String(i).padStart(2, '0')}`)
+        if (!point) break
+        points.push(point)
+    }
+    return points.length >= 2 ? points : null
+}
+
+// Builds one leg per direction for each pair of neighbouring stops in `route`, keyed
+// `<from>><to>`. anchorAt(name) returns the world position of a GLB node, or null. The
+// Blender empties of a leg win over its fallback points. The leg the other way plays the
+// same camera path backward, so a scroll up retraces the scroll down. A follow camera that
+// walked the spline backward would sit on the other side of the walker, where the house
+// stands on some legs.
+export function legsFromRoute(route, anchorAt = () => null) {
+    return Object.fromEntries(
+        Object.entries(route).flatMap(([key, leg]) => {
+            const [from, to] = key.split('>')
+            const points = routeEmpties(from, to, anchorAt) ?? leg.points.map((point) => new THREE.Vector3(...point))
+            const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal')
+            const length = curve.getLength()
+            const duration = THREE.MathUtils.clamp(LEG_TIME.base + LEG_TIME.perMetre * length, LEG_TIME.min, LEG_TIME.max)
+            const forward = { curve, length, duration, back: leg.back ?? FOLLOW_BACK, up: leg.up ?? FOLLOW_UP, reverse: false }
+            return [
+                [key, forward],
+                [`${to}>${from}`, { ...forward, reverse: true }],
+            ]
+        })
+    )
+}
+
 export function createCameraRig({ camera, shots, start = 'overview' }) {
     let all = shots
     let current = start
@@ -60,6 +108,12 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
     const focusPoint = new THREE.Vector3()
     const forward = new THREE.Vector3()
     const frame = { sx: 0, sy: 0, tx: 0, ty: 0, zoom: 1, tzoom: 1, fov: 35 }
+    // Scratch vectors for the follow frame of a leg. heading keeps the last level direction
+    // along the spline, for a point where the spline runs straight up.
+    const legAt = new THREE.Vector3()
+    const legAhead = new THREE.Vector3()
+    const legTangent = new THREE.Vector3()
+    const heading = new THREE.Vector3()
     const look = { x: 0, y: 0, dolly: 0 }
     const pointer = { x: 0, y: 0, sx: 0, sy: 0 }
     const sidePanels = window.matchMedia(SIDE_PANELS)
@@ -103,24 +157,56 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         place()
     }
 
-    // Starts a move from wherever the camera is now. A zero duration cuts.
-    const goTo = (id, duration = 1.6) => {
+    // Sets heading to the level direction of the leg at u, if the spline is not vertical there.
+    const steer = (curve, u) => {
+        curve.getTangentAt(u, legTangent).setY(0)
+        if (legTangent.lengthSq() > 1e-6) heading.copy(legTangent.normalize())
+    }
+
+    // Starts a move from wherever the camera is now. A zero duration cuts. The second
+    // argument is the duration in seconds, or { duration, leg }. With a leg (legsFromRoute)
+    // the camera follows the walk spline and takes the leg's duration. Without one it takes
+    // a lifted arc.
+    const goTo = (id, options = 1.6) => {
+        const { duration = 1.6, leg = null } = typeof options === 'number' ? { duration: options } : options
         if (!all[id]) return
         if (duration <= 0) {
             jump(id)
             return
         }
         const shot = all[id]
+        if (leg) {
+            heading.subVectors(leg.curve.points.at(-1), leg.curve.points[0]).setY(0).normalize()
+            steer(leg.curve, leg.reverse ? 1 : 0)
+        }
         tween = {
             id,
             t: 0,
-            duration,
+            duration: leg ? leg.duration : duration,
+            leg,
             from: { position: camera.position.clone(), target: target.clone(), focus: focusPoint.clone(), frame: { ...frame } },
             to: frameOf(shot),
-            lift: Math.min(MAX_LIFT, camera.position.distanceTo(shot.position) * LIFT_PER_METRE),
+            lift: leg ? 0 : Math.min(MAX_LIFT, camera.position.distanceTo(shot.position) * LIFT_PER_METRE),
         }
         current = id
         Object.assign(look, { x: 0, y: 0, dolly: 0 })
+    }
+
+    // The drone follow along a leg at eased time t. It blends in from where the move started
+    // over the first LEG_IN of the leg, and out into the end shot over the last LEG_OUT. A
+    // reverse leg runs the spline from its end, with the camera where the forward leg had it.
+    const follow = ({ leg, from }, t, shot) => {
+        const { curve, length, back, up } = leg
+        const u = leg.reverse ? 1 - t : t
+        curve.getPointAt(u, legAt)
+        curve.getPointAt(Math.min(1, u + LOOK_AHEAD / length), legAhead)
+        steer(curve, u)
+        const into = 1 - THREE.MathUtils.smoothstep(t, 0, LEG_IN)
+        const out = THREE.MathUtils.smoothstep(t, 1 - LEG_OUT, 1)
+        camera.position.copy(legAt).addScaledVector(heading, -back)
+        camera.position.y += up
+        camera.position.lerp(from.position, into).lerp(shot.position, out)
+        target.copy(legAhead).lerp(from.target, into).lerp(shot.target, out)
     }
 
     const update = (delta) => {
@@ -145,9 +231,13 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
             frame[key] = THREE.MathUtils.lerp(tween.from.frame[key], tween.to[key], t)
         })
         applyLens()
-        camera.position.lerpVectors(tween.from.position, shot.position, t)
-        camera.position.y += Math.sin(Math.PI * t) * tween.lift
-        target.lerpVectors(tween.from.target, shot.target, t)
+        if (tween.leg) {
+            follow(tween, t, shot)
+        } else {
+            camera.position.lerpVectors(tween.from.position, shot.position, t)
+            camera.position.y += Math.sin(Math.PI * t) * tween.lift
+            target.lerpVectors(tween.from.target, shot.target, t)
+        }
         focusPoint.lerpVectors(tween.from.focus, shot.focus, t)
         camera.lookAt(target)
         if (tween.t >= 1) {

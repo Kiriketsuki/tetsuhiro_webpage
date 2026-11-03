@@ -63,7 +63,7 @@ function createFalloff() {
 // lawn under its centre and turned to the lawn slope. A level disc on a slope met the lawn
 // along a hard straight line. blocked(x, z) is true on the path, the water and the pad, where
 // no disc goes, and a part with no lawn under it gets no disc.
-function propSpots(meshes, isBoulder, blocked) {
+export function propSpots(meshes, isBoulder, blocked) {
     const box = new THREE.Box3()
     const size = new THREE.Vector3()
     const centre = new THREE.Vector3()
@@ -99,10 +99,11 @@ function propSpots(meshes, isBoulder, blocked) {
         })
 }
 
-// root: the loaded island scene, with world matrices up to date. meshes, isBoulder and blocked
-// find the shrubs and boulders. Returns the shadow mesh, or null when it holds no shadow.
-export function createContactShadows(root, meshes = [], isBoulder = () => false, blocked = () => false) {
-    const spots = propSpots(meshes, isBoulder, blocked)
+// root: the loaded island scene, with world matrices up to date. shrubSpots: the shadows under
+// the shrubs and boulders, from propSpots. The look worker runs propSpots, so the page gets
+// them as a list. Returns the shadow mesh, or null when it holds no shadow.
+export function createContactShadows(root, shrubSpots = []) {
+    const spots = [...shrubSpots]
     root.traverse((node) => {
         if (node.name.startsWith('Shadow_')) spots.push(new THREE.Matrix4().makeTranslation(0, LIFT, 0).multiply(node.matrixWorld).multiply(PROP_GROW))
     })

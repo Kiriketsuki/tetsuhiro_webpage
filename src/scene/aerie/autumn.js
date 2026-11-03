@@ -150,8 +150,15 @@ function litterMap(crowns) {
             }
         }
     })
+    return litterLookup(blurred)
+}
+
+// The litter amount at a point, read from the blurred cells of litterMap with bilinear
+// filtering. The cells ride along as `cells`, so the look worker can send them back to the
+// page, and the page builds the same lookup from them.
+export function litterLookup(blurred) {
     const at = (x, z) => blurred.get(`${x},${z}`) ?? 0
-    return (x, z) => {
+    const litterAt = (x, z) => {
         const gx = x / LITTER_CELL - 0.5
         const gz = z / LITTER_CELL - 0.5
         const x0 = Math.floor(gx)
@@ -162,6 +169,8 @@ function litterMap(crowns) {
         const bottom = at(x0, z0 + 1) * (1 - fx) + at(x0 + 1, z0 + 1) * fx
         return top * (1 - fz) + bottom * fz
     }
+    litterAt.cells = blurred
+    return litterAt
 }
 
 function paintCrowns(meshes) {

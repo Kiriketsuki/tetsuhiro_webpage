@@ -299,6 +299,13 @@ and water fall. and my CTA is a bit weird when the screen is so wide".
    doorway frames. From the new hero it met the door axis at 28 m/s and peaked at 206 m/s2.
 5. **Walk time.** A walk move takes its time from its pace with the slow-down, up to 6 s.
 
+6. **Out of the star chart.** The owner found the move out of the sky too fast. #47 lands the
+   exit on the Skills section, so the long flight to the pad is gone. The exit itself now has
+   its own times (`SCOPE.out` in `scene-manager.js`): the iris closes in 0.7 s, not 0.5 s, and
+   opens in 1.1 s, not 0.8 s. The camera pulls back from the eyepiece in 2.8 s, not 1.9 s. The
+   way in keeps its times. At 1440x900 the exit takes 3.5 s, not 2.3 s. Peak speed falls from
+   5.3 to 3.6 m/s, peak acceleration from 16 to 7 m/s2 and peak turn from 49 to 33 deg/s.
+
 ### Measurements
 
 The 30 moves between the six stops, stepped at 1/120 s. Mesh crossings use the same mesh set as

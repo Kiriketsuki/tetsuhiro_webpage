@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
-import { findProject } from '../data/projects.js'
+import { findProject, isHidden } from '../data/projects.js'
 
 const routes = [
     { path: '/', name: 'Home', component: Home, meta: { title: 'Home' } },
@@ -35,10 +35,12 @@ const routes = [
         // The same view as Projects: the wall with this pin open, or the project page.
         component: () => import('../views/Projects.vue'),
         meta: { title: (to) => findProject(to.params.id)?.title },
-        beforeEnter: (to) =>
-            findProject(to.params.id)
-                ? true
-                : { name: 'NotFound', params: { pathMatch: to.path.slice(1).split('/') }, replace: true },
+        // A hidden project goes back to the wall, so an old link still lands somewhere useful.
+        beforeEnter: (to) => {
+            if (isHidden(to.params.id)) return { path: '/projects', replace: true }
+            if (findProject(to.params.id)) return true
+            return { name: 'NotFound', params: { pathMatch: to.path.slice(1).split('/') }, replace: true }
+        },
     },
     {
         path: '/:pathMatch(.*)*',

@@ -17,7 +17,7 @@ export const GROUPS = [
 
 // kind: hero is a large photo, card is an index card with a small photo, note is a paper note.
 // page is the project id in projects.js when the project has a detail page. tilt is in degrees.
-export const PINS = [
+const ALL_PINS = [
     {
         id: 'agenkic-hub',
         group: 'tools',
@@ -98,6 +98,8 @@ export const PINS = [
     },
     {
         id: 'tokin',
+        // Hidden with the toKin project in projects.js, so its pin and its strings leave the wall.
+        hidden: true,
         group: 'fun',
         kind: 'card',
         title: 'toKin',
@@ -216,6 +218,10 @@ export const PINS = [
 ]
 
 // The red strings. Each one joins two pins, with a short label.
+export const PINS = ALL_PINS.filter((pin) => !pin.hidden)
+const shown = new Set(PINS.map((pin) => pin.id))
+
+// A string with a hidden pin at either end leaves the wall with that pin.
 export const STRINGS = [
     ['resonant-respite', 'island', 'the music world became this aerie'],
     ['aetherial-verdancy', 'island', 'Vue, Three.js and Blender again'],
@@ -236,6 +242,8 @@ export const STRINGS = [
     ['medicasr', 'autoconnect', 'clinician screens, then operator screens'],
     ['autoconnect', 'agenkic-hub', 'tools built beside the day job'],
     ['teaching', 'autoconnect', 'two jobs in 2026'],
-].map(([from, to, label]) => ({ from, to, label }))
+]
+    .map(([from, to, label]) => ({ from, to, label }))
+    .filter((s) => shown.has(s.from) && shown.has(s.to))
 
 export const findPin = (id) => PINS.find((pin) => pin.id === id) ?? null

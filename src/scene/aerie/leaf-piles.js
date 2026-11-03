@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { noise3 } from './field-noise.js'
 import { SURFACE } from './toon-material.js'
-import { createDropRay } from './drop-ray.js'
+import { createDropRay, cellMask } from './drop-ray.js'
 
 // Leaf piles round the foot of each tree, after the raked heaps of Leaf it Alone. A pile is
 // a low soft mound in the lawn family with a full litter amount, so the toon shader paints
@@ -114,8 +114,17 @@ function geometryOf(triangles) {
 export function createLeafPiles({ meshes, material, litterAt, blocked, seed = 2207 }) {
     const random = mulberry32(seed)
     const trees = meshes.flatMap((mesh) => mesh.userData.crownTrees ?? [])
+    // Every ray falls within the widest reach of its tree, so the drop test files triangles
+    // only in the cells round the trees. cellMask pads each box by one cell, which covers any
+    // rounding in the reach.
+    const mask = cellMask(
+        trees.map((tree) => {
+            const reach = Math.max(TRUNK_CLEAR, tree.radius * REACH[1])
+            return [tree.centre.x - reach, tree.centre.x + reach, tree.centre.z - reach, tree.centre.z + reach]
+        })
+    )
     // The rays pass through the crowns, so the crowns stay out of the drop test.
-    const drop = createDropRay(meshes.filter((mesh) => mesh.material === material && mesh.userData.webMaterial !== 'web_crown'))
+    const drop = createDropRay(meshes.filter((mesh) => mesh.material === material && mesh.userData.webMaterial !== 'web_crown'), mask)
     const placed = []
     const triangles = []
     trees.forEach((tree) => {

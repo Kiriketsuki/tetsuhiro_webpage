@@ -24,6 +24,26 @@ const NONE = []
 const cellOf = (value) => Math.floor(value / CELL)
 const keyOf = (ix, iz) => (ix + SHIFT) * 2 * SHIFT + (iz + SHIFT)
 
+// The cells that a set of boxes on the ground plane cover, padded by one cell on each side.
+// boxes: a list of [minX, maxX, minZ, maxZ] in world space. createDropRay files triangles
+// only in these cells, so a caller that casts only inside the boxes skips the work of the
+// other cells. Returns null when there is no box.
+export function cellMask(boxes) {
+    if (!boxes.length) return null
+    const rects = boxes.map(([minX, maxX, minZ, maxZ]) => [cellOf(minX) - 1, cellOf(maxX) + 1, cellOf(minZ) - 1, cellOf(maxZ) + 1])
+    const x0 = Math.min(...rects.map((rect) => rect[0]))
+    const x1 = Math.max(...rects.map((rect) => rect[1]))
+    const z0 = Math.min(...rects.map((rect) => rect[2]))
+    const z1 = Math.max(...rects.map((rect) => rect[3]))
+    const nz = z1 - z0 + 1
+    // A Uint8Array marks the covered cells. A Set of cell keys measured no faster.
+    const bits = new Uint8Array((x1 - x0 + 1) * nz)
+    rects.forEach(([ax, bx, az, bz]) => {
+        for (let ix = ax; ix <= bx; ix += 1) bits.fill(1, (ix - x0) * nz + (az - z0), (ix - x0) * nz + (bz - z0) + 1)
+    })
+    return { x0, x1, z0, z1, nz, bits }
+}
+
 // The triangle range that Mesh.raycast visits for a geometry with no groups.
 function triangleRange(geometry) {
     const { index, drawRange } = geometry
@@ -40,6 +60,68 @@ const plain = (mesh) =>
     !Array.isArray(mesh.material) &&
     mesh.geometry.groups.length === 0 &&
     !mesh.geometry.morphAttributes.position
+
+// The bin loop reads the arrays directly when getX would return the array value as it is:
+// a Float32 position with three values per vertex, and an index with one, neither of them
+// normalized or interleaved.
+const direct = (attribute, size) => !attribute.isInterleavedBufferAttribute && !attribute.normalized && attribute.itemSize === size
+const directPosition = (position) => position.array instanceof Float32Array && direct(position, 3)
+
+// The x and z bounds of each triangle in world space, as [minX, maxX, minZ, maxZ] in `box`.
+// The direct path runs the float operations of Vector3.applyMatrix4 in the same order, w
+// included, so each bound is the same number as the Vector3 path gives.
+function binBounds(entry, matrixWorld) {
+    const { position, index } = entry
+    const box = [0, 0, 0, 0]
+    if (directPosition(position) && (!index || direct(index, 1))) {
+        const p = position.array
+        const ia = index ? index.array : null
+        const e = matrixWorld.elements
+        return (i) => {
+            let minX = Infinity
+            let maxX = -Infinity
+            let minZ = Infinity
+            let maxZ = -Infinity
+            for (let k = 0; k < 3; k += 1) {
+                const o = (ia ? ia[i + k] : i + k) * 3
+                const x = p[o]
+                const y = p[o + 1]
+                const z = p[o + 2]
+                const w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15])
+                const wx = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w
+                const wz = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w
+                minX = Math.min(minX, wx)
+                maxX = Math.max(maxX, wx)
+                minZ = Math.min(minZ, wz)
+                maxZ = Math.max(maxZ, wz)
+            }
+            box[0] = minX
+            box[1] = maxX
+            box[2] = minZ
+            box[3] = maxZ
+            return box
+        }
+    }
+    const v = new THREE.Vector3()
+    return (i) => {
+        let minX = Infinity
+        let maxX = -Infinity
+        let minZ = Infinity
+        let maxZ = -Infinity
+        for (let k = 0; k < 3; k += 1) {
+            v.fromBufferAttribute(position, index ? index.getX(i + k) : i + k).applyMatrix4(matrixWorld)
+            minX = Math.min(minX, v.x)
+            maxX = Math.max(maxX, v.x)
+            minZ = Math.min(minZ, v.z)
+            maxZ = Math.max(maxZ, v.z)
+        }
+        box[0] = minX
+        box[1] = maxX
+        box[2] = minZ
+        box[3] = maxZ
+        return box
+    }
+}
 
 // Joins cell lists into one list in ascending (slot, triangle) order, each pair once. Every
 // cell list is in that order already, because the bin loop fills the cells mesh by mesh and
@@ -71,11 +153,12 @@ function mergeLists(lists) {
     }
 }
 
-export function createDropRay(meshes) {
+// meshes: the meshes to cast at. mask: an optional cellMask. Without it, every cell gets its
+// triangles. With it, a ray that leaves the masked cells misses triangles.
+export function createDropRay(meshes, mask = null) {
     const entries = []
     const others = []
     const cells = new Map()
-    const v = new THREE.Vector3()
     meshes.forEach((mesh) => {
         if (!mesh.material) return
         if (!plain(mesh)) {
@@ -93,21 +176,23 @@ export function createDropRay(meshes) {
             ray: new THREE.Ray(),
         }
         const slot = entries.push(entry) - 1
+        const bounds = binBounds(entry, mesh.matrixWorld)
         const [start, end] = triangleRange(geometry)
         for (let i = start; i < end - 2; i += 3) {
-            let minX = Infinity
-            let maxX = -Infinity
-            let minZ = Infinity
-            let maxZ = -Infinity
-            for (let k = 0; k < 3; k += 1) {
-                v.fromBufferAttribute(entry.position, entry.index ? entry.index.getX(i + k) : i + k).applyMatrix4(mesh.matrixWorld)
-                minX = Math.min(minX, v.x)
-                maxX = Math.max(maxX, v.x)
-                minZ = Math.min(minZ, v.z)
-                maxZ = Math.max(maxZ, v.z)
+            const box = bounds(i)
+            let ix0 = cellOf(box[0] - MARGIN)
+            let ix1 = cellOf(box[1] + MARGIN)
+            let iz0 = cellOf(box[2] - MARGIN)
+            let iz1 = cellOf(box[3] + MARGIN)
+            if (mask) {
+                ix0 = Math.max(ix0, mask.x0)
+                ix1 = Math.min(ix1, mask.x1)
+                iz0 = Math.max(iz0, mask.z0)
+                iz1 = Math.min(iz1, mask.z1)
             }
-            for (let ix = cellOf(minX - MARGIN); ix <= cellOf(maxX + MARGIN); ix += 1) {
-                for (let iz = cellOf(minZ - MARGIN); iz <= cellOf(maxZ + MARGIN); iz += 1) {
+            for (let ix = ix0; ix <= ix1; ix += 1) {
+                for (let iz = iz0; iz <= iz1; iz += 1) {
+                    if (mask && !mask.bits[(ix - mask.x0) * mask.nz + (iz - mask.z0)]) continue
                     const key = keyOf(ix, iz)
                     const list = cells.get(key)
                     if (list) list.push(slot, i)

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { connectedParts } from './crowns.js'
+import { createDropRay } from './drop-ray.js'
 
 // Soft contact shadows under the props: the telescope tripod, the stool and the side table on
 // the terrace, the bench on the deck and the path lanterns. round9_route.py places one empty
@@ -67,8 +68,7 @@ function propSpots(meshes, isBoulder, blocked) {
     const size = new THREE.Vector3()
     const centre = new THREE.Vector3()
     const lawn = meshes.filter((mesh) => mesh.userData.webMaterial === 'web_grass')
-    const ray = new THREE.Raycaster()
-    const down = new THREE.Vector3(0, -1, 0)
+    const drop = createDropRay(lawn)
     const up = new THREE.Vector3(0, 1, 0)
     const normal = new THREE.Vector3()
     return meshes
@@ -82,14 +82,12 @@ function propSpots(meshes, isBoulder, blocked) {
                 if (span < PROP_SPAN[0] || span > PROP_SPAN[1] || (shrub && size.y < SHRUB_HEIGHT)) return []
                 if (blocked(centre.x, centre.z)) return []
                 const r = span * 0.65 + 0.15
-                ray.set(centre.setY(box.max.y + 0.5), down)
-                ray.far = size.y + 1.5
-                const hit = ray.intersectObjects(lawn, false)[0]
+                const far = size.y + 1.5
+                const hit = drop.cast(centre.setY(box.max.y + 0.5), far)
                 if (!hit?.face) return []
                 const level = hit.point.y
                 const onLawn = RIM_POINTS.every((offset) => {
-                    ray.set(new THREE.Vector3(centre.x + offset.x * r, box.max.y + 0.5, centre.z + offset.z * r), down)
-                    const rim = ray.intersectObjects(lawn, false)[0]
+                    const rim = drop.cast(new THREE.Vector3(centre.x + offset.x * r, box.max.y + 0.5, centre.z + offset.z * r), far)
                     return rim && Math.abs(rim.point.y - level) < RIM_DROP
                 })
                 if (!onLawn) return []

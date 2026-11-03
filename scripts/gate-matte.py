@@ -6,8 +6,12 @@ colour too, so this script compares each pair against the empty pair: where the 
 covers the background fully, the dark and light frames match. Where it does not, they
 differ as much as the empty frames do.
 
-Usage: python scripts/gate-matte.py <frame dir> <out dir> <width>
-The frame dir holds <layer>-s<state>-bg<0|1>.png and empty-s0-bg<0|1>.png.
+Usage: python scripts/gate-matte.py <frame dir> <out dir> <branch width> <lantern width>
+The frame dir holds <layer>-s<state>-bg<0|1>.png and empty-s0-bg<0|1>.png, rendered at 2x.
+The branch layers keep the whole frame at <branch width>. The lantern layers keep only the
+box around the lantern, at the scale of a frame <lantern width> wide, because the lantern is
+the sharp middle of the picture. The script prints that box in percent of the frame, for the
+.ga-paper rule in index.html.
 Needs numpy and Pillow.
 """
 import sys
@@ -50,22 +54,48 @@ def pack_sprites(image, slot):
     return sheet.resize((slot * len(leaves), slot), Image.LANCZOS)
 
 
-def main(frames, out, width):
+def lantern_box(images, margin=8):
+    """The box that holds the lantern in every state, with a small margin."""
+    boxes = [image.getbbox() for image in images]
+    width, height = images[0].size
+    return (
+        max(0, min(b[0] for b in boxes) - margin),
+        max(0, min(b[1] for b in boxes) - margin),
+        min(width, max(b[2] for b in boxes) + margin),
+        min(height, max(b[3] for b in boxes) + margin),
+    )
+
+
+def save(image, target, quality):
+    image.save(target, 'WEBP', quality=quality, alpha_quality=90, method=6)
+    print(f'{target.name}: {image.size[0]}x{image.size[1]}, {target.stat().st_size / 1000:.1f} kB')
+
+
+def main(frames, out, branch_width, lantern_width):
     frames, out = Path(frames), Path(out)
     out.mkdir(parents=True, exist_ok=True)
     empty_dark = load(frames / 'empty-s0-bg0.png')
     empty_light = load(frames / 'empty-s0-bg1.png')
+    layers = {}
     for name in LAYERS:
         rgba = matte(load(frames / f'{name}-bg0.png'), load(frames / f'{name}-bg1.png'), empty_dark, empty_light)
-        image = Image.fromarray((rgba * 255 + 0.5).astype(np.uint8), 'RGBA')
-        if name.startswith('sprites'):
-            image = pack_sprites(image, 96)
-        else:
-            image = image.resize((width, round(image.height * width / image.width)), Image.LANCZOS)
-        target = out / f'{name}.webp'
-        image.save(target, 'WEBP', quality=75, alpha_quality=80, method=6)
-        print(f'{target.name}: {image.size[0]}x{image.size[1]}, {target.stat().st_size / 1000:.1f} kB')
+        layers[name] = Image.fromarray((rgba * 255 + 0.5).astype(np.uint8), 'RGBA')
+    full_width, full_height = layers['branch-s0'].size
+
+    for name in ['branch-s0', 'branch-s1']:
+        image = layers[name].resize((branch_width, round(full_height * branch_width / full_width)), Image.LANCZOS)
+        save(image, out / f'{name}.webp', 78)
+
+    box = lantern_box([layers['lantern-s0'], layers['lantern-s1']])
+    scale = lantern_width / full_width
+    size = (round((box[2] - box[0]) * scale), round((box[3] - box[1]) * scale))
+    for name in ['lantern-s0', 'lantern-s1']:
+        save(layers[name].crop(box).resize(size, Image.LANCZOS), out / f'{name}.webp', 88)
+    left, top = 100 * box[0] / full_width, 100 * box[1] / full_height
+    print(f'lantern box: left {left:.2f}%, top {top:.2f}%, width {100 * (box[2] - box[0]) / full_width:.2f}%, height {100 * (box[3] - box[1]) / full_height:.2f}%')
+
+    save(pack_sprites(layers['sprites-s1'], 128), out / 'sprites-s1.webp', 82)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    main(sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))

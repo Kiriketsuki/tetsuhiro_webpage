@@ -103,9 +103,11 @@ float viewDepth( vec2 uv ) {
 // cloud of leaf cards with small depth steps inside it, so near 1 the silhouette needs a
 // larger step, and only the crown outline draws.
 float inkLine( vec2 uv ) {
-    float mask = texture2D( tDiffuse, uv ).a;
     float dc = viewDepth( uv );
     if ( dc > 90.0 ) return 0.0;
+    // The mask fetch comes after the far-depth early out, so a far pixel skips the read.
+    // The target has no mipmaps, so the fetch does not depend on a derivative.
+    float mask = texture2D( tDiffuse, uv ).a;
     vec2 o = uTexel * uPixel * 1.5;
     float l = viewDepth( uv - vec2( o.x, 0.0 ) );
     float r = viewDepth( uv + vec2( o.x, 0.0 ) );

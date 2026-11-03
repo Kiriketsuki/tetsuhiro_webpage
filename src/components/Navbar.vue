@@ -22,7 +22,8 @@ const right = [3, 4]
 const middle = 2
 
 const number = (i) => String(i + 1).padStart(2, '0')
-const isActive = (i) => onHome.value && i === active.value
+// The About room (/about) marks About too.
+const isActive = (i) => (onHome.value && i === active.value) || (i === middle && route.name === 'About')
 
 const go = async (index) => {
     if (goTo(index)) return

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
-import { route, doorway } from '../data/route.js'
+import { route, doorway, bedroomDoor } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -47,16 +47,22 @@ const FADE_EDGE = 0.35
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
 // The dissolve from the room board to the lit wall, in seconds.
 const WALL = { dissolve: 0.55 }
-// The workshop doorway as THREE vectors, and the side of the door a move between two stops
-// takes: 'in' to the board view, 'out' from it, or none.
-const DOOR = { outside: new THREE.Vector3(...doorway.outside), porch: new THREE.Vector3(...doorway.porch), inside: new THREE.Vector3(...doorway.inside) }
-const ROOM = new THREE.Box3(new THREE.Vector3(...doorway.room[0]), new THREE.Vector3(...doorway.room[1]))
-// position is the camera now. A move that starts in the room heads out, whatever stop the rig
-// was at, so a move that takes over on the way out never cuts through the front wall.
+// The workshop doorway and the bedroom balcony door as THREE vectors, each with its room as a
+// box. A move into the board view goes in through the workshop doorway. A move that starts in
+// either room, or at the board, leaves through its door, whatever stop the rig was at, so a
+// move that takes over on the way out never cuts through a wall. The About room
+// (aerie/room.js) sends its own move in through the balcony door. The workshop box holds the
+// porch too.
+const DOORS = [doorway, bedroomDoor].map(({ outside, porch, inside, room }) => ({
+    outside: new THREE.Vector3(...outside),
+    porch: new THREE.Vector3(...porch),
+    inside: new THREE.Vector3(...inside),
+    room: new THREE.Box3(new THREE.Vector3(...room[0]), new THREE.Vector3(...room[1])),
+}))
 const doorFor = (from, to, position) => {
-    if (to === 'board' && from !== 'board') return { side: 'in', ...DOOR }
-    if (to !== 'board' && (from === 'board' || ROOM.containsPoint(position))) return { side: 'out', ...DOOR }
-    return null
+    if (to === 'board' && from !== 'board') return { side: 'in', ...DOORS[0] }
+    const door = from === 'board' ? DOORS[0] : DOORS.find((d) => d.room.containsPoint(position))
+    return to !== 'board' && door ? { side: 'out', ...door } : null
 }
 // The kit board hangs a little in front of the old board, which stays in the island GLB
 // (corkboard-kit.md, case 1). Offsets along the anchor's right and normal, in metres.

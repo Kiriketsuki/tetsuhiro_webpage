@@ -26,6 +26,21 @@ export const doorway = {
     ],
 }
 
+// The glass balcony door of the bedroom, the way into the About room (src/data/room.js). The
+// door is 0.8 m wide (x -4.7 to -3.9) in the front wall at z -1.62, with the floor at y 7.41.
+// The three points sit on its centre line at eye height, as for the workshop doorway: one out
+// on the terrace, one just in front of the glass, and one in the room where the visitor
+// stands. room is the bedroom, a little past the door, as the corners of a box.
+export const bedroomDoor = {
+    outside: [-4.3, 9.0, 2.4],
+    porch: [-4.3, 9.0, -0.6],
+    inside: [-4.3, 9.0, -2.2],
+    room: [
+        [-6.93, 7.41, -5.23],
+        [-3.5, 10.36, -1.4],
+    ],
+}
+
 export const route = {
     // The ramp, the deck, the bridge, the path and the workshop porch.
     'arrival>workshop': {

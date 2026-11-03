@@ -47,6 +47,8 @@ const facts = [
                 </template>
             </dl>
 
+            <router-link to="/about" class="action">explore the room</router-link>
+
             <ul class="flex gap-6">
                 <li>
                     <a

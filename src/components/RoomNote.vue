@@ -54,15 +54,13 @@ watch(() => props.point.id, focusHeading)
     width: min(25rem, 42vw);
     flex-direction: column;
     gap: 0.75rem;
-    padding: 2rem 1.75rem 1.5rem;
+    padding: 1.5rem 1.75rem;
 }
 
 .note-title {
     font-family: var(--font-display);
     font-size: clamp(1.9rem, 3.2vw, 2.6rem);
     line-height: 1;
-    /* A pane title is gold italic in night glass (docs/design-system.md). .frame h2 sets the italic. */
-    color: var(--color-gold, var(--color-text-strong));
     outline: none;
 }
 
@@ -111,7 +109,7 @@ watch(() => props.point.id, focusHeading)
 }
 
 .note-step:focus-visible {
-    outline: 2px solid var(--color-action-text, var(--color-rose));
+    outline: 2px solid var(--color-action-text);
     outline-offset: 2px;
 }
 
@@ -122,7 +120,7 @@ watch(() => props.point.id, focusHeading)
         bottom: 4.25rem;
         width: auto;
         gap: 0.5rem;
-        padding: 1.6rem 1.25rem 0.75rem;
+        padding: 1.1rem 1.25rem 0.75rem;
     }
 
     .note-title {

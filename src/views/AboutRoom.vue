@@ -258,15 +258,15 @@ onBeforeUnmount(() => {
 
 /* The way out: its own plate, near the top, with a large target on a phone. The controls follow
    the night glass rules (docs/design-system.md): square corners, a brass ring on deep glass, and a
-   blonde focus ring. Each night glass token falls back to the older palette until it lands. */
+   blonde focus ring. */
 .room-back {
     display: inline-flex;
     min-height: 3rem;
     align-items: center;
     gap: 0.6rem;
     padding: 0 1.1rem;
-    border: 1px solid var(--color-brass, var(--color-rose));
-    background: var(--color-glass-deep, color-mix(in oklch, var(--color-bg-base) 88%, transparent));
+    border: 1px solid var(--color-brass);
+    background: var(--color-glass-deep);
     color: var(--color-text-strong);
     font: 600 0.78rem/1 var(--font-label);
     letter-spacing: 0.12em;
@@ -281,7 +281,7 @@ onBeforeUnmount(() => {
 .room-back:focus-visible,
 .room-chip:focus-visible,
 .room-tag:focus-visible {
-    outline: 2px solid var(--color-action-text, var(--color-rose));
+    outline: 2px solid var(--color-action-text);
     outline-offset: 3px;
 }
 
@@ -311,8 +311,8 @@ onBeforeUnmount(() => {
 .room-chip {
     min-height: 2.75rem;
     padding: 0 1rem;
-    border: 1px solid var(--color-brass-dim, color-mix(in oklch, var(--color-text-strong) 35%, transparent));
-    background: var(--color-glass-deep, color-mix(in oklch, var(--color-bg-base) 80%, transparent));
+    border: 1px solid var(--color-brass-dim);
+    background: var(--color-glass-deep);
     color: var(--color-text-strong);
     font: 600 0.72rem/1 var(--font-label);
     letter-spacing: 0.1em;
@@ -328,7 +328,7 @@ onBeforeUnmount(() => {
 
 /* A lit dot on the thing, with its name beside it. The dot is a lamp, so it stays round. */
 .room-tag {
-    --lamp: var(--color-action, var(--color-amber));
+    --lamp: var(--color-action);
     position: fixed;
     z-index: 25;
     display: flex;
@@ -369,8 +369,8 @@ onBeforeUnmount(() => {
 
 .room-tag .name {
     padding: 0.35rem 0.6rem;
-    border: 1px solid var(--color-brass-dim, color-mix(in oklch, var(--color-amber) 55%, transparent));
-    background: var(--color-glass-deep, color-mix(in oklch, var(--color-bg-base) 85%, transparent));
+    border: 1px solid var(--color-brass-dim);
+    background: var(--color-glass-deep);
     color: var(--color-text-strong);
     font: 600 0.68rem/1 var(--font-label);
     letter-spacing: 0.1em;
@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
     width: min(22rem, calc(100vw - 1.5rem));
     flex-direction: column;
     gap: 1rem;
-    padding: 1.75rem 1.5rem 1.25rem;
+    padding: 1.5rem;
 }
 
 .room-facts .room-chip {
@@ -409,13 +409,12 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 1.25rem;
     margin: 9rem auto 6rem;
-    padding: 2rem 1.75rem;
+    padding: 1.75rem;
 }
 
 .plain-title {
     font-family: var(--font-display);
     font-size: 1.6rem;
-    color: var(--color-gold, var(--color-text-strong));
 }
 
 @media (max-width: 767px) {

@@ -12,16 +12,14 @@
         ></div>
 
         <header class="room-head">
-            <router-link :to="AERIE" class="room-back">
-                <span aria-hidden="true">&larr;</span>
-                <span>Back to the aerie</span>
-            </router-link>
-            <div class="room-title">
-                <p class="label">
-                    <span class="text-rose">03 / about</span>
-                    <span class="text-text-muted"> &middot; {{ live ? hint : 'up the tower' }}</span>
-                </p>
+            <div class="room-plate">
+                <router-link :to="AERIE" class="room-back">
+                    <span aria-hidden="true" class="room-arrow">&larr;</span>
+                    <span>Back to the aerie</span>
+                </router-link>
+                <p class="label room-kicker">03 / about</p>
                 <h1 class="room-name">Jovian Lim</h1>
+                <p class="label room-hint">{{ live ? hint : 'up the tower' }}</p>
             </div>
             <div class="room-chips">
                 <button v-if="live && !opened" type="button" class="room-chip" @click="open(points[0].id)">Take the tour</button>
@@ -256,26 +254,50 @@ onBeforeUnmount(() => {
     pointer-events: auto;
 }
 
-/* The way out: its own plate, near the top, with a large target on a phone. The controls follow
-   the night glass rules (docs/design-system.md): square corners, a brass ring on deep glass, and a
-   blonde focus ring. */
+/* The header is one plate of flat night glass with a brass hairline, as on /skills, and the way
+   out sits first in it, so it is close and easy to find. Glass and brass only, with no gradient
+   (docs/design-system.md). The plate and its keys have square corners, so a plain 1 px border
+   draws each ring. The plate takes no pointer events, so a drag that starts on it still turns
+   the view. */
+.room-plate {
+    display: flex;
+    width: min(100%, 21rem);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 0.75rem 1.25rem 1rem 0.75rem;
+    border: 1px solid var(--color-brass-soft);
+    background: var(--color-glass);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+}
+
+/* The back key: a blonde ring with a faint blonde fill, 48 px tall for a thumb. */
 .room-back {
     display: inline-flex;
     min-height: 3rem;
     align-items: center;
     gap: 0.6rem;
+    margin-bottom: 0.5rem;
     padding: 0 1.1rem;
-    border: 1px solid var(--color-brass);
-    background: var(--color-glass-deep);
+    border: 1px solid var(--color-action);
+    background: color-mix(in oklab, var(--color-action) 20%, transparent);
     color: var(--color-text-strong);
-    font: 600 0.78rem/1 var(--font-label);
+    font: 600 0.75rem/1 var(--font-label);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 0.35);
+    pointer-events: auto;
+    transition: background-color 0.2s;
 }
 
 .room-back:hover {
-    background: var(--color-bg-overlay);
+    background: color-mix(in oklab, var(--color-action) 36%, transparent);
+}
+
+.room-arrow {
+    color: var(--color-action-text);
+    font-size: 1rem;
+    letter-spacing: 0;
 }
 
 .room-back:focus-visible,
@@ -285,19 +307,23 @@ onBeforeUnmount(() => {
     outline-offset: 3px;
 }
 
-.room-title {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    pointer-events: none;
-    text-shadow: 0 0 0.75rem var(--color-bg-base), 1px 1px 0 var(--color-bg-base);
+.room-kicker {
+    padding-left: 0.5rem;
+    color: var(--color-rose);
 }
 
 .room-name {
+    padding-left: 0.5rem;
     font-family: var(--font-display);
-    font-size: clamp(1.8rem, 4vw, 3rem);
-    line-height: 0.9;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    line-height: 1.05;
     color: var(--color-text-strong);
+}
+
+.room-hint {
+    padding-left: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.6875rem;
 }
 
 .room-chips {
@@ -364,7 +390,8 @@ onBeforeUnmount(() => {
     flex: none;
     border-radius: 50%;
     background: var(--lamp);
-    box-shadow: 0 0 0 0.3rem color-mix(in oklch, var(--lamp) 30%, transparent), 0 0 1.1rem var(--lamp);
+    /* A flat ring round the lamp, not a glow: no gradient (docs/design-system.md). */
+    box-shadow: 0 0 0 0.3rem color-mix(in oklch, var(--lamp) 35%, transparent);
 }
 
 .room-tag .name {
@@ -418,11 +445,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767px) {
-    .room-title {
-        order: 3;
-        flex-basis: 100%;
-    }
-
     .room-name {
         display: none;
     }

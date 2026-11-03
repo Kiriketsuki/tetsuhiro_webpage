@@ -640,7 +640,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // flights between the stops plan ahead. Until the field is in, a move flies straight.
             moves?.createClearance(scene).then((field) => {
                 rig.setField(field)
-                return moves.warmPlans(field, [...Object.values(shots).map((shot) => shot.position), DOOR.outside])
+                return moves.warmPlans(field, [...Object.values(shots).map((shot) => shot.position), ...DOORS.map((door) => door.outside)])
             }).catch((error) => console.error('The camera planner did not build.', error))
             return { anchors: (name) => anchor(root, name), root, gltf }
         })

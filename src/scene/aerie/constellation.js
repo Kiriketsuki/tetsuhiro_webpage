@@ -257,7 +257,9 @@ void main() {
     vec4 b = projectionMatrix * modelViewMatrix * vec4( aEnd, 1.0 );
     vec2 along = normalize( ( b.xy / b.w - a.xy / a.w ) * vec2( uAspect, 1.0 ) );
     vec4 p = mix( a, b, aLine.x );
-    p.xy += vec2( -along.y / uAspect, along.x ) * aLine.y * uWidth * p.w;
+    // The dashed links between constellations are under half as wide as the figure lines.
+    float width = aKind > 1.5 ? 0.45 : 1.0;
+    p.xy += vec2( -along.y / uAspect, along.x ) * aLine.y * uWidth * width * p.w;
     gl_Position = p;
     vDrawn = smoothstep( aOrder, aOrder + 0.7, uReveal );
     vColor = aColor * dimOf( aFigure );
@@ -277,9 +279,12 @@ void main() {
     float shown = 1.0 - smoothstep( vDrawn - 0.03, vDrawn, vLine.x );
     // A bright spark runs at the drawing end while the line draws in.
     float spark = exp( -pow( ( vLine.x - vDrawn ) * vLine.z * 0.7, 2.0 ) ) * step( 0.001, vDrawn ) * step( vDrawn, 0.999 );
-    float dash = vKind > 1.5 ? step( 0.5, fract( vLine.x * vLine.z * 0.4 ) ) : 1.0;
-    float strength = vKind < 0.5 ? 1.0 : ( vKind < 1.5 ? 0.5 : 0.3 );
-    vec3 color = vColor * ( core + glow ) * strength * dash * shown + vec3( 1.0 ) * spark * core * 1.5;
+    // A link between constellations is a faint dash that fades out before it reaches either
+    // star, so it never runs over a figure's stars or names.
+    float link = step( 1.5, vKind );
+    float dash = mix( 1.0, step( 0.5, fract( vLine.x * vLine.z * 0.4 ) ) * smoothstep( 0.0, 0.2, vLine.x ) * smoothstep( 1.0, 0.8, vLine.x ), link );
+    float strength = vKind < 0.5 ? 1.0 : ( vKind < 1.5 ? 0.5 : 0.1 );
+    vec3 color = vColor * ( core + glow ) * strength * dash * shown + vec3( 1.0 ) * spark * core * mix( 1.5, 0.15, link );
     gl_FragColor = vec4( color, 1.0 );
 }
 `

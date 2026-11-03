@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { islandUrl, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
+import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
 import { createDetailTexture } from './aerie/detail-texture.js'
 import { createLeafCarpet } from './aerie/leaf-carpet.js'
@@ -328,7 +329,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             report(0)
         })
         .then(async (gltf) => {
-            const look = applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild })
+            const look = await applyIslandLook(gltf, { sky: NIGHT_SKY, detail: detailBuild, carpet: carpetBuild })
             parts.look = look
             lookControl = createLookControl(look.uniforms)
             lookControl.apply(lookSet, pipeline.grade.uniforms)
@@ -349,6 +350,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 maxAnisotropy: small ? 1 : renderer.capabilities.getMaxAnisotropy(),
             })
             scene.add(parts.leaves.group)
+            await nextTask()
 
             const spot = anchor(root, 'Anchor_Campfire') ?? findCampfireSpot(root)
             if (spot) {

@@ -93,6 +93,7 @@ const preloadVisit = () => {
         ...[...document.fonts].map((face) => face.load()),
         import('../views/Skills.vue'),
         import('../views/Projects.vue'),
+        import('../views/AboutRoom.vue'),
         // The logos on the skill sky cards, which otherwise load when the first card opens.
         import('../data/skill-icons.js'),
     ].map((load) => load.catch(() => {}))

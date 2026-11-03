@@ -254,7 +254,9 @@ function extras() {
         share += EXTRAS[part]
         progress.value = Math.max(progress.value, share)
     }
-    const parts = Promise.all([manager.wall.built().then(step('wall')), manager.planned.then(step('planner'))])
+    // The About room chunk loads too. Its props join the scene on its first show, as before.
+    const roomChunk = import('./scene/aerie/room.js').catch(() => {})
+    const parts = Promise.all([manager.wall.built().then(step('wall')), manager.planned.then(step('planner')), roomChunk])
     return Promise.race([parts, new Promise((resolve) => setTimeout(resolve, EXTRAS_WAIT_MS))])
 }
 

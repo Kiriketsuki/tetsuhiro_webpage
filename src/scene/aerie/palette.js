@@ -3,6 +3,9 @@ import { srgb, field, along, meanLuma, lumaRatio, paintVertices } from './field-
 import { connectedParts } from './crowns.js'
 import { SURFACE } from './toon-material.js'
 
+// The top-level tables below carry @__PURE__ marks. The scene chunk imports only isLaidRock
+// from here, and the look worker runs the paint, so the bundler can drop the tables there.
+//
 // The albedo palette for the built parts of the island, after the warm colours of Leaf it
 // Alone: honey-brown wood, cream plaster, a graphite roof, warm grey stone and brass. The
 // families keep clearly different hues, as the reference does, so the house never reads
@@ -13,7 +16,7 @@ import { SURFACE } from './toon-material.js'
 
 // Round 10 warms the moss a step toward olive-gold, so the cliff under the lip does not read
 // as a band of olive green next to the brown rock.
-const OLIVE_MOSS = srgb(0x5a5a26)
+const OLIVE_MOSS = /* @__PURE__ */ srgb(0x5a5a26)
 // The stone blotch field, in cycles per metre. One cycle spans about two stones.
 const BLOTCH_SCALE = 1.4
 
@@ -92,9 +95,7 @@ const FAMILIES = {
 // surface that runs on under the pad rim. A grey footing, one band of umber or a separate
 // moss gradient read as a drum under the curb.
 
-const TONES = Object.fromEntries(
-    Object.entries(FAMILIES).map(([name, family]) => [name, family.palette.map(srgb)])
-)
+const TONES = /* @__PURE__ */ (() => Object.fromEntries(Object.entries(FAMILIES).map(([name, family]) => [name, family.palette.map(srgb)])))()
 
 // The cliff runs from olive moss just under the lawn lip to warm tan lower down, as the
 // review asks for S6. Round 7 ran the other way, moss at the bottom, which left the visible
@@ -130,7 +131,7 @@ function stoneHeights(mesh, skipLargest = false) {
     return heights
 }
 
-const cliffMoss = rockMoss()
+const cliffMoss = /* @__PURE__ */ rockMoss()
 
 function paintFamily(meshes, name) {
     const family = FAMILIES[name]
@@ -164,7 +165,7 @@ function paintFamily(meshes, name) {
     })
 }
 
-const PAD_PAINT = srgb(0xa6853f)
+const PAD_PAINT = /* @__PURE__ */ srgb(0xa6853f)
 
 // Fabric keeps its baked hue, at a set saturation and a mid value, in sRGB HSV.
 function paintFabric(meshes) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { islandUrl, islandLod, isSmallScreen } from './assets.js'
 import { stops } from '../data/stops.js'
-import { doorway } from '../data/route.js'
+import { doorway, bedroomDoor } from '../data/route.js'
 import { createLoaders, disposeLoaders } from './loaders.js'
 import { nextTask } from './next-task.js'
 import { applyIslandLook } from './aerie/island-look.js'
@@ -20,6 +20,8 @@ import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-sh
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
+import { createHoverFocus, HOVER_FOCUS } from './aerie/hover-focus.js'
+import { GRADE } from './aerie/grade-pass.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
 // The scene layer behind one small API: init, goTo, setQuality, pause, resume and dispose.
@@ -43,18 +45,25 @@ const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
 // the iris close and open, and how early the iris starts to close before the camera stops.
 const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
-// The dissolve from the room board to the lit wall, in seconds.
-const WALL = { dissolve: 0.55 }
-// The workshop doorway as THREE vectors, and the side of the door a move between two stops
-// takes: 'in' to the board view, 'out' from it, or none.
-const DOOR = { outside: new THREE.Vector3(...doorway.outside), porch: new THREE.Vector3(...doorway.porch), inside: new THREE.Vector3(...doorway.inside) }
-const ROOM = new THREE.Box3(new THREE.Vector3(...doorway.room[0]), new THREE.Vector3(...doorway.room[1]))
-// position is the camera now. A move that starts in the room heads out, whatever stop the rig
-// was at, so a move that takes over on the way out never cuts through the front wall.
+// The place on the lamp switch track (light-switch.js) where the camera starts out of the
+// workshop: half way up the room light, after the swap.
+const WALL = { leave: 0.5 }
+// The workshop doorway and the bedroom balcony door as THREE vectors, each with its room as a
+// box. A move into the board view goes in through the workshop doorway. A move that starts in
+// either room, or at the board, leaves through its door, whatever stop the rig was at, so a
+// move that takes over on the way out never cuts through a wall. The About room
+// (aerie/room.js) sends its own move in through the balcony door. The workshop box holds the
+// porch too.
+const DOORS = [doorway, bedroomDoor].map(({ outside, porch, inside, room }) => ({
+    outside: new THREE.Vector3(...outside),
+    porch: new THREE.Vector3(...porch),
+    inside: new THREE.Vector3(...inside),
+    room: new THREE.Box3(new THREE.Vector3(...room[0]), new THREE.Vector3(...room[1])),
+}))
 const doorFor = (from, to, position) => {
-    if (to === 'board' && from !== 'board') return { side: 'in', ...DOOR }
-    if (to !== 'board' && (from === 'board' || ROOM.containsPoint(position))) return { side: 'out', ...DOOR }
-    return null
+    if (to === 'board' && from !== 'board') return { side: 'in', ...DOORS[0] }
+    const door = from === 'board' ? DOORS[0] : DOORS.find((d) => d.room.containsPoint(position))
+    return to !== 'board' && door ? { side: 'out', ...door } : null
 }
 // The kit board hangs a little in front of the old board, which stays in the island GLB
 // (corkboard-kit.md, case 1). Offsets along the anchor's right and normal, in metres.
@@ -99,8 +108,15 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // 'island', 'sky' or 'wall'. The sky is the telescope's view of the skills, and the wall is
     // the corkboard in the workshop, the Projects view.
     let view = 'island'
-    // The move to or from the wall while it runs: { t, on, legs, swap, swapped }.
+    // The move to or from the wall while it runs: { t, on, legs, start, lamp, lit, leave }. lamp
+    // is the lamp switch, which starts at the time `start`.
     let boardMove = null
+    // The lamp switch module, which loads with the wall. The place on its track (0 the room lit,
+    // 2 the wall lamp steady), its dark point, and the share of room light on screen.
+    let lamps = null
+    let lampAt = 0
+    let lampDark = 1
+    let roomLight = 1
     // The move through the eyepiece while it runs: { t, on, legs, close, swap, end }.
     let scope = null
     const loaders = createLoaders()
@@ -114,9 +130,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The look options in force (look-options.js). A new pipeline takes them again.
     // A phone has no cursor, and the lens costs too much at a phone pixel ratio.
     let lookSet = small ? new Set([...SITE_LOOK].filter((name) => name !== 'lens')) : SITE_LOOK
-    // The pointer in uv, or null without one. The lens clears its blur a little around it.
+    // The pointer in uv, or null without one. The lens pulls focus toward what it rests on.
     let cursor = null
-    const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), clear: 0, last: performance.now(), shown: -1 }
+    const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), on: 0, movedAt: 0, last: performance.now(), shown: -1 }
+    const hoverFocus = createHoverFocus(renderer)
     let lookControl = null
     let submits = []
 
@@ -136,6 +153,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         if (view === 'sky' && parts.constellation) pipeline.setView(parts.constellation.scene, parts.constellation.camera)
         if (view === 'wall' && parts.wall) pipeline.setView(parts.wall.scene, parts.wall.camera)
         lookControl?.apply(lookSet, pipeline.grade.uniforms)
+        // A new pipeline starts at full exposure, so it takes the room light of a lamp switch.
+        shade()
         resizeSprites()
         state.dirty = true
     }
@@ -158,10 +177,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
     let steeredAt = -Infinity
 
-    // The lens follows the stop's focus point. It fades out during a move between stops, so the
-    // flight stays clear. The cursor patch and the vignette centre ease after the pointer, so
-    // they drift and never jump. --aerie-lens tells the focus ring in the shell how strong the
-    // lens is, so the ring fades with it.
+    // The lens follows the stop's focus point, and adds the depth under the resting cursor
+    // (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
+    // the hover focus comes back after the move. Reduced motion keeps the stop's focus only. The
+    // cursor patch and the vignette centre ease after the pointer, so they drift and never jump.
+    // --aerie-lens tells the focus ring in the shell how strong the lens is, so the ring fades
+    // with it.
     // A custom property on the root restyles every element of the page, so the shell names the
     // ring through lensTarget, and only the ring restyles. lensElement asks lensTarget again for
     // a ring that has left the document.
@@ -170,39 +191,48 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         if (!lensRing?.isConnected) lensRing = lensTarget?.() ?? null
         return lensRing ?? document.documentElement
     }
+    // Returns true while the hover focus still needs frames.
     const updateLens = () => {
         const now = performance.now()
-        const k = state.reduced ? 1 : 1 - Math.exp(-Math.min(0.25, (now - lensCursor.last) / 1000) / 0.18)
+        const dt = Math.min(0.25, (now - lensCursor.last) / 1000)
+        const k = state.reduced ? 1 : 1 - Math.exp(-dt / 0.18)
         lensCursor.last = now
         const uniforms = pipeline.grade.uniforms
         const dof = lookSet.has('lens') && uniforms.uDepthOn.value && !scope ? 1 - Math.min(1, rig.travel * 1.6) : 0
         uniforms.uDof.value = dof
         uniforms.uFocus.value = rig.focus
+        const on = !!cursor && dof === 1 && !state.reduced
+        // Reduced motion draws single frames, so a long step snaps the pull out in one frame.
+        const hover = hoverFocus.update({ on, cursor, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
+        uniforms.uHoverFocus.value = hover.focus
+        uniforms.uHover.value = hover.weight
+        uniforms.uHoverCap.value = HOVER_FOCUS.cap
         if (cursor) lensCursor.uv.lerp(cursor, k)
-        lensCursor.clear += ((cursor ? 0.4 : 0) - lensCursor.clear) * k
+        lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)
-        uniforms.uCursorClear.value = lensCursor.clear
-        uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.clear * 2.5, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.clear * 2.5)
+        uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, HOVER_FOCUS.clear, hover.weight)
+        uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.on, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.on)
         uniforms.uVignette.value = (lookSet.has('split') ? 0.27 : 0.22) + 0.04 * dof
         const shown = Math.round(dof * 20) / 20
         if (shown !== lensCursor.shown) {
             lensCursor.shown = shown
             lensElement().style.setProperty('--aerie-lens', String(shown))
         }
+        return hover.busy
     }
 
     const render = () => {
         renderer.info.reset()
         hooks.before?.()
         const begin = performance.now()
-        updateLens()
+        const lensBusy = updateLens()
         // The wall renders its shadow map only after a pin lifts.
         if (view === 'wall' && parts.wall.takeShadowDirty()) renderer.shadowMap.needsUpdate = true
         pipeline.render()
         submits.push(performance.now() - begin)
         if (submits.length > 120) submits = submits.slice(-60)
         hooks.after?.()
-        state.dirty = false
+        state.dirty = lensBusy
     }
 
     // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
@@ -225,8 +255,25 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         requestRender()
     }
 
+    // The room light of the lamp switch scales the exposure of the tone mapping, so the dark
+    // room takes the same tone curve and the same lifted blacks as the dark wall.
+    const shade = () => {
+        pipeline.grade.uniforms.toneMappingExposure.value = GRADE.exposure * roomLight
+    }
+
+    // Lights the room and the wall for the place p on the lamp switch track. The room dims
+    // only while the island shows, and the wall lamp only warms past the swap.
+    const lightAt = (p, dark = lampDark) => {
+        lampAt = p
+        lampDark = dark
+        roomLight = view === 'island' && lamps ? lamps.roomLight(p, dark) : 1
+        parts.wall?.setLamp(Math.max(0, p - 1), dark)
+        parts.roomBoard?.setGlow(Math.min(1, p), roomLight)
+        shade()
+    }
+
     // Ends the eyepiece move and the board move at once. A new move of either kind, or a route
-    // that drops the sky or the wall at once, starts from rest.
+    // that drops the sky or the wall at once, starts from rest, with the view at its steady light.
     const settle = () => {
         // The promise of an eyepiece move resolves here too, so nothing waits on it for ever.
         scope?.done?.()
@@ -234,18 +281,24 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         boardMove = null
         pipeline.grade.uniforms.uIris.value = 0
         pipeline.grade.uniforms.uFade.value = 0
+        lightAt(view === 'wall' ? 2 : 0)
+        update()
     }
 
     // Turning on reduced motion mid move finishes the move: the camera cuts to its last stop,
     // and a swap that has not run yet runs now.
+    // A board move goes on as the reduced motion switch from the light it has reached, so the
+    // light never jumps. The camera cuts to the stop it was flying to.
     const finishMoves = () => {
-        const move = scope ?? boardMove
-        if (!move) return
-        const last = move.legs.at(-1)?.[1]
-        if (!move.swapped) {
-            if (move === scope) showSky(move.on)
-            else showWall(move.on)
+        if (boardMove) {
+            const back = boardMove.legs[0]?.[1]
+            rig.jump(rig.current)
+            api.enterWall(boardMove.on, back ?? rig.current)
+            return
         }
+        if (!scope) return
+        const last = scope.legs.at(-1)?.[1]
+        if (!scope.swapped) showSky(scope.on)
         settle()
         rig.jump(last ?? rig.current)
     }
@@ -261,56 +314,71 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         if (on === (view === 'wall')) return
         view = on ? 'wall' : 'island'
         pipeline.setView(on ? parts.wall.scene : scene, on ? parts.wall.camera : camera)
+        // A swap outside the lamp switch shows the view at its steady light.
+        if (!boardMove?.lamp) lightAt(on ? 2 : 0)
         // Each scene keeps the shadow map of its own light, but a swap needs one fresh render.
         renderer.shadowMap.needsUpdate = true
         requestRender()
     }
 
-    // Swaps the picture under a still of the frame before it, and the still fades out. The
-    // canvas keeps no drawing buffer, so the still copies a frame drawn just now. The page CSS
-    // places every canvas where the scene canvas sits.
-    const dissolve = (swap) => {
-        render()
-        const still = document.createElement('canvas')
-        Object.assign(still, { width: canvas.width, height: canvas.height })
-        still.className = canvas.className
-        still.setAttribute('aria-hidden', 'true')
-        still.style.cssText = `visibility:visible;opacity:${getComputedStyle(canvas).opacity};pointer-events:none;transition:opacity ${WALL.dissolve}s ease`
-        still.getContext('2d').drawImage(canvas, 0, 0)
-        canvas.after(still)
-        swap()
-        render()
-        requestAnimationFrame(() => requestAnimationFrame(() => (still.style.opacity = '0')))
-        setTimeout(() => still.remove(), WALL.dissolve * 1000 + 120)
+    // Starts the lamp switch of a board move from the place the light is at now. The swap is
+    // still ahead while the scene that the move leaves shows.
+    const startLamp = (b) => {
+        b.lamp = lamps.createLightSwitch({ on: b.on, at: lampAt, before: b.on !== (view === 'wall'), reduced: state.reduced })
     }
 
-    // Steps the move to or from the wall, like the eyepiece move. The swap waits for the wall
-    // to build, so the camera holds at the board until it can dissolve.
+    // Steps the move to or from the wall. The lamp switch swaps the views at its dark point. On
+    // the way in it waits for the camera to come to rest on the board. On the way out the camera
+    // leg waits until the switch has brought the room light back to the place `leave`. Each
+    // camera leg starts when its time comes, and a leg of zero seconds cuts.
     const stepBoard = (delta) => {
         const b = boardMove
         b.t += delta
+        if (!b.lamp && b.t >= b.start && parts.wall) startLamp(b)
+        if (b.lamp) {
+            const { p, swap, done } = b.lamp.step(delta)
+            // The two dark frames at the swap differ a little, and in reduced motion, which swaps
+            // from the view it was in and cuts the camera, a lot. A still of the last one blends them.
+            if (swap) {
+                lamps.fadeStill(canvas, render, b.lamp.blend)
+                showWall(b.on)
+            }
+            lightAt(p, b.lamp.dark)
+            b.lit = done
+            if (!b.on && p <= b.leave && b.legs.length) b.legs[0][0] = 0
+        }
         while (b.legs.length && b.t >= b.legs[0][0]) {
             const [, id, duration] = b.legs.shift()
-            rig.goTo(id, { duration, door: doorFor(rig.current, id, camera.position) })
-            // The dissolve onto the wall waits for the camera to come to rest on the board.
-            if (b.on && id === 'board') b.swap = b.t + rig.moveDuration
+            if (duration === 0) rig.jump(id)
+            else rig.goTo(id, { duration, door: doorFor(rig.current, id, camera.position) })
+            if (b.on && id === 'board') b.start = b.t + rig.moveDuration
         }
-        if (!b.swapped && b.t >= b.swap && (!b.on || parts.wall || wallFailed)) {
-            b.swapped = true
-            dissolve(() => showWall(b.on))
+        if (b.lit && !b.legs.length && !rig.moving) {
+            boardMove = null
+            update()
         }
-        if (b.swapped && !b.legs.length && !rig.moving) boardMove = null
         return true
     }
 
     // Steps the move through the eyepiece. Each leg starts the camera on its way when its time
     // comes. The iris closes, the picture swaps while it is shut, and the iris opens again.
+    // A leg that starts in the workshop or the bedroom leaves through its door, not through its
+    // walls. It takes its duration from its path, which slows at the door (camera-move.js). In
+    // its fixed 1.6 s the camera passed the porch at 40 m/s. The legs and the iris still ahead
+    // wait for it.
     const stepScope = (delta) => {
         const s = scope
         s.t += delta
         while (s.legs.length && s.t >= s.legs[0][0]) {
-            const [, id, duration] = s.legs.shift()
-            rig.goTo(id, duration)
+            const [, id, planned] = s.legs.shift()
+            const door = planned ? doorFor(rig.current, id, camera.position) : null
+            rig.goTo(id, { duration: door ? null : planned, door })
+            if (!door) continue
+            const late = rig.moveDuration - planned
+            const wait = (time) => (time > s.t ? time + late : time)
+            s.legs = s.legs.map(([time, ...leg]) => [wait(time), ...leg])
+            s.close = wait(s.close)
+            s.swap = wait(s.swap)
         }
         if (!s.swapped && s.t >= s.swap) {
             s.swapped = true
@@ -341,7 +409,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         return true
     }
 
-    const running = () => state.ready && state.wanted && !state.hidden && !state.lost && !state.reduced
+    // Reduced motion draws single frames, apart from the lamp switch, which needs every frame.
+    const running = () => state.ready && state.wanted && !state.hidden && !state.lost && (!state.reduced || Boolean(boardMove))
 
     // One frame on the next animation frame, for reduced motion and single changes.
     let pending = false
@@ -369,7 +438,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         rig.update(delta)
         const effects = advanceEffects(delta)
         // The wall has nothing that twinkles, so its frames draw only when something moves.
-        const tickAmbient = view !== 'wall' && ambientFps > 0 && ambient >= 1 / ambientFps
+        const tickAmbient = !state.reduced && view !== 'wall' && ambientFps > 0 && ambient >= 1 / ambientFps
         if (!rig.moving && !effects && !state.dirty && !tickAmbient) return
         if (tickAmbient) {
             parts.city?.update(seconds)
@@ -493,8 +562,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     let wallFailed = false
     let wallWanted = false
     const buildWall = () =>
-        (wallBuild ??= import('./aerie/wall.js')
-            .then(async ({ createWall }) => {
+        (wallBuild ??= Promise.all([import('./aerie/wall.js'), import('./aerie/light-switch.js')])
+            .then(async ([{ createWall }, switches]) => {
+                lamps = switches
                 const built = await createWall({
                     loaders,
                     small,
@@ -634,7 +704,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // flights between the stops plan ahead. Until the field is in, a move flies straight.
             moves?.createClearance(scene).then((field) => {
                 rig.setField(field)
-                return moves.warmPlans(field, [...Object.values(shots).map((shot) => shot.position), DOOR.outside])
+                return moves.warmPlans(field, [...Object.values(shots).map((shot) => shot.position), ...DOORS.map((door) => door.outside)])
             }).catch((error) => console.error('The camera planner did not build.', error))
             return { anchors: (name) => anchor(root, name), root, gltf }
         })
@@ -658,11 +728,15 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // the middle of another one starts from the camera at its
         // speed, and rig.current is already that move's end stop.
         goTo: (id, { duration = null } = {}) => {
-            // A move asked for on the way out of the wall replaces the out leg that has not
-            // started yet. The page that comes back can pick a new section after the route
-            // change has picked its stop, and the camera follows the page.
-            if (boardMove && !boardMove.on) boardMove.legs.length = 0
+            // A move asked for on the way out of the wall takes the place of the out leg that has
+            // not started yet. The page that comes back can pick a new section after the route
+            // change has picked its stop, and the camera follows the page. The leg keeps its
+            // time, so the camera still leaves once the room light is back.
             const cut = state.reduced || (duration !== null && duration <= 0)
+            if (boardMove && !boardMove.on && boardMove.legs.length) {
+                boardMove.legs = boardMove.legs.map(([t]) => [t, id, cut ? 0 : duration])
+                return
+            }
             const from = rig.current
             rig.goTo(id, { duration: cut ? 0 : duration, door: doorFor(from, id, camera.position) })
             const time = rig.moveDuration
@@ -747,39 +821,54 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // Resolves true once the wall has built, false when it failed.
             // A build that has started already, as on a direct visit, does not wait for the sky.
             built: () => (wallBuild ?? wallReady).then(() => Boolean(parts.wall)),
-            // Back to the overview with no pin marked, so the dissolve from the room copy lines up.
+            // Back to the overview with no pin marked, so the swap from the room copy lines up.
             reset: () => {
                 parts.wall?.reset()
                 requestRender()
             },
         },
         // The move to the evidence wall: the camera flies in through the workshop doorway to
-        // the board stop in front of the room board, and the room board dissolves into the
-        // lit wall. Off dissolves back and flies out through the doorway to the stop `back`.
-        // Reduced motion cuts the camera and keeps only the dissolve, which is a fade and not a motion.
+        // the board stop in front of the room board. There the lamp switch (light-switch.js)
+        // dims the room, swaps to the wall at the dark point, and warms up the wall lamp. Off
+        // cools the lamp, swaps back at the dark point, brings the room light back up, and
+        // flies out through the doorway to the stop `back`. Reduced motion takes a slower and
+        // shallower switch, which is a change of light and not a motion, and the camera cuts
+        // at the dark point.
         enterWall: (on, back = 'workshop') => {
+            // A new switch starts where the light is now, so a visitor who turns back halfway
+            // sees no jump in light.
+            const at = lampAt
             settle()
-            // The room copy shows the overview, so the wall starts there too.
-            if (on) parts.wall?.reset()
-            if (on === (view === 'wall') || !shots?.board || wallFailed) {
+            if (!shots?.board || wallFailed || !parts.wall) {
                 if (!on) api.goTo(back)
                 return
             }
-            if (state.reduced) {
-                rig.jump(on ? 'board' : back)
-                if (parts.wall) dissolve(() => showWall(on))
-                else showWall(on)
+            lightAt(at)
+            const shown = view === 'wall'
+            if (on && shown && at >= 2) return
+            if (!on && !shown && at <= 0) {
+                api.goTo(back)
                 return
             }
-            // One move in through the workshop doorway to the board, or out through it from the
-            // board. A null duration takes the duration from the path, and the swap time comes
-            // from the move once it starts (stepBoard).
+            // The room copy shows the overview, so the wall starts there too.
+            if (on && !shown) parts.wall.reset()
+            const b = (boardMove = { t: 0, on, legs: [], start: Infinity, lamp: null, lit: false })
             if (on) {
-                boardMove = { t: 0, on, legs: [[0, 'board', null]], swap: Infinity, swapped: false }
+                // One move in through the workshop doorway to the board, with the duration from
+                // its path. The switch starts once the camera rests there (stepBoard). A wall
+                // that still shows warms up again where it is. Reduced motion dims the view where
+                // it is, and the swap at the dark point hides the cut to the wall.
+                if (shown || state.reduced) b.start = 0
+                else b.legs.push([0, 'board', null])
             } else {
-                rig.jump('board')
-                boardMove = { t: 0, on, legs: [[0, back, null]], swap: 0, swapped: false }
+                if (shown) rig.jump('board')
+                startLamp(b)
+                // The camera leaves through the doorway once the room light is half way back.
+                // Reduced motion cuts to `back` at the dark point, under the swap.
+                b.leave = state.reduced ? 1 : WALL.leave
+                b.legs.push([Infinity, back, state.reduced ? 0 : null])
             }
+            update()
             requestRender()
         },
         // The look through the telescope. The camera flies up to the eyepiece (by way of the
@@ -792,10 +881,18 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             // A visitor who leaves while the iris still opens on the sky gets a close from
             // where the blades are, not a jump back to fully open.
             const from = iris.value
-            iris.value = 0
-            scope?.done()
-            scope = null
-            boardMove = null
+            // The way out of the wall can still run. It keeps its lamp switch, so its light never
+            // jumps, and its camera leg gives way to this flight. Reduced motion swaps at once
+            // under the crossfade of src/three.js instead.
+            const leaving = boardMove && !boardMove.on && !state.reduced ? boardMove : null
+            const at = lampAt
+            settle()
+            if (leaving) {
+                leaving.legs = []
+                boardMove = leaving
+                lightAt(at)
+                update()
+            }
             if (on === (view === 'sky') || state.reduced) {
                 if (on !== (view === 'sky')) showSky(on)
                 if (!on) api.goTo(back)
@@ -825,6 +922,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         setPointer: (x, y) => {
             if (!state.reduced) rig.setPointer(x, y)
             cursor = new THREE.Vector2((x + 1) / 2, 1 - (y + 1) / 2)
+            lensCursor.movedAt = performance.now()
             requestRender()
         },
         // The pointer left the page: the cursor patch fades out.
@@ -886,6 +984,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             carpetBuild.dispose()
             Object.values(parts).forEach((part) => part?.dispose?.())
             pipeline?.dispose()
+            hoverFocus.dispose()
             disposeLoaders(loaders)
             renderer.dispose()
         },

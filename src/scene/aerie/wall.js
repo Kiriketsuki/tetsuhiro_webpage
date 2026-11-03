@@ -4,6 +4,7 @@ import { BOARD_SCALE, GROUPS, LIST_ID, PINS, STRINGS, labelId } from '../../data
 import { ATLAS_SCALE, SHARP, SIZE, drawAtlas, drawListNote, drawSharp, loadFonts, loadPictures } from './wall-atlas.js'
 import { createView } from './wall-view.js'
 import { createLight, corkGrain, haloTexture } from './wall-light.js'
+import { FILAMENT_FLOOR, bulbColor } from './light-switch.js'
 
 // The evidence wall in the workshop, the Projects view. scene-manager.js loads this module
 // in its own chunk after the island, like the skill sky, and draws the scene through the same
@@ -34,6 +35,8 @@ const SHARP_AT = 1.15
 const SHARP_WAIT = 150
 // The room copy has no lights of its own. Its paper takes this dim lamp-lit colour.
 const ROOM_TINT = new THREE.Color(0.8, 0.72, 0.62)
+// The lit lip of the room copy's lamp while the lamp is off: the brass of the bar in shade.
+const LIP_OFF = new THREE.Color(0x5a4024)
 const deg = THREE.MathUtils.degToRad
 
 const images = (() => {
@@ -305,7 +308,7 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         new THREE.MeshBasicMaterial({ map: haloTexture(), color: 0xffc27a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
     )
     const lights = createLight(small)
-    scene.add(board, halo, ...lights)
+    scene.add(board, halo, ...lights.objects)
 
     // The sharp pages. Each one is a canvas texture with its own two materials.
     for (let k = 0; k < (small ? SLOTS.small : SLOTS.wide); k++) {
@@ -462,9 +465,11 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         return node?.userData.id ?? null
     }
 
-    // A copy of the board and its papers for the workshop wall, in the board's own metres.
-    // It shares the geometry and the atlas, with unlit materials, because the island has no
-    // lights. The workshop shows it from across the room, so it takes no sharp pages.
+    // A copy of the board, its papers and the brass lamp for the workshop wall, in the board's
+    // own metres. It shares the geometry and the atlas, with unlit materials, because the island
+    // has no lights. The workshop shows it from across the room, so it takes no sharp pages.
+    // The lamp of the copy is off. Its lip takes a faint amber glow as the room dims for the
+    // lamp switch, so it matches the wall lamp at the dark point.
     // The copy merges into one mesh per material. The workshop is in frame from many stops,
     // and one mesh per sheet, pin and strand cost the island about 80 draw calls. The merged
     // geometry is its own, so the sharp pages and the yarn rebuilds never reach it.
@@ -472,7 +477,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
         board.updateMatrixWorld(true)
         const unlit = new Map()
         const meshes = new Map()
-        board.traverse((mesh) => {
+        lights.fixture.forEach((part) => part.updateMatrixWorld(true))
+        ;[board, ...lights.fixture].forEach((root) => root.traverse((mesh) => {
             if (!mesh.isMesh) return
             const source = mesh.material
             if (!unlit.has(source)) {
@@ -488,7 +494,11 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
                 meshes.set(basic, [])
             }
             meshes.get(unlit.get(source)).push(mesh)
-        })
+        }))
+        const lip = unlit.get(lights.lip.material)
+        lip.color.copy(LIP_OFF)
+        // The glow of the lip at the dark point, in the light that the wall lamp shows there.
+        const glow = bulbColor(new THREE.Color(), lights.lip.material.color, 0).multiplyScalar(FILAMENT_FLOOR)
         const room = new THREE.Group()
         meshes.forEach((list, material) => room.add(new THREE.Mesh(joinMeshes(list, material), material)))
         room.scale.setScalar(BOARD_SCALE)
@@ -497,7 +507,12 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
             room.children.forEach((mesh) => mesh.geometry.dispose())
             unlit.forEach((m) => m.dispose())
         }
-        return { group: room, dispose }
+        // q: the way to the dark point from 0 to 1. light: the share of room light on screen
+        // now. The exposure of the whole frame falls by that share, so the lip divides it out.
+        const setGlow = (q, light) => {
+            lip.color.copy(LIP_OFF).multiplyScalar(light).lerp(glow, q).multiplyScalar(1 / light)
+        }
+        return { group: room, dispose, setGlow }
     }
 
     // Back to the overview, with no pin marked and no lift, at once.
@@ -563,6 +578,8 @@ export async function createWall({ loaders, small, reducedMotion, anisotropy, pi
             return view.home
         },
         roomCopy,
+        // The lamp switch: light from 0 (off) to 1 (steady), and the dark point of the switch.
+        setLamp: (light, dark) => lights.setLamp(light, dark),
         reset,
         filter,
         screenOf,

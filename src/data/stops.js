@@ -185,6 +185,7 @@ export const stops = {
 // Which stop a route opens on. A direct visit to any route opens the scene at that room.
 export function stopForRoute(name) {
     if (name === 'Skills') return 'telescope'
+    if (name === 'About') return 'bedroom'
     if (['Projects', 'Project', 'DancingTables', 'Placeholders'].includes(name)) return 'workshop'
     if (name === 'Home') return null
     return 'overview'

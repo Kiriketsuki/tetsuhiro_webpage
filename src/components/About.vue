@@ -13,7 +13,7 @@ const facts = [
 
 <template>
     <div class="stop" :data-side="sideOf('about')">
-        <article class="frame frame-rose flex w-full max-w-[25rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
+        <article class="frame frame-rose flex w-full max-w-[25rem] flex-col gap-5 p-6 sm:p-8">
             <span class="frame-legend">03 / up the tower</span>
 
             <div class="flex items-end gap-5">
@@ -40,12 +40,14 @@ const facts = [
                 Polytechnic. I enjoy it a lot.
             </p>
 
-            <dl class="rows hidden text-sm sm:grid">
+            <dl class="rows facts hidden text-sm sm:grid">
                 <template v-for="[key, value] in facts" :key="key">
                     <dt>{{ key }}</dt>
                     <dd>{{ value }}</dd>
                 </template>
             </dl>
+
+            <router-link to="/about" class="action">explore the room</router-link>
 
             <ul class="flex gap-6">
                 <li>
@@ -68,6 +70,14 @@ const facts = [
 </template>
 
 <style scoped>
+/* A short desktop screen cannot hold the whole card above the nav strip, so the facts give way.
+   The About room keeps them under "All facts". */
+@media (max-height: 820px) {
+    .facts {
+        display: none;
+    }
+}
+
 .portrait {
     border: 1px solid var(--color-rose);
     padding: 3px;

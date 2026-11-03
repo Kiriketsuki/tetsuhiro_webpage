@@ -2,64 +2,59 @@
 @import "./styles/tokens.css";
 @import "./styles/fonts.css";
 @config "../tailwind.config.cjs";
+/* These words appear in scripts and comments, not as classes. Tailwind would ship a utility and its @property rules for each. */
+@source not inline("shadow ring blur filter backdrop-filter transform outline transition");
 
 /*
- * Refined industrial frames. A solid warm-grey plate on the navy page, a 1px
- * rim in an accent, a hairline inside it, and a label set into the top rule.
- * Two opposite corners take a 12px chamfer. No shadow and no blur.
+ * Night glass frames (docs/design-system.md). A pane of dark glass with the aerie
+ * blurred behind it, a 1px brass ring that starts in the section colour, a 12px
+ * chamfer on two opposite corners, and a brass bracket on each square corner.
  *
- * clip-path cannot sit on the frame itself, because it would cut off the label
- * that overhangs the top rule. The rim and the plate are two clipped layers
- * behind the content instead. The plate is inset by 1px, so its cut is a
- * little smaller and the rim keeps an even width along the diagonal.
+ * The ring is a mask: the outer shape minus an inset copy of it, so the diagonal keeps
+ * the width of the sides. A box-shadow is always a rectangle, so it cannot turn at a
+ * chamfer. A clip-path would stop the backdrop blur, so the glass takes a mask too.
+ * The masks cut along the 45 degree diagonal: 8.49px is 12 / sqrt 2, and 8.07px is
+ * (12 - 1 x (2 - sqrt 2)) / sqrt 2, the same chamfer one ring width in.
  */
 @layer components {
     .frame {
         --frame: var(--color-sand);
-        --cut: 12px;
-        --cut-inner: 11.4px;
-        /* Rules and hover plates inside a frame follow the grey, not the navy. */
-        --color-line: var(--color-plate-line);
-        --color-bg-overlay: var(--color-plate-raised);
+        /* Rules and hover fills inside a pane follow the brass, not the navy. */
+        --color-line: oklch(0.739 0.087 78 / 0.2);
+        --color-bg-overlay: rgb(255 255 255 / 0.05);
+        --chamfer: linear-gradient(135deg, #0000 8.49px, #000 0 calc(100% - 8.49px), #0000 0);
         position: relative;
         isolation: isolate;
     }
 
     .frame::before,
-    .frame::after {
+    .frame::after,
+    .action::before {
         content: '';
         position: absolute;
+        inset: 0;
         z-index: -1;
         pointer-events: none;
     }
 
+    /* The glass carries the brackets of the two square corners, so the ring mask keeps two layers. */
     .frame::before {
-        inset: 0;
-        background: var(--frame);
-        clip-path: polygon(
-            var(--cut) 0,
-            100% 0,
-            100% calc(100% - var(--cut)),
-            calc(100% - var(--cut)) 100%,
-            0 100%,
-            0 var(--cut)
-        );
+        --b: linear-gradient(var(--color-brass) 0 0) no-repeat;
+        background:
+            var(--b) 100% 0 / 14px 2px,
+            var(--b) 100% 0 / 2px 14px,
+            var(--b) 0 100% / 14px 2px,
+            var(--b) 0 100% / 2px 14px,
+            linear-gradient(165deg, var(--color-glass), var(--color-glass-deep) 60%);
+        backdrop-filter: blur(8px) saturate(1.2);
+        mask: var(--chamfer);
     }
 
     .frame::after {
-        inset: 1px;
-        background: var(--color-plate);
-        box-shadow:
-            inset 0 0 0 5px var(--color-plate),
-            inset 0 0 0 6px var(--color-plate-line);
-        clip-path: polygon(
-            var(--cut-inner) 0,
-            100% 0,
-            100% calc(100% - var(--cut-inner)),
-            calc(100% - var(--cut-inner)) 100%,
-            0 100%,
-            0 var(--cut-inner)
-        );
+        padding: 1px;
+        background: linear-gradient(135deg, var(--frame), var(--color-brass) 40%, var(--color-brass-dim));
+        mask: linear-gradient(135deg, #0000 8.07px, #000 0 calc(100% - 8.07px), #0000 0) content-box, var(--chamfer);
+        mask-composite: exclude;
     }
 
     .frame-rose {
@@ -71,29 +66,28 @@
     }
 
     .frame-line {
-        --frame: var(--color-plate-edge);
+        --frame: var(--color-brass-dim);
+        --legend: var(--color-brass);
     }
 
-    /* A line-coloured legend would vanish, so it takes the muted text colour. */
-    .frame-line > .frame-legend {
-        color: var(--color-text-muted);
-    }
-
-    /* The section label that sits in the top rule. */
+    /* The first line of a pane: a small hex in the section colour, then the place. */
     .frame-legend {
-        position: absolute;
-        top: 0;
-        left: 1.25rem;
-        transform: translateY(-50%);
-        padding: 0 0.5rem;
-        background: var(--color-plate);
-        color: var(--frame);
-        font-family: var(--font-label);
-        font-size: 0.7rem;
-        line-height: 1.4;
-        letter-spacing: 0.14em;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        color: var(--legend, var(--frame));
+        font: 600 0.7rem/1.4 var(--font-label);
+        letter-spacing: 0.16em;
         text-transform: uppercase;
         white-space: nowrap;
+    }
+
+    .frame-legend::before {
+        content: '';
+        width: 0.55rem;
+        aspect-ratio: 0.866;
+        background: currentColor;
+        clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
     }
 
     .label {
@@ -117,7 +111,7 @@
 
     .rows > dt {
         padding-right: 1rem;
-        color: var(--color-text-faint);
+        color: var(--color-brass);
         font-family: var(--font-label);
         font-size: 0.7rem;
         letter-spacing: 0.12em;
@@ -130,18 +124,35 @@
         overflow-wrap: anywhere;
     }
 
-    /* Text buttons: no fill, a 2px teal rule that lights up on hover. */
+    /*
+     * Actions are small brass keys: a faint fill and a 1px ring with 6px chamfers,
+     * drawn by one mask (4.24px is 6 / sqrt 2). Focus thickens the ring to 2px.
+     */
     .action {
+        --ring: 1px;
+        --cut-in: 3.83px;
+        position: relative;
+        isolation: isolate;
         display: inline-block;
         align-self: flex-start;
-        padding: 0.35rem 0;
-        border-bottom: 2px solid var(--color-teal-action);
-        color: var(--color-teal-action-hover);
+        padding: 0.6rem 0.9rem;
+        color: var(--color-action-text);
         font-family: var(--font-label);
-        font-size: 0.75rem;
-        letter-spacing: 0.12em;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        transition: color 0.2s, border-color 0.2s;
+        transition: color 0.2s;
+    }
+
+    .action::before {
+        padding: var(--ring);
+        background: var(--color-action);
+        mask:
+            linear-gradient(135deg, #0000 var(--cut-in), #0002 0 calc(100% - var(--cut-in)), #0000 0) content-box,
+            linear-gradient(135deg, #0000 var(--cut-in), #000 0 calc(100% - var(--cut-in)), #0000 0) content-box,
+            linear-gradient(135deg, #0000 4.24px, #000 0 calc(100% - 4.24px), #0000 0);
+        mask-composite: add, exclude;
     }
 
     .action::after {
@@ -150,25 +161,32 @@
 
     .action:hover {
         color: var(--color-text-strong);
-        border-bottom-color: var(--color-teal-action-hover);
     }
 
     .action:focus-visible {
-        outline: 2px solid var(--color-teal-action-hover);
-        outline-offset: 2px;
+        --ring: 2px;
+        --cut-in: 3.41px;
+        color: var(--color-text-strong);
+        outline: none;
     }
 
     .text-link {
-        color: var(--color-teal-action-hover);
+        color: var(--color-action-text);
         border-bottom: 1px solid transparent;
         transition: border-color 0.2s;
     }
 
     .text-link:hover,
     .text-link:focus-visible {
-        border-bottom-color: var(--color-teal-action-hover);
+        border-bottom-color: var(--color-action-text);
         outline: none;
     }
+}
+
+/* Pane titles are gold italics, as the star names are. Unlayered, so it beats the colour utilities. */
+.frame h2 {
+    color: var(--color-gold);
+    font-style: italic;
 }
 
 /*

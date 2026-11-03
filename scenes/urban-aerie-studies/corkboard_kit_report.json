@@ -1,0 +1,188 @@
+{
+  "glb": "src/assets/models/corkboard_kit.glb",
+  "bytes": 46680,
+  "tris": 3000,
+  "budget": 5000,
+  "objects": {
+    "Board": {
+      "tris": 1602,
+      "materials": [
+        "kit_cork",
+        "kit_wood",
+        "kit_brass"
+      ],
+      "gltf_box_min": [
+        -0.8,
+        -0.5,
+        -0.04
+      ],
+      "gltf_box_max": [
+        0.8,
+        0.5,
+        0.0247
+      ]
+    },
+    "Ledge": {
+      "tris": 120,
+      "materials": [
+        "kit_wood"
+      ],
+      "gltf_box_min": [
+        -0.7,
+        -0.495,
+        0.02
+      ],
+      "gltf_box_max": [
+        0.7,
+        -0.443,
+        0.062
+      ]
+    },
+    "Pin_Push": {
+      "tris": 194,
+      "materials": [
+        "kit_pin",
+        "kit_steel"
+      ],
+      "gltf_box_min": [
+        -0.0094,
+        -0.0089,
+        -0.011
+      ],
+      "gltf_box_max": [
+        0.0094,
+        0.0089,
+        0.0172
+      ]
+    },
+    "Pin_Map": {
+      "tris": 118,
+      "materials": [
+        "kit_pin",
+        "kit_steel"
+      ],
+      "gltf_box_min": [
+        -0.0042,
+        -0.004,
+        -0.01
+      ],
+      "gltf_box_max": [
+        0.0042,
+        0.004,
+        0.0166
+      ]
+    },
+    "Tape": {
+      "tris": 72,
+      "materials": [
+        "kit_tape"
+      ],
+      "gltf_box_min": [
+        -0.0508,
+        -0.013,
+        -0.0001
+      ],
+      "gltf_box_max": [
+        0.0518,
+        0.013,
+        0.002
+      ]
+    },
+    "Note": {
+      "tris": 200,
+      "materials": [
+        "kit_note"
+      ],
+      "gltf_box_min": [
+        -0.038,
+        -0.038,
+        -0.0
+      ],
+      "gltf_box_max": [
+        0.038,
+        0.038,
+        0.0167
+      ]
+    },
+    "Photo": {
+      "tris": 76,
+      "materials": [
+        "kit_paper",
+        "kit_photo_window"
+      ],
+      "gltf_box_min": [
+        -0.044,
+        -0.0535,
+        -0.0
+      ],
+      "gltf_box_max": [
+        0.044,
+        0.0535,
+        0.0022
+      ]
+    },
+    "Card": {
+      "tris": 144,
+      "materials": [
+        "kit_card"
+      ],
+      "gltf_box_min": [
+        -0.0635,
+        -0.038,
+        -0.0
+      ],
+      "gltf_box_max": [
+        0.0635,
+        0.038,
+        0.0045
+      ]
+    },
+    "Spool": {
+      "tris": 308,
+      "materials": [
+        "kit_wood",
+        "kit_string"
+      ],
+      "gltf_box_min": [
+        -0.0134,
+        0.0,
+        -0.0134
+      ],
+      "gltf_box_max": [
+        0.0134,
+        0.03,
+        0.0134
+      ]
+    },
+    "Pencil": {
+      "tris": 166,
+      "materials": [
+        "kit_pencil"
+      ],
+      "gltf_box_min": [
+        -0.0865,
+        -0.0006,
+        -0.0039
+      ],
+      "gltf_box_max": [
+        0.073,
+        0.0068,
+        0.0039
+      ]
+    }
+  },
+  "board": {
+    "outer_m": [
+      1.6,
+      1.0
+    ],
+    "cork_m": [
+      1.48,
+      0.88
+    ],
+    "cork_plane": "z = 0, centre at origin, faces +Z glTF",
+    "frame_crown_z": 0.022,
+    "back_z": -0.04,
+    "ledge_top_y": -0.452
+  }
+}

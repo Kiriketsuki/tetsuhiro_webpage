@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import ProjectRow from './ProjectRow.vue'
-import { FEATURED, monogram, projects } from '../data/projects.js'
+import { homeProjects, monogram, projects } from '../data/projects.js'
 import { sideOf, useWaypoints } from '../composables/useWaypoints.js'
 
 // The pictures wait until the visitor gets to the skills section, one before
@@ -17,7 +17,7 @@ watch(
     { immediate: true }
 )
 
-const featured = projects.slice(0, FEATURED)
+const featured = homeProjects
 // The row under the pointer shows its picture in the corner of the frame.
 const peeked = ref(featured[0])
 const picture = computed(() => (showImages.value ? peeked.value.image : null))

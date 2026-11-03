@@ -2,10 +2,11 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { findProject } from '../data/projects.js'
+import { withPage } from '../data/project-pages.js'
 
 // The router only lets known ids through, so project is always set here.
 const route = useRoute()
-const project = computed(() => findProject(route.params.id))
+const project = computed(() => withPage(findProject(route.params.id)))
 
 const rows = computed(() => [
     ['Year', project.value.year],
@@ -21,8 +22,8 @@ const rows = computed(() => [
             <h1 class="case-title">{{ project.title }}</h1>
         </header>
 
-        <div class="case-top">
-            <figure class="case-cover frame frame-line">
+        <div class="case-top" :class="{ 'no-cover': !project.cover }">
+            <figure v-if="project.cover" class="case-cover frame frame-line">
                 <img :src="project.cover" :alt="project.coverAlt" decoding="async" fetchpriority="high" />
             </figure>
 
@@ -109,6 +110,11 @@ const rows = computed(() => [
 @media (min-width: 900px) {
     .case-top {
         grid-template-columns: 1fr 20rem;
+    }
+
+    /* A project with no screenshots shows the spec sheet alone, at the width of the sidebar. */
+    .case-top.no-cover {
+        grid-template-columns: 20rem;
     }
 }
 

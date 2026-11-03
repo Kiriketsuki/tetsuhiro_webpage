@@ -2,6 +2,7 @@ import { watch } from 'vue'
 import gsap from 'gsap'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { useExplore } from './composables/useExplore.js'
+import { useWall } from './composables/useWall.js'
 import { createSceneManager } from './scene/scene-manager.js'
 import { stopForRoute } from './data/stops.js'
 import { waypoints } from './data/waypoints.js'
@@ -19,6 +20,24 @@ let manager = null
 let route = 'Home'
 let wanted = false
 let inSky = false
+let inWall = false
+let wallBuilt = false
+const wall = useWall()
+// The routes that show the evidence wall: the board, and the board with one pin open.
+const WALL_ROUTES = ['Projects', 'Project']
+
+// A still of the frame drawn just now, over the canvas, that fades out. It hides a cut.
+// The canvas keeps no drawing buffer, so the still copies a frame drawn just now.
+function crossfade() {
+    manager.renderNow()
+    const still = document.createElement('canvas')
+    still.className = canvas.className
+    Object.assign(still, { width: canvas.width, height: canvas.height })
+    still.style.cssText = `visibility:visible;opacity:${getComputedStyle(canvas).opacity}`
+    still.getContext('2d').drawImage(canvas, 0, 0)
+    canvas.after(still)
+    gsap.to(still, { opacity: 0, duration: 0.6, onComplete: () => still.remove() })
+}
 
 // The telescope eyepiece: the camera flies up to the eyepiece, an iris closes, and it opens
 // on the skill sky (scene-manager.js lookThrough). Leaving plays it in reverse, on to `back`.
@@ -31,20 +50,47 @@ function eyepiece(toSky, back) {
     const { looking } = useExplore()
     const move = ++moves
     looking.value = true
-    if (reducedMotion.value) {
-        // The canvas keeps no drawing buffer, so the still copies a frame drawn just now.
-        manager.renderNow()
-        const still = document.createElement('canvas')
-        still.className = canvas.className
-        Object.assign(still, { width: canvas.width, height: canvas.height })
-        still.style.cssText = `visibility:visible;opacity:${getComputedStyle(canvas).opacity}`
-        still.getContext('2d').drawImage(canvas, 0, 0)
-        canvas.after(still)
-        gsap.to(still, { opacity: 0, duration: 0.6, onComplete: () => still.remove() })
-    }
+    if (reducedMotion.value) crossfade()
     manager.lookThrough(toSky, back).then(() => {
         if (move === moves) looking.value = false
     })
+}
+
+// The workshop board: the camera flies to the board and the room board dissolves into the
+// lit wall (scene-manager.js enterWall). Leaving plays it in reverse, on to `back`. Before
+// the wall has built, the camera goes to the workshop and moves on to the board once it can.
+function board(toWall, back) {
+    if (toWall === inWall) return
+    inWall = toWall
+    wall.shown.value = toWall && wallBuilt
+    if (!toWall) {
+        manager.enterWall(false, back)
+        return
+    }
+    if (wallBuilt) {
+        manager.enterWall(true)
+        return
+    }
+    manager.goTo('workshop')
+    manager.wall.built().then((ok) => {
+        if (!ok || !inWall) return
+        wall.shown.value = true
+        manager.enterWall(true)
+    })
+}
+
+// Leaves the sky or the wall at once, under a crossfade, so the next move starts from the
+// island. A route from the sky to the wall, or back, takes this path.
+function leaveViewNow() {
+    if (!inSky && !inWall) return
+    crossfade()
+    // A move that still runs would swap its view back in later, so it ends here.
+    manager.settle()
+    manager.showSky(false)
+    manager.showWall(false)
+    inSky = false
+    inWall = false
+    wall.shown.value = false
 }
 
 // No WebGL, or the scene failed to build. The canvas shows a CSS night sky instead, and
@@ -77,6 +123,9 @@ function boot() {
         start: currentStop(),
         // Only the focus ring reads the lens strength, so only the ring restyles when it moves.
         lensTarget: () => document.querySelector('.focus-ring'),
+        // A direct visit to Projects, or to one project, opens on the wall, so the reveal waits
+        // for it. The two older project pages are text pages.
+        wall: /^\/projects(\/(?!dancing_tables$|placeholders$)[^/]+)?$/.test(location.pathname.replace(/\/+$/, '').toLowerCase()),
         onProgress: (value) => {
             progress.value = Math.max(progress.value, value)
         },
@@ -113,7 +162,17 @@ function boot() {
 
     // Drag and pinch from ExplorePad.vue look around the current stop.
     const explore = useExplore()
-    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap: manager.tap })
+    // A tap on the wall that lands on a pin opens it.
+    const tap = (x, y) => {
+        const id = manager.tap(x, y)
+        if (id) wall.picked.value = id
+    }
+    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap })
+    wall.connect(manager.wall)
+    manager.wall.built().then((ok) => {
+        wallBuilt = ok
+        if (ok && inWall) wall.shown.value = true
+    })
     // At the telescope, looking around means looking through it at the skill sky.
     watch(explore.exploring, (value) => {
         if (value && currentStop() === 'telescope') eyepiece(true)
@@ -153,18 +212,34 @@ export function setRoute(name, { cut = false } = {}) {
     // Text pages dim the scene, so its twinkle and water are not worth the frames there.
     manager?.setAmbientFps(name === 'Home' ? 30 : 0)
     // The skills page sits over the skill sky. A direct visit opens on it with every star lit.
-    // A route change into or out of it is the move through the eyepiece.
+    // A route change into or out of it is the move through the eyepiece. Projects sits over
+    // the evidence wall in the same way, and its move is the flight to the workshop board.
     const sky = name === 'Skills'
+    const onWall = WALL_ROUTES.includes(name)
     if (!manager) return
     if (cut) {
         manager.goTo(currentStop(), { duration: 0 })
         inSky = sky
+        inWall = onWall
         manager.ready.then(() => manager.showSky(sky, { reveal: false }))
-    } else if (sky !== inSky) {
-        manager.ready.then(() => eyepiece(sky, currentStop()))
-    } else {
-        manager.goTo(currentStop())
+        if (onWall) {
+            manager.wall.built().then((ok) => {
+                if (!ok || !inWall) return
+                manager.rig.jump('board')
+                manager.wall.reset()
+                manager.showWall(true)
+                wall.shown.value = true
+            })
+        }
+        return
     }
+    manager.ready.then(() => {
+        // From the sky to the wall, or back: drop the old view at once, then make the move.
+        if ((sky && inWall) || (onWall && inSky)) leaveViewNow()
+        if (sky !== inSky) eyepiece(sky, currentStop())
+        else if (onWall !== inWall) board(onWall, currentStop())
+        else if (!onWall) manager.goTo(currentStop())
+    })
 }
 
 try {

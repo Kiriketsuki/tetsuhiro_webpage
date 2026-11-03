@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { createWalkCurve, tableIndex } from './walk-curve.js'
-import { plannedPath } from './path-plan.js'
+import { plannedPath, GUIDE_CLEAR } from './path-plan.js'
+import { walks } from '../../data/walks.js'
 
 export { createClearance } from './clearance.js'
 export { warmPlans } from './path-plan.js'
@@ -45,7 +46,9 @@ const PACE_SAMPLES = 64
 // held between MOVE_TIME.min and MOVE_TIME.max. So a long move runs faster, but never rushes,
 // and a short move never crawls. A move whose view turns a long way (TURN_METRES), or that
 // passes a doorway (DOOR_SLOW), may take up to MOVE_TIME.turn seconds.
-const MOVE_TIME = { base: 1.2, speed: 12, min: 1.8, max: 3.6, turn: 4.4 }
+// A move along a story walk (walkFlight) takes its time from its pace with the walk's
+// slow-down, up to MOVE_TIME.walk seconds.
+const MOVE_TIME = { base: 1.2, speed: 12, min: 1.8, max: 3.6, turn: 4.4, walk: 6 }
 // The speed curve: the camera speeds up over the first RAMP.in of the move, cruises, and
 // slows over the last RAMP.out. The slow-down is the longer one, so the camera settles.
 const RAMP = { in: 0.35, out: 0.4 }
@@ -90,8 +93,8 @@ function blendView(a, b, w) {
 // planner when a clearance field is in, and are the two ends without one. The view turns
 // evenly along the distance flown, from the start view to the end view, and the look distance
 // blends in the same way. Returns the camera and look control points, ends included.
-function flight(from, to, field) {
-    const cams = field ? plannedPath(field, from.position, to.position) : [from.position.clone(), to.position.clone()]
+function flight(from, to, field, least) {
+    const cams = field ? plannedPath(field, from.position, to.position, least) : [from.position.clone(), to.position.clone()]
     const views = [from, to].map((end) => end.look.clone().sub(end.position))
     const [near, far] = views.map((view) => view.length())
     const [start, end] = views.map((view) => view.normalize())
@@ -116,6 +119,44 @@ function flight(from, to, field) {
         return cam.clone().addScaledVector(view, THREE.MathUtils.lerp(near, far, w))
     })
     return { cams, looks }
+}
+
+// The guide frames of the story walk of `leg`, `<from>><to>` (src/data/walks.js), each as
+// { position, look, slow }, or null. A move the other way plays its walk backward. The board
+// view sits behind the workshop door, so a move to or from it takes the walk of the workshop,
+// and the walk then hands over to the doorway frames. Without the walk, the camera met the door
+// axis from the hero shot at 28 m/s and turned onto it at 206 m/s2.
+function walkFrames(leg) {
+    const [from, to] = leg?.split('>').map((id) => (id === 'board' ? 'workshop' : id)) ?? []
+    const frames = walks[`${from}>${to}`] ?? walks[`${to}>${from}`]?.slice().reverse()
+    return (
+        frames?.map(({ position, look, slow = 1 }) => {
+            const point = new THREE.Vector3(...position)
+            return { position: point, look: aim(point, new THREE.Vector3(...look)), slow }
+        }) ?? null
+    )
+}
+
+// A flight along the guide frames of a story walk: one planned flight from frame to frame,
+// each with the frame's own view at its ends. The planner keeps GUIDE_CLEAR from every surface,
+// so the camera flies low along the walkway and still clears the lamps and the bridge rails.
+// Returns the camera and look control points, ends included, and the slow-down at each point.
+// The two ends take the slow-down of the frame next to them.
+function walkFlight(start, end, frames, field) {
+    const keys = [{ ...start, slow: frames[0].slow }, ...frames, { ...end, slow: frames.at(-1).slow }]
+    const cams = [start.position.clone()]
+    const looks = [start.look.clone()]
+    const slows = [keys[0].slow]
+    for (let i = 1; i < keys.length; i += 1) {
+        const part = flight(keys[i - 1], keys[i], field, GUIDE_CLEAR)
+        const span = part.cams.length - 1
+        for (let j = 1; j <= span; j += 1) {
+            cams.push(part.cams[j])
+            looks.push(part.looks[j])
+            slows.push(THREE.MathUtils.lerp(keys[i - 1].slow, keys[i].slow, j / span))
+        }
+    }
+    return { cams, looks, slows }
 }
 
 // The doorway frames of a move through a door, in the order of the move. door.side is 'in' or
@@ -151,7 +192,7 @@ function doorFrames(door, position, shot) {
 // views that face apart passes close to the camera, and the view flips in one frame: the move
 // out of the board view, which faces the wall, to the doorway behind it did that.
 const MAX_TURN = 1.4
-function splitTurns(cams, looks) {
+function splitTurns(cams, looks, slows = null) {
     for (let i = 0; i < cams.length - 1; i += 1) {
         const from = looks[i].clone().sub(cams[i]).normalize()
         const to = looks[i + 1].clone().sub(cams[i + 1]).normalize()
@@ -167,6 +208,7 @@ function splitTurns(cams, looks) {
         const middle = cams[i].clone().lerp(cams[i + 1], 0.5)
         cams.splice(i + 1, 0, middle)
         looks.splice(i + 1, 0, middle.clone().addScaledVector(from.applyAxisAngle(axis.normalize(), angle / 2), LOOK_DISTANCE))
+        slows?.splice(i + 1, 0, (slows[i] + slows[i + 1]) / 2)
         i -= 1
     }
 }
@@ -174,9 +216,11 @@ function splitTurns(cams, looks) {
 // Builds a move from the camera as it is now to `shot`. field is the clearance field
 // (clearance.js), or null until it is built. duration is in seconds, or null for a duration
 // from the path length. midway is true for a move that takes over from another one. door, if
-// given, sends the move through a doorway (doorFrames). The two paths have the same number of
-// points and the same knots, so the rig runs both on one spline parameter.
-export function createMove({ position, target, shot, duration = null, field = null, midway = false, door = null }) {
+// given, sends the move through a doorway (doorFrames). leg, `<from>><to>`, names the stops of
+// the move. A move from rest on a leg with a story walk follows the walk (walkFlight). A move
+// that takes over starts off the walk, so it flies one planned flight to its shot. The two paths have
+// the same number of points and the same knots, so the rig runs both on one spline parameter.
+export function createMove({ position, target, shot, duration = null, field = null, midway = false, door = null, leg = null }) {
     // A move that takes over starts its look path at the look point in use, at its distance.
     // The rig keeps the speed of that point, and a jump to LOOK_DISTANCE halved the turn rate
     // in one frame.
@@ -184,26 +228,28 @@ export function createMove({ position, target, shot, duration = null, field = nu
     const end = { position: shot.position.clone(), look: aim(shot.position, shot.target) }
     let cams = null
     let looks = null
+    // The walk slow-down at each control point, or null for a move without a walk.
+    let slows = null
     const frames = door ? doorFrames(door, position, shot) : []
-    if (!frames.length) ({ cams, looks } = flight(start, end, field))
+    const walk = midway ? null : walkFrames(leg)
+    const fly = (from, to) => (walk ? walkFlight(from, to, walk, field) : { ...flight(from, to, field), slows: null })
+    if (!frames.length) ({ cams, looks, slows } = fly(start, end))
     else if (door.side === 'in') {
         // A flight to the first doorway frame, then through the door to the shot.
-        ;({ cams, looks } = flight(start, frames[0], field))
-        frames.slice(1).forEach((frame) => {
+        ;({ cams, looks, slows } = fly(start, frames[0]))
+        ;[...frames.slice(1), end].forEach((frame) => {
             cams.push(frame.position)
             looks.push(frame.look)
+            slows?.push(slows.at(-1))
         })
-        cams.push(end.position)
-        looks.push(end.look)
     } else {
         // Through the door from the shot inside, then a flight to the end shot.
-        cams = [start.position, ...frames.map((frame) => frame.position)]
-        looks = [start.look, ...frames.map((frame) => frame.look)]
-        const out = flight(frames.at(-1), end, field)
-        cams.push(...out.cams.slice(1))
-        looks.push(...out.looks.slice(1))
+        const out = fly(frames.at(-1), end)
+        cams = [start.position, ...frames.map((frame) => frame.position), ...out.cams.slice(1)]
+        looks = [start.look, ...frames.map((frame) => frame.look), ...out.looks.slice(1)]
+        slows = out.slows && [...frames.map(() => out.slows[0]), ...out.slows]
     }
-    if (door) splitTurns(cams, looks)
+    if (door) splitTurns(cams, looks, slows)
     const camPath = createWalkCurve(cams)
     const lookPath = createWalkCurve(looks, camPath.gaps)
     // The camera metres and the view turn in radians of each pace sample along the shared
@@ -228,6 +274,12 @@ export function createMove({ position, target, shot, duration = null, field = nu
         turns[k] = nextView.angleTo(view)
         plainPace += Math.hypot(metres[k], TURN_METRES[0] * turns[k])
         if (door) slow[k] = 1 + (DOOR_SLOW - 1) * (1 - THREE.MathUtils.smoothstep(nextCam.distanceTo(door.porch), DOOR_ZONE.near, DOOR_ZONE.far))
+        // A walk eases from the slow-down of one control point to the next, flat at each point,
+        // so the speed changes with no step in acceleration. Near a door the larger one holds.
+        if (slows) {
+            const i = Math.min(segments - 1, Math.floor(p))
+            slow[k] = Math.max(slow[k], THREE.MathUtils.lerp(slows[i], slows[i + 1], THREE.MathUtils.smootherstep(p - i, 0, 1)))
+        }
         cam.copy(nextCam)
         view.copy(nextView)
     }
@@ -247,7 +299,10 @@ export function createMove({ position, target, shot, duration = null, field = nu
             pace[k] = pace[k - 1] + step
             if (step > 0) share = Math.max(share, turns[k] / step)
         }
-        time = duration ?? Math.max(plainTime, Math.min(MOVE_TIME.turn, plainTime * Math.sqrt(pace[count] / plainPace)))
+        // A walk takes its time from the whole pace, slow-down included, so the camera keeps
+        // the walkway pace and does not rush the walk to fit MOVE_TIME.max.
+        const stretched = slows ? MOVE_TIME.base + pace[count] / MOVE_TIME.speed : plainTime * Math.sqrt(pace[count] / plainPace)
+        time = duration ?? Math.max(plainTime, Math.min(slows ? MOVE_TIME.walk : MOVE_TIME.turn, stretched))
         if ((share * CRUISE * pace[count]) / time <= TURN_RATE) break
     }
     // The spline parameter at share s of the pace, for both paths.

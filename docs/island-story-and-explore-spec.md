@@ -35,7 +35,7 @@ It extends `docs/site-rewrite-plan.md`. The budgets, the no-bloom rule, the smoo
 
 - `src/data/waypoints.js` takes this order. `sections`, the keys 1 to 5 and the snap points follow from it, as they do now.
 - The nav (`src/components/Navbar.vue`) lists Welcome, Projects, About, Skills, Contact. The middle item, under the mark, becomes About, the bedroom, which is the highest room of the house.
-- `arrival` is a new stop. It looks west from beyond the pad along the walkway: the pad in front, then the ramp, the deck, the bridge and the house. The portrait `tallView` of `pad` already frames this view, so `arrival` starts from it on both orientations and gets its own landscape shot.
+- `arrival` is a new stop and the hero shot (revised 3 November 2026). It looks at the whole aerie from the south-east: the house and its tower, the lawn, the stream and its bridge, the pad and the waterfall off the rim, with the city below. A portrait phone takes its own `tallView` on the same line. The move to `workshop` follows the walk over the bridge (`src/data/walks.js`, `docs/smooth-camera.md`, fourth pass).
 - `hero` and `pad` stay in `stops.js`, because the lab and the round notes use them. Delete them only when nothing reads them.
 - `campfire` is a new stop and the closing shot. The fire (`Anchor_Campfire`) already sits about 2.4 m from the north rim, and the city lies north and far below (`Anchor_City`), so the fire stays where it is. The camera stands about 6 m above the lawn south of the fire and looks north-north-east, about 20 degrees down, past the fire and over the rim. The owner picked this framing ("above the fire") from three on 3 November 2026:
   - the fire, its logs and its glow in the foreground, sharp under the lens.

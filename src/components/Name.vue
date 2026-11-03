@@ -2,8 +2,7 @@
     <div
         ref="gate"
         class="gate"
-        :class="{ 'is-ready': ready }"
-        :style="{ '--p': shown }"
+        :class="{ 'is-ready': full }"
         role="dialog"
         aria-modal="true"
         aria-labelledby="gate-name"
@@ -12,6 +11,7 @@
             <h1 id="gate-name">
                 <span class="gate-eyebrow">Lim Zhe Hong</span>
                 <span class="gate-name">Jovian</span>
+                <span ref="nameLit" class="gate-name is-lit" aria-hidden="true">Jovian</span>
             </h1>
             <p class="gate-role">software engineer &middot; singapore</p>
         </header>
@@ -29,16 +29,19 @@
         <div class="gate-foot">
             <p class="gate-readout" aria-live="polite">
                 <template v-if="loadError">{{ loadError }}</template>
-                <template v-else-if="ready">the lamps are lit</template>
-                <template v-else>lighting the lamps <b>{{ percent }}%</b></template>
+                <template v-else-if="full">the lamps are lit</template>
+                <template v-else>
+                    lighting the lamps
+                    <b aria-hidden="true"><span class="gate-count"><span ref="drum" class="gate-drum"><i v-for="n in 101" :key="n">{{ n - 1 }}</i></span></span>%</b>
+                </template>
             </p>
 
             <button
                 ref="enter"
                 type="button"
                 class="gate-enter"
-                :disabled="!ready"
-                :aria-label="ready ? 'Enter the aerie' : 'Still loading'"
+                :disabled="!full"
+                :aria-label="full ? 'Enter the aerie' : 'Still loading'"
                 @click="lift"
             >
                 enter the aerie
@@ -52,9 +55,10 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import gsap from 'gsap'
 import { useWaypoints } from '../composables/useWaypoints.js'
+import { createGateMeter } from './gate-meter.js'
 
 const emit = defineEmits(['lifted'])
 const { ready, progress, entered, loadError, reducedMotion } = useWaypoints()
@@ -62,13 +66,78 @@ const { ready, progress, entered, loadError, reducedMotion } = useWaypoints()
 // The lantern art lives in index.html, so it paints before this bundle loads. Its styles sit
 // there too. On a visit that starts on another page it waits there, hidden.
 const art = document.getElementById('gate-art')
-// Whole percent steps, so the art restyles at most a hundred times in a load.
-const shown = computed(() => Math.round(progress.value * 100) / 100)
-watchEffect(() => art?.style.setProperty('--p', shown.value))
 
 const gate = ref(null)
 const enter = ref(null)
-const percent = computed(() => Math.round(shown.value * 100))
+const nameLit = ref(null)
+const drum = ref(null)
+// True once the meter shows the load done. The lamp is lit and the way in opens.
+const full = ref(false)
+
+// The share of the meter that the fonts and the next pages take. The scene, the wall and
+// the camera planner take the rest (src/three.js).
+const VISIT_SHARE = 0.05
+// The least time between two meter plans, and the longest, in milliseconds.
+const PLAN_MS = { min: 200, max: 8000 }
+
+// The fonts and the pages a visitor opens next load behind the gate too. They start once the
+// aerie has downloaded (the real share passes DOWNLOADED, half of SCENE_SHARE in src/three.js),
+// so the island gets the bandwidth first.
+const DOWNLOADED = 0.37
+// The longest the gate waits for them, in milliseconds.
+const VISIT_WAIT_MS = 8000
+let visitShare = 0
+let visitLoaded = null
+const preloadVisit = () => {
+    const loads = [
+        ...[...document.fonts].map((face) => face.load()),
+        import('../views/Skills.vue'),
+        import('../views/Projects.vue'),
+        import('../views/AboutRoom.vue'),
+        // The logos on the skill sky cards, which otherwise load when the first card opens.
+        import('../data/skill-icons.js'),
+    ].map((load) => load.catch(() => {}))
+    let left = loads.length
+    loads.forEach((load) =>
+        load.then(() => {
+            visitShare = 1 - --left / loads.length
+            plan()
+        })
+    )
+    return Promise.race([Promise.all(loads), new Promise((resolve) => setTimeout(resolve, VISIT_WAIT_MS))])
+}
+
+// Each layer's look at share p. Every one is linear in p, so the meter plays one curve on all
+// of them. The drum holds 101 numbers, so share p shows the number 100p in the window.
+let meter = null
+const tracks = () => {
+    const pick = (selector) => art?.querySelector(selector) ?? null
+    return [
+        { el: pick('.ga-paper.ga-lit'), frame: (p) => ({ opacity: p }) },
+        { el: pick('.ga-glow'), frame: (p) => ({ opacity: p }) },
+        { el: pick('.ga-reveal'), frame: (p) => ({ transform: `translateX(${(p - 1) * 100}%)` }) },
+        { el: pick('.ga-autumn'), frame: (p) => ({ transform: `translateX(${(1 - p) * 130}%)` }) },
+        { el: nameLit.value, frame: (p) => ({ opacity: p }) },
+        { el: drum.value, frame: (p) => ({ transform: `translateY(${(-100 * 100 * p) / 101}%)` }) },
+    ]
+}
+
+// Plans the meter toward the real share, at most once per PLAN_MS.min. A long task delays the
+// timer, and the running animation carries the meter until then.
+let planTimer = 0
+let refresh = 0
+const plan = () => {
+    if (planTimer || !meter) return
+    planTimer = setTimeout(() => {
+        planTimer = 0
+        meter?.update(realShare())
+    }, PLAN_MS.min)
+}
+const realShare = () => progress.value * (1 - VISIT_SHARE) + visitShare * VISIT_SHARE
+watch(progress, (value) => {
+    if (value >= DOWNLOADED) visitLoaded ??= preloadVisit()
+    plan()
+})
 
 // The time the art takes to leave: the lamp bloom, then the fade in index.html.
 const LEAVE_MS = { motion: 2000, still: 700 }
@@ -107,18 +176,40 @@ const onHover = (event) => {
     if (event.pointerType === 'mouse') swing(event)
 }
 
-// The button takes focus as soon as it works, so Enter goes straight in. At ready the lantern
+// Resolves after the next two frames and an idle moment. A font that arrives last makes the
+// scene draw its labels again and upload them in the next frame, a long task on a slow phone.
+// That frame lands here, under the creeping meter, and not on the run to 1. A hidden tab has
+// no frames, so a timer stands in after SETTLE_MS.
+const SETTLE_MS = 3000
+const settled = () =>
+    new Promise((resolve) => {
+        const idle = () => ('requestIdleCallback' in window ? requestIdleCallback(resolve, { timeout: 1500 }) : setTimeout(resolve, 50))
+        requestAnimationFrame(() => requestAnimationFrame(idle))
+        setTimeout(resolve, SETTLE_MS)
+    })
+
+// At ready the meter runs to 1, once the fonts and the next pages are in too. After a failed
+// load the meter does not wait for them.
+watch(ready, async (value) => {
+    if (!value || !meter) return
+    if (!loadError.value) {
+        await (visitLoaded ??= preloadVisit())
+        await settled()
+    }
+    await meter.finish()
+    full.value = true
+})
+
+// The button takes focus as soon as it works, so Enter goes straight in. Once full the lantern
 // stays lit until the visitor goes in, and a leaf now and then drifts down (is-lit).
-watch(
-    ready,
-    async (value) => {
-        if (!value) return
-        art?.classList.add('is-lit')
-        await nextTick()
-        enter.value?.focus({ preventScroll: true })
-    },
-    { immediate: true }
-)
+watch(full, async (value) => {
+    if (!value) return
+    clearTimeout(planTimer)
+    clearInterval(refresh)
+    art?.classList.add('is-lit')
+    await nextTick()
+    enter.value?.focus({ preventScroll: true })
+})
 
 // A second greeting, from the nav lantern, finds the art hidden and fades it back in.
 onMounted(() => {
@@ -130,13 +221,28 @@ onMounted(() => {
     }
     place()
     window.addEventListener('resize', place)
+    // The meter goes on from the dawn in index.html. A second greeting shows it full at once.
+    meter = createGateMeter(tracks(), art?.querySelector('.ga-paper.ga-lit'))
+    if (ready.value) {
+        meter.finish({ instant: true })
+        full.value = true
+        return
+    }
+    meter.update(progress.value * (1 - VISIT_SHARE))
+    // A plan covers 90 seconds. A load with no news for that long still creeps on.
+    refresh = setInterval(plan, PLAN_MS.max)
 })
 
-onBeforeUnmount(() => window.removeEventListener('resize', place))
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', place)
+    clearTimeout(planTimer)
+    clearInterval(refresh)
+    meter?.stop()
+})
 
 // The camera starts moving as the lamp light washes over the view, not after it.
 const lift = () => {
-    if (!ready.value || entered.value) return
+    if (!full.value || entered.value) return
     entered.value = true
     art?.classList.add('is-open')
     gsap.to(gate.value, { autoAlpha: 0, duration: reducedMotion.value ? 0.3 : 0.8, ease: 'power2.in' })

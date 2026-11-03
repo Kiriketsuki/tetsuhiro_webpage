@@ -33,9 +33,11 @@
       the app bundle, so it paints before the JS arrives and costs nothing against the shell
       budgets. The lantern, the branch and the falling leaves are frames from
       lab/gate-lantern.html, drawn with the aerie's own toon material, ink and lens, so they
-      match the aerie. src/components/Name.vue sets --p to the real load share, opens the art
-      as an iris onto the aerie when the scene is ready, and removes it after the visitor
-      goes in. Colours are hex, because the token CSS loads with the bundle.
+      match the aerie. src/components/Name.vue sets --p to the real load share. When the scene
+      is ready the lantern stays lit until the visitor goes in, then its light washes the view
+      into the aerie and Name.vue hides the art. The nav lantern brings it back. Every motion
+      here is a transform or an opacity, so the compositor keeps it smooth while the main
+      thread builds the scene. Colours are hex, because the token CSS loads with the bundle.
     -->
     <style>
       #gate-art {
@@ -49,9 +51,9 @@
           radial-gradient(80% 50% at 82% 8%, #10244a, transparent 70%),
           linear-gradient(#020812, #071330 45%, #141a3c 78%, #2a2148);
       }
-      #gate-art.is-ready {
-        -webkit-mask: radial-gradient(circle at var(--x) var(--y), transparent var(--hole), #000 calc(var(--hole) + 7rem));
-        mask: radial-gradient(circle at var(--x) var(--y), transparent var(--hole), #000 calc(var(--hole) + 7rem));
+      #gate-art.is-open {
+        opacity: 0;
+        transition: opacity 1s 0.9s;
       }
       #gate-art > *,
       .ga-art > * {
@@ -110,6 +112,8 @@
       }
       .ga-branch {
         background-image: url(/gate/branch-s0.webp);
+        transform-origin: 50% 20%;
+        animation: ga-breeze 8s ease-in-out infinite alternate;
       }
       /* Autumn spreads along the branch from left to right as the load grows. */
       .ga-autumn {
@@ -117,9 +121,15 @@
         -webkit-mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
         mask: linear-gradient(90deg, #000 calc(var(--p) * 130% - 30%), transparent calc(var(--p) * 130%));
       }
+      /* Name.vue swings .ga-nudge on a hover or a tap. .ga-lantern keeps its own slow swing. */
+      .ga-nudge,
       .ga-lantern {
+        position: absolute;
         inset: 0;
         transform-origin: 50% 21.5%;
+        will-change: transform;
+      }
+      .ga-lantern {
         animation: ga-swing 6s ease-in-out infinite alternate;
       }
       .ga-paper {
@@ -145,9 +155,25 @@
         background: radial-gradient(closest-side, #ffb04d55, #ff8a3a1f 45%, transparent);
         animation: ga-flicker 3.1s ease-in-out infinite;
       }
-      .ga-core {
+      .ga-flare,
+      .ga-bloom {
         left: 50%;
         top: 55.9%;
+        width: 52%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        opacity: 0;
+        transform: translate(-50%, -50%);
+        will-change: transform, opacity;
+      }
+      .ga-flare {
+        background: radial-gradient(closest-side, #ffe2a088, #ffb04d33 45%, transparent);
+      }
+      .ga-bloom {
+        background: radial-gradient(closest-side, #ffd28a, #ffb04dcc 35%, #ff8a3a55 60%, transparent);
+      }
+      .is-open .ga-bloom {
+        animation: ga-bloom 1.5s cubic-bezier(0.35, 0, 0.6, 1) forwards;
       }
       .ga-leaf {
         left: var(--x);
@@ -157,10 +183,10 @@
         background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
         opacity: 0;
       }
-      .is-ready .ga-leaf {
+      .is-open .ga-leaf {
         animation: ga-fall 3.6s cubic-bezier(0.4, 0, 0.7, 1) var(--d) both;
       }
-      .is-ready .ga-fades {
+      .is-open .ga-fades {
         opacity: 0;
         transition: opacity 1.2s 0.5s;
       }
@@ -177,6 +203,15 @@
         30% { opacity: 0.84; transform: scale(0.985); }
         55% { opacity: 1; }
         80% { opacity: 0.9; transform: scale(1.012); }
+      }
+      @keyframes ga-breeze {
+        from { transform: rotate(-0.35deg); }
+        to { transform: rotate(0.4deg) translateY(1px); }
+      }
+      @keyframes ga-bloom {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+        35% { opacity: 1; }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(9); }
       }
       @keyframes ga-swing {
         from { transform: rotate(-1.4deg); }
@@ -206,6 +241,9 @@
         #gate-art *::before {
           animation: none !important;
         }
+        #gate-art.is-open {
+          transition: opacity 0.6s;
+        }
       }
       /* The gate dialog from Name.vue: a title screen lit from below by the lantern. */
       .gate {
@@ -229,6 +267,17 @@
       }
       .gate > * {
         position: relative;
+      }
+      /* Name.vue places this over the lantern. A hover or a tap swings it. */
+      .gate > .gate-lantern {
+        position: absolute;
+        border-radius: 45%;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .gate-lantern:focus-visible {
+        outline: 2px solid #14b8a6;
+        outline-offset: 4px;
       }
       .gate-title {
         transform-origin: 50% 0;
@@ -397,11 +446,14 @@
         <i class="ga-glow ga-fades"></i>
         <i class="ga-img ga-branch ga-fades"></i>
         <i class="ga-img ga-branch ga-autumn ga-fades"></i>
-        <div class="ga-lantern ga-fades">
-          <i class="ga-img ga-paper"></i>
-          <i class="ga-img ga-paper ga-lit"></i>
+        <div class="ga-nudge ga-fades">
+          <div class="ga-lantern">
+            <i class="ga-img ga-paper"></i>
+            <i class="ga-img ga-paper ga-lit"></i>
+          </div>
         </div>
-        <i class="ga-core"></i>
+        <i class="ga-flare"></i>
+        <i class="ga-bloom"></i>
         <i class="ga-leaf" style="--x:3.5%;--y:22.9%;--s:0;--r:143deg;--d:0.84s"></i>
         <i class="ga-leaf" style="--x:10.3%;--y:23.4%;--s:1;--r:-59deg;--d:0.71s"></i>
         <i class="ga-leaf" style="--x:17.9%;--y:11.9%;--s:2;--r:135deg;--d:0.20s"></i>
@@ -414,9 +466,19 @@
         <i class="ga-leaf" style="--x:89.7%;--y:13.1%;--s:1;--r:-117deg;--d:0.21s"></i>
       </div>
     </div>
-    <!-- The gate shows only on a first visit to the home page. -->
+    <!-- The gate shows on a first visit to the home page. On any other page the art waits,
+         hidden and not downloaded, for the nav lantern. On the home page the layers decode
+         now, so no layer decodes on the main thread when the lamp first lights. -->
     <script>
-      location.pathname === '/' || document.getElementById('gate-art').remove()
+      if (location.pathname === '/') {
+        for (const name of ['branch-s0', 'lantern-s0', 'lantern-s1', 'branch-s1', 'sprites-s1']) {
+          const image = new Image()
+          image.src = '/gate/' + name + '.webp'
+          image.decode().catch(() => {})
+        }
+      } else {
+        document.getElementById('gate-art').hidden = true
+      }
     </script>
 
     <div id="app"></div>

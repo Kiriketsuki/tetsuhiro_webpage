@@ -156,9 +156,9 @@ const rows = (project) => [
     width: min(34rem, calc(100vw - 2rem));
     overflow-y: auto;
     overscroll-behavior: contain;
-    border: 1px solid var(--color-line);
-    border-radius: 4px;
-    background: var(--color-bg-base);
+    border: 1px solid var(--color-brass-soft);
+    background: var(--color-glass);
+    backdrop-filter: blur(8px);
     box-shadow: 0 1.5rem 3rem rgb(0 0 0 / 0.55);
     transform-origin: 90% 55%;
     animation: sheet-off-board 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;

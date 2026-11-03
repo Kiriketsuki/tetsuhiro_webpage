@@ -436,7 +436,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // plays it in reverse and flies on to the stop `back`. Reduced motion swaps at once,
         // and src/three.js crossfades the frame.
         lookThrough: (on, back = 'telescope') => {
-            pipeline.grade.uniforms.uIris.value = 0
+            const iris = pipeline.grade.uniforms.uIris
+            // A visitor who leaves while the iris still opens on the sky gets a close from
+            // where the blades are, not a jump back to fully open.
+            const from = iris.value
+            iris.value = 0
             scope = null
             if (on === (view === 'sky') || state.reduced) {
                 if (on !== (view === 'sky')) showSky(on)
@@ -451,7 +455,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             } else {
                 const legs = [[close, 'eyepiece', 0], [close, 'telescope', fly]]
                 if (back !== 'telescope') legs.push([close + fly, back, 1.6])
-                scope = { t: 0, on, close: 0, swap: close, legs }
+                scope = { t: close * from, on, close: 0, swap: close, legs }
             }
             requestRender()
         },

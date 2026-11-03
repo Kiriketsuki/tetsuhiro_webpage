@@ -8,102 +8,45 @@ import { createRiverLights } from './city-river-lights.js'
 // through riverGlsl, and the towers stay off it through isOpen. All positions are world XZ
 // metres on the city plane.
 
-// The course: control points [x, z, half width]. A smooth curve runs through them.
+// The course, which the owner picked from three on 3 November 2026: a broad band across
+// the campfire view behind the tall towers, as the Han shows from Namsan. Control points
+// [x, z, half width], with a smooth curve through them.
 // isle: the park island, at a share of the course length, with its half length, its half
 // width, and its offset across the river (positive to the left bank as the river flows).
 // bridges: the share of the course length, the skew from square in degrees, and the type.
 // A foot bridge runs from the bank on its side (1 left, -1 right) to the island.
-export const LAYOUTS = {
-    diagonal: {
-        course: [
-            [-4400, 1000, 120],
-            [-2900, 300, 130],
-            [-1850, -170, 140],
-            [-950, -720, 150],
-            [-120, -1120, 165],
-            [700, -1800, 175],
-            [1600, -2250, 185],
-            [2700, -2650, 190],
-            [4300, -3350, 200],
-        ],
-        isle: { at: 0.665, length: 330, width: 70, offset: 40 },
-        bridges: [
-            { at: 0.14, skew: 8, type: 'girder' },
-            { at: 0.27, skew: -14, type: 'arch' },
-            { at: 0.39, skew: 6, type: 'double' },
-            { at: 0.53, skew: -16, type: 'girder' },
-            { at: 0.6, skew: 4, type: 'banpo' },
-            { at: 0.655, skew: 0, type: 'foot', side: -1 },
-            { at: 0.705, skew: 20, type: 'cable' },
-            { at: 0.745, skew: -6, type: 'arch' },
-            { at: 0.86, skew: -12, type: 'cable' },
-        ],
-    },
-    across: {
-        course: [
-            [-4400, -250, 120],
-            [-3100, -900, 135],
-            [-1900, -1650, 150],
-            [-700, -2000, 165],
-            [600, -2050, 175],
-            [1700, -1850, 185],
-            [2700, -1350, 195],
-            [4300, -900, 200],
-        ],
-        isle: { at: 0.47, length: 380, width: 80, offset: -60 },
-        bridges: [
-            { at: 0.16, skew: 10, type: 'girder' },
-            { at: 0.3, skew: -8, type: 'double' },
-            { at: 0.4, skew: -10, type: 'arch' },
-            { at: 0.465, skew: 12, type: 'girder' },
-            { at: 0.485, skew: 0, type: 'foot', side: 1 },
-            { at: 0.555, skew: -4, type: 'banpo' },
-            { at: 0.6, skew: 18, type: 'cable' },
-            { at: 0.685, skew: 6, type: 'arch' },
-            { at: 0.8, skew: -14, type: 'girder' },
-            { at: 0.9, skew: 10, type: 'cable' },
-        ],
-    },
-    meander: {
-        course: [
-            [-4400, -600, 120],
-            [-2900, -1000, 135],
-            [-1800, -1500, 150],
-            [-1000, -2150, 160],
-            [100, -2450, 175],
-            [950, -2150, 180],
-            [1150, -1550, 180],
-            [1800, -800, 190],
-            [3000, -250, 195],
-            [4400, 250, 200],
-        ],
-        isle: { at: 0.47, length: 360, width: 85, offset: 70 },
-        bridges: [
-            { at: 0.15, skew: -10, type: 'girder' },
-            { at: 0.26, skew: 14, type: 'double' },
-            { at: 0.35, skew: 12, type: 'arch' },
-            { at: 0.41, skew: -18, type: 'cable' },
-            { at: 0.475, skew: 8, type: 'girder' },
-            { at: 0.455, skew: 0, type: 'foot', side: 1 },
-            { at: 0.53, skew: -10, type: 'banpo' },
-            { at: 0.585, skew: 16, type: 'arch' },
-            { at: 0.62, skew: -6, type: 'cable' },
-            { at: 0.75, skew: 10, type: 'girder' },
-            { at: 0.88, skew: -8, type: 'double' },
-        ],
-    },
+export const LAYOUT = {
+    course: [
+        [-4400, -250, 120],
+        [-3100, -900, 135],
+        [-1900, -1650, 150],
+        [-700, -2000, 165],
+        [600, -2050, 175],
+        [1700, -1850, 185],
+        [2700, -1350, 195],
+        [4300, -900, 200],
+    ],
+    isle: { at: 0.47, length: 380, width: 80, offset: -60 },
+    bridges: [
+        { at: 0.16, skew: 10, type: 'girder' },
+        { at: 0.3, skew: -8, type: 'double' },
+        { at: 0.4, skew: -24, type: 'arch' },
+        { at: 0.465, skew: 16, type: 'girder' },
+        { at: 0.485, skew: 0, type: 'foot', side: 1 },
+        { at: 0.555, skew: -16, type: 'banpo' },
+        { at: 0.605, skew: 26, type: 'cable' },
+        { at: 0.685, skew: -10, type: 'arch' },
+        { at: 0.8, skew: -14, type: 'girder' },
+        { at: 0.9, skew: 10, type: 'cable' },
+    ],
 }
+
 // The width of the park strip along each bank, and the distance of the highway centre from
 // the outer edge of the park.
 export const PARK_WIDTH = 70
 export const ROAD = 14
 // The course as SAMPLES points at even spacing along it. The bake tests every segment.
 export const SAMPLES = 64
-
-const pick = () => {
-    const name = import.meta.env.DEV ? new URLSearchParams(location.search).get('river') : null
-    return LAYOUTS[name] ?? LAYOUTS.across
-}
 
 // The course at even spacing: x, z and half width for each sample, the spacing and the length.
 function sampleCourse(course) {
@@ -124,7 +67,7 @@ function sampleCourse(course) {
 // Builds the plan of one layout. at(s) gives the point, the unit direction, the unit normal to
 // the left bank and the half width at a distance s along the course. locate(x, z) gives the
 // distance along the course, the signed distance across it and the half width there.
-export function planRiver(ground, layout = pick()) {
+export function planRiver(ground, layout = LAYOUT) {
     const { samples, length, step } = sampleCourse(layout.course)
     const sample = (i) => samples.subarray(i * 4, i * 4 + 3)
     const at = (s) => {
@@ -244,7 +187,6 @@ vec4 riverAt( vec2 p ) {
 // ground height, the bokeh sizes, the city haze and its GLSL (city-river-lights.js).
 export function createCityRiver({ city, hazeUniforms, time, dpr }) {
     const plan = planRiver(city.ground)
-    if (import.meta.env.DEV) window.__river = plan
     const lights = createRiverLights({ plan, city, hazeUniforms, time, dpr })
     return { plan, bake: riverGlsl(plan), isOpen: plan.isOpen, group: lights.group, dispose: lights.dispose }
 }

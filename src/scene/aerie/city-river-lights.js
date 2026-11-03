@@ -69,23 +69,23 @@ function bridgeLights(bridge, add) {
     }
     switch (bridge.type) {
         case 'girder':
-            row(-11, 21, 30, 'sodium', 0.192)
-            row(11, 21, 30, 'sodium', 0.192)
+            row(-11, 21, 30, 'sodium', 0.35)
+            row(11, 21, 30, 'sodium', 0.35)
             break
         case 'arch': {
-            row(-11, 20, 34, 'warm', 0.144)
-            row(11, 20, 34, 'warm', 0.144)
+            row(-11, 20, 34, 'warm', 0.26)
+            row(11, 20, 34, 'warm', 0.26)
             const count = span > 300 ? 3 : 2
             for (let k = 0; k < count; k++) {
                 const a = water[0] + (span * k) / count
-                arch(a, a + span / count, -10, 16, 34, 'cool', 0.132)
-                arch(a, a + span / count, 10, 16, 34, 'cool', 0.132)
+                arch(a, a + span / count, -10, 16, 34, 'cool', 0.12)
+                arch(a, a + span / count, 10, 16, 34, 'cool', 0.12)
             }
             break
         }
         case 'cable':
-            row(-10, 24, 34, 'white', 0.144)
-            row(10, 24, 34, 'white', 0.144)
+            row(-10, 24, 34, 'white', 0.26)
+            row(10, 24, 34, 'white', 0.26)
             for (const f of [0.3, 0.7]) {
                 const x = water[0] + span * f
                 for (let y = 24; y <= 104; y += 7) put(x, 0, y, 'white', 0.07, { size: 0.6 })
@@ -97,30 +97,30 @@ function bridgeLights(bridge, add) {
             }
             break
         case 'double':
-            row(-11, 28, 32, 'warm', 0.156)
-            row(11, 28, 32, 'warm', 0.156)
-            row(-9, 11, 20, 'green', 0.096, { size: 0.8 })
-            row(9, 11, 20, 'green', 0.096, { size: 0.8 })
+            row(-11, 28, 32, 'warm', 0.28)
+            row(11, 28, 32, 'warm', 0.28)
+            row(-9, 11, 20, 'green', 0.17, { size: 0.8 })
+            row(9, 11, 20, 'green', 0.17, { size: 0.8 })
             break
         case 'banpo': {
-            row(-12, 26, 32, 'warm', 0.156)
-            row(12, 26, 32, 'warm', 0.156)
-            row(-9, 9, 26, 'white', 0.072, { size: 0.8 })
-            row(9, 9, 26, 'white', 0.072, { size: 0.8 })
+            row(-12, 26, 32, 'warm', 0.28)
+            row(12, 26, 32, 'warm', 0.28)
+            row(-9, 9, 26, 'white', 0.13, { size: 0.8 })
+            row(9, 9, 26, 'white', 0.13, { size: 0.8 })
             // The colour show: curtains of water fall from both sides of the deck, lit in
             // colours that drift slowly along the bridge.
             const count = Math.round(span / 9)
             for (let i = 0; i <= count; i++) {
                 const x = water[0] + (span * i) / count
                 for (const side of [-15, 15]) {
-                    for (const [y, gain] of [[20, 0.07], [12, 0.09], [5, 0.11]]) put(x, side, y, 'white', gain, { size: 0.9, phase: x / span, mode: MODE.show })
+                    for (const [y, gain] of [[20, 0.09], [12, 0.12], [5, 0.15]]) put(x, side, y, 'white', gain, { size: 0.9, phase: x / span, mode: MODE.show })
                 }
             }
             break
         }
         case 'foot':
-            arch(ends[0], ends[1], -4, 6, 10, 'rose', 0.12)
-            arch(ends[0], ends[1], 4, 6, 10, 'rose', 0.12)
+            arch(ends[0], ends[1], -4, 6, 10, 'rose', 0.2)
+            arch(ends[0], ends[1], 4, 6, 10, 'rose', 0.2)
             break
     }
 }
@@ -131,7 +131,7 @@ function parkLights(plan, add, rand) {
         for (let s = rand() * 40; s < plan.length; s += 42 + rand() * 30) {
             const p = plan.at(s)
             const across = side * (p.half + 0.5 * plan.park * (0.4 + 0.6 * rand()))
-            add(p.x + p.normal[0] * across, 4, p.z + p.normal[1] * across, 'park', 0.1, { size: 0.7, reflect: false })
+            add(p.x + p.normal[0] * across, 4, p.z + p.normal[1] * across, 'park', 0.16, { size: 0.65, reflect: false })
         }
     }
     const { isle } = plan
@@ -139,7 +139,7 @@ function parkLights(plan, add, rand) {
         const p = plan.at(s)
         for (const edge of [-0.7, 0.7]) {
             const across = isle.offset + edge * plan.isleHalf(s)
-            add(p.x + p.normal[0] * across, 4, p.z + p.normal[1] * across, 'park', 0.12, { size: 0.7, reflect: false })
+            add(p.x + p.normal[0] * across, 4, p.z + p.normal[1] * across, 'park', 0.18, { size: 0.65, reflect: false })
         }
     }
 }
@@ -155,7 +155,7 @@ function bankStreaks(plan, list, rand) {
             const colour = tints[Math.floor(rand() * tints.length)]
             list.push({
                 at: [p.x + p.normal[0] * across, plan.ground - 22 - 30 * rand(), p.z + p.normal[1] * across],
-                rgb: scaled(colour, 0.04 + 0.06 * rand()),
+                rgb: scaled(colour, 0.08 + 0.1 * rand()),
                 info: [0.9, STREAK, Math.atan2(side * p.normal[1], side * p.normal[0]), MODE.bank],
             })
         }
@@ -169,7 +169,7 @@ function carLights(plan, list, rand) {
     for (const side of [-1, 1]) {
         for (const [lane, colour, speed] of [[-4, 'head', 15], [4, 'tail', -15]]) {
             for (let s = rand() * 40; s < plan.length; s += 24 + 150 * rand() * rand()) {
-                list.push({ at: [s, side * (plan.road + lane), speed * (0.8 + 0.4 * rand())], rgb: scaled(colour, 0.22), info: [0.75, 1, 0, MODE.car] })
+                list.push({ at: [s, side * (plan.road + lane), speed * (0.8 + 0.4 * rand())], rgb: scaled(colour, 0.4), info: [0.7, 1, 0, MODE.car] })
             }
         }
     }
@@ -210,7 +210,7 @@ void main() {
     } else if ( aInfo.w > 1.5 ) {
         float h = fract( aInfo.z - uTime * 0.035 );
         vec3 hue = 0.5 + 0.5 * cos( 6.2832 * ( h + vec3( 0.0, 0.33, 0.67 ) ) );
-        colour *= mix( vec3( 0.75 ), hue, 0.7 ) * ( 0.8 + 0.2 * sin( uTime * 0.9 + aInfo.z * 25.0 ) );
+        colour *= mix( vec3( 0.75 ), hue, 0.55 ) * ( 0.8 + 0.2 * sin( uTime * 0.9 + aInfo.z * 25.0 ) );
     }
     float dist = distance( world, cameraPosition );
     float fog = dist * uHazeDensity;
@@ -266,7 +266,7 @@ ${city.hazeGlsl}
 void main() {
     float soft = smoothstep( 0.0, 0.3, vEdge ) * smoothstep( 1.0, 0.7, vEdge );
     float edge = 1.0 - smoothstep( 0.55, 1.0, length( vWorld.xz - vec2( ${f1(CITY_CENTRE[0])}, ${f1(CITY_CENTRE[1])} ) ) / ${f1(CITY_RADIUS)} );
-    vec3 col = mix( vec3( 0.018, 0.055, 0.032 ), hazeAt( normalize( vWorld - cameraPosition ) ), ${f1(city.haze)} );
+    vec3 col = mix( vec3( 0.02, 0.085, 0.045 ), hazeAt( normalize( vWorld - cameraPosition ) ), ${f1(city.haze)} );
     gl_FragColor = vec4( applyHaze( col, vWorld ), 0.85 * soft * edge );
 }
 `

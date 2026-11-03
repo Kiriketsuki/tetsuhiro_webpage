@@ -107,9 +107,7 @@ export const stops = {
         // crown a few metres from the lens filled the lower third of a phone screen with
         // large flat leaf shapes.
         tallView: { position: [-10.4, 10.2, -0.4], target: [-7.6, 9.3, -4.6], fov: 44 },
-        // The skills card covers the lower half of a phone screen, so the telescope rides
-        // up into the top third, clear of the card's top edge.
-        tall: [0, 0.24],
+        tall: [0, 0.08],
     },
     // The look through the telescope. The camera sits 0.22 m behind the eye lens on the optical
     // axis and looks along it, so the eyepiece sits at the frame centre, where the iris closes

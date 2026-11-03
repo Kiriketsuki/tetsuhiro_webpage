@@ -123,7 +123,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The move through the eyepiece while it runs: { t, on, legs, close, swap, end }.
     let scope = null
     const loaders = createLoaders()
-    const clock = new THREE.Clock(false)
+    // The rAF timestamp of the last frame, or null before the first frame of a run.
+    let frameAt = null
     let seconds = 0
     let ambient = 0
     let ambientFps = AMBIENT_FPS
@@ -375,8 +376,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         })
     }
 
-    const tick = () => {
-        const delta = Math.min(clock.getDelta(), 0.1)
+    // The frame step is the time between two rAF timestamps, which follow the display. A clock
+    // read in this callback wandered from it: the GSAP ticker and other rAF callbacks run first
+    // for a different time each frame. On a phone at 4x CPU throttle the read was up to 8.7 ms
+    // off, so the camera moved up to 79 percent more or less than the frame showed.
+    const tick = (time) => {
+        const delta = frameAt === null ? 0 : Math.min((time - frameAt) / 1000, 0.1)
+        frameAt = time
         seconds += delta
         ambient += delta
         rig.update(delta)
@@ -409,11 +415,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     const update = () => {
         if (running()) {
-            clock.start()
             renderer.setAnimationLoop(tick)
         } else {
             renderer.setAnimationLoop(null)
-            clock.stop()
+            frameAt = null
             if (state.reduced) requestRender()
         }
     }
@@ -625,7 +630,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
             // The skill sky is its own chunk, so it stays out of the scene budget.
             await skyFonts
-            const { createConstellation } = await skyModule
+            const { createConstellation, eyepieceGlass } = await skyModule
+            eyepieceGlass(scene)
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small, canvas })
             parts.constellation.resize(camera.aspect)
 

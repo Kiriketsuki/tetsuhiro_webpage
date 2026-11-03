@@ -174,12 +174,15 @@ body {
 
 /*
  * The plants_in_space title: one word top left, one bottom right. The two
- * words frame the island instead of sitting on it.
+ * words frame the island instead of sitting on it. The width cap keeps them
+ * close to the island on a wide screen.
  */
 .hero-inner {
     position: relative;
     z-index: 10;
     display: flex;
+    max-width: 92rem;
+    margin-inline: auto;
     flex-direction: column;
     justify-content: space-between;
     height: 100%;

@@ -3,7 +3,7 @@
         <article class="frame frame-violet flex w-full max-w-[24rem] flex-col gap-5 p-6 pt-8 sm:p-8 sm:pt-9">
             <span class="frame-legend">04 / out to the telescope</span>
             <h2 class="font-slab text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-text-strong">
-                Skill tree
+                Star chart
             </h2>
             <p class="hidden font-body text-sm text-text-body sm:block sm:text-[0.95rem]">
                 What I reach for as of November 2026. Mostly web and 3D, with Python and Go

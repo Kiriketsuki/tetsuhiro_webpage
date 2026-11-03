@@ -95,7 +95,7 @@ function boot() {
 
     // Drag and pinch from ExplorePad.vue look around the current stop.
     const explore = useExplore()
-    explore.connect({ pan: manager.pan, zoom: manager.zoom })
+    explore.connect({ pan: manager.pan, zoom: manager.zoom, tap: manager.tap })
     // At the telescope, looking around means looking through it at the skill sky.
     watch(explore.exploring, (value) => {
         if (value && currentStop() === 'telescope') eyepiece(true)

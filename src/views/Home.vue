@@ -10,7 +10,7 @@
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
                         <button type="button" class="action hero-scene" @click="sceneOnly = true">
-                            just the island
+                            just the aerie
                         </button>
                     </div>
                     <div class="flex flex-row-reverse">

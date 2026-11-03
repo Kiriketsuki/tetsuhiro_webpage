@@ -34,7 +34,7 @@ export function useScene() {
                     // the pages without the island.
                     console.error('The scene module did not load.', error)
                     const { ready, progress, loadError } = useWaypoints()
-                    loadError.value = 'The island did not load. A reload usually sorts it out.'
+                    loadError.value = 'The aerie did not load. A reload usually sorts it out.'
                     progress.value = 1
                     ready.value = true
                 })

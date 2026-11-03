@@ -10,7 +10,9 @@
       { "source": "/skills", "destination": "/index.html" },
       { "source": "/skills/", "destination": "/index.html" },
       { "source": "/projects", "destination": "/index.html" },
-      { "source": "/projects/**", "destination": "/index.html" }
+      { "source": "/projects/**", "destination": "/index.html" },
+      { "source": "/about", "destination": "/index.html" },
+      { "source": "/about/", "destination": "/index.html" }
     ],
     "headers": [
       {
@@ -30,7 +32,7 @@
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       },
       {
-        "source": "/@(skills|projects){,/**}",
+        "source": "/@(skills|projects|about){,/**}",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       }
     ]

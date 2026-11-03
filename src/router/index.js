@@ -14,9 +14,11 @@ const routes = [
         meta: { title: 'Home' },
         // /#projects opens Home on that section, and the address drops the hash. Back from a
         // project page, the browser's own Back too, lands on Projects and not on the welcome.
+        // Back from the About room lands on About in the same way.
         beforeEnter: (to, from) => {
             if (to.hash) return land(to.hash) ? { path: '/', hash: '' } : true
             if (PROJECT_ROUTES.includes(from.name)) land('projects')
+            else if (from.name === 'About') land('about')
             return true
         },
     },
@@ -25,6 +27,14 @@ const routes = [
         name: 'Skills',
         component: () => import('../views/Skills.vue'),
         meta: { title: 'Skills' },
+    },
+    // The bedroom on the top floor: the camera walks in through the balcony door, and each
+    // thing in the room opens one part of the About story.
+    {
+        path: '/about',
+        name: 'About',
+        component: () => import('../views/AboutRoom.vue'),
+        meta: { title: 'About' },
     },
     {
         path: '/projects',

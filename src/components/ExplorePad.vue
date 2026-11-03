@@ -2,11 +2,14 @@
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useExplore } from '../composables/useExplore.js'
 
-const { exploring, pan, zoom } = useExplore()
+const { exploring, pan, zoom, tap } = useExplore()
 
-// One finger drags the view. Two fingers drag and pinch at the same time.
+// One finger drags the view. Two fingers drag and pinch at the same time. One finger
+// that lifts within TAP_SLOP pixels of where it went down is a tap.
+const TAP_SLOP = 6
 const pointers = new Map()
 let last = null
+let press = null
 
 const snapshot = () => {
     const points = [...pointers.values()]
@@ -24,6 +27,7 @@ const onDown = (e) => {
     } catch {
         // The drag still works without capture.
     }
+    press = pointers.size ? null : { x: e.clientX, y: e.clientY }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
     last = snapshot()
 }
@@ -31,6 +35,7 @@ const onDown = (e) => {
 const onMove = (e) => {
     if (!pointers.has(e.pointerId)) return
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > TAP_SLOP) press = null
     const now = snapshot()
     pan(now.x - last.x, now.y - last.y)
     if (now.spread && last.spread) zoom(now.spread / last.spread)
@@ -40,6 +45,8 @@ const onMove = (e) => {
 const onUp = (e) => {
     pointers.delete(e.pointerId)
     last = pointers.size ? snapshot() : null
+    if (press && !pointers.size && e.type === 'pointerup') tap(press.x, press.y)
+    press = null
 }
 
 // A trackpad pinch arrives as a wheel event too.
@@ -66,7 +73,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         @pointercancel="onUp"
         @wheel.prevent="onWheel"
     >
-        <p class="label explore-hint">Drag to look around. Pinch or scroll to zoom.</p>
+        <p class="label explore-hint">Drag to look around. Pinch or scroll to zoom. Tap a constellation to fly to it.</p>
         <button type="button" class="action explore-back" @pointerdown.stop @click="leave">
             back to the skills
         </button>

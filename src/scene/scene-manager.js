@@ -15,7 +15,6 @@ import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
-import { createConstellation } from './aerie/constellation.js'
 import { projects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
@@ -367,7 +366,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 scene.add(parts.cards.mesh)
             }
 
-            await document.fonts.load('30px "JetBrains Mono"').catch(() => {})
+            // The skill sky is its own chunk, so it stays out of the scene budget.
+            await Promise.all([document.fonts.load('30px "JetBrains Mono"'), document.fonts.load('italic 42px "Instrument Serif"')]).catch(() => {})
+            const { createConstellation } = await import('./aerie/constellation.js')
             parts.constellation = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
             parts.constellation.resize(camera.aspect)
 
@@ -421,6 +422,13 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         pan: (dx, dy) => {
             if (view === 'sky') parts.constellation.pan(dx, dy)
             else rig.pan(dx, dy)
+            requestRender()
+        },
+        // x and y are client pixels. A tap on the skill sky flies to the constellation
+        // under it, or back out to the whole sky.
+        tap: (x, y) => {
+            if (view !== 'sky') return
+            parts.constellation.focus((x / window.innerWidth) * 2 - 1, 1 - (y / window.innerHeight) * 2, state.reduced)
             requestRender()
         },
         zoom: (factor) => {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import { branchOf, logoColor, skills } from '../data/skills.js'
+import { branchOf, skills } from '../data/skills.js'
+import { iconOf, logoColor } from '../data/skill-icons.js'
 
 const props = defineProps({
     skill: { type: Object, required: true },
@@ -14,7 +15,7 @@ const branch = computed(() => branchOf(props.skill))
     <li class="node" :style="{ '--node': `var(--color-${branch?.color ?? 'teal'})` }">
         <div class="row">
             <span class="logo" aria-hidden="true">
-                <svg viewBox="0 0 24 24" :fill="logoColor(skill)"><path :d="skill.icon.path" /></svg>
+                <svg viewBox="0 0 24 24" :fill="logoColor(skill)"><path :d="iconOf(skill).path" /></svg>
             </span>
             <span class="name">{{ skill.name }}</span>
             <span class="branch">{{ branch?.label }}</span>

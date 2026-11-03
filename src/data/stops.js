@@ -137,7 +137,7 @@ export const stops = {
         camera: null,
         anchor: 'Anchor_Pad',
         focus: 'Anchor_Pad',
-        fallback: { position: [31, 11.5, 4.5], target: [3, 0.5, 2], fov: 42 },
+        fallback: { position: [37, 13.5, 5.2], target: [2, 2.2, 1.5], fov: 42 },
         shift: [0, 0],
         tallView: { position: [21, 13, 3.5], target: [6, -0.8, 2], fov: 62 },
         tall: [0, 0],
@@ -156,10 +156,11 @@ export const stops = {
         fallback: { position: [3.6, 6.2, -1.6], target: [4.5, 0.0, -18], fov: 46 },
         // The shift lifts the fire clear of the nav strip at the foot of the screen.
         shift: [0, 0.1],
-        // A portrait phone has a narrow view, so the view aims a little west and widens, and
-        // the fire stays on screen above the card.
-        tallView: { position: [3.6, 6.2, -1.6], target: [2.2, 0.0, -18], fov: 50 },
-        tall: [0, 0.2],
+        // On a portrait phone the Contact card covers the lower 60 percent of the screen. A
+        // lower camera puts the fire, the rim, a band of city and the sky in the top 40
+        // percent: the fire just above the card, the sky at the top.
+        tallView: { position: [3.2, 3.6, -3.0], target: [2.0, 0.6, -17], fov: 50 },
+        tall: [0, 0.36],
     },
     // Round 8 drops Cam_05_Pad for a higher view from the south-east, down across the pad,
     // the ramp, the deck and the path toward the house, so the island fills most of the frame.

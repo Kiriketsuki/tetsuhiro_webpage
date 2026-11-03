@@ -210,11 +210,11 @@ const greet = async () => {
 
 .nav-item.active {
     color: var(--color-text-strong);
-    border-bottom-color: var(--color-teal-action);
+    border-bottom-color: var(--color-action);
 }
 
 .nav-item:focus-visible {
-    outline: 2px solid var(--color-teal-action-hover);
+    outline: 2px solid var(--color-action-text);
     outline-offset: -2px;
 }
 </style>

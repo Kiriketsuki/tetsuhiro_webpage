@@ -30,7 +30,7 @@
                 <section
                     v-for="band in bands"
                     :key="band.key"
-                    class="frame p-4 pt-7 sm:p-7 sm:pt-9"
+                    class="frame p-4 sm:p-7"
                     :class="band.key === 'work' ? 'frame-rose' : 'frame-line'"
                 >
                     <span class="frame-legend">{{ band.legend }}</span>
@@ -49,7 +49,7 @@
             </div>
 
             <!-- The hovered row, as a spec sheet. Wide screens only. -->
-            <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 pt-8 lg:flex" aria-hidden="true">
+            <aside class="frame sticky top-10 hidden flex-col gap-4 p-5 lg:flex" aria-hidden="true">
                 <span class="frame-legend">{{ String(peekedIndex + 1).padStart(2, '0') }}</span>
                 <div class="plate">
                     <img v-if="peeked.image" :src="peeked.image" alt="" decoding="async" />
@@ -66,7 +66,7 @@
         </div>
 
         <div class="grid w-full max-w-6xl items-start gap-8 lg:grid-cols-2">
-            <section class="frame frame-line p-4 pt-7 sm:p-7 sm:pt-9">
+            <section class="frame frame-line p-4 sm:p-7">
                 <span class="frame-legend">archive</span>
                 <h2 class="sr-only">Older and smaller projects</h2>
                 <ul class="lines">
@@ -82,7 +82,7 @@
                 </ul>
             </section>
 
-            <section class="frame frame-line p-4 pt-7 sm:p-7 sm:pt-9">
+            <section class="frame frame-line p-4 sm:p-7">
                 <span class="frame-legend">other work</span>
                 <h2 class="sr-only">Work that is not a user interface</h2>
                 <ul class="lines">
@@ -260,7 +260,7 @@ const rows = (project) => [
 }
 
 .line-title.text-link {
-    color: var(--color-teal-action-hover);
+    color: var(--color-action-text);
 }
 
 .line-title span {

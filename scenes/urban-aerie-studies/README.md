@@ -1,5 +1,11 @@
 # Urban aerie house studies
 
+## Campfire kit: 3 November 2026
+
+The owner asked for a better fire pit and places to sit at the last stop of the walk. `campfire_kit.py` builds them in background Blender on an empty file and writes `src/assets/models/campfire_kit.glb` (69 kB, 2,754 triangles) and `campfire_kit_report.json`. It reads `island_b.glb` only to fit the kit to the lawn round `Anchor_Campfire` and to bake a vertex AO against it, so an island export does not touch the kit. The kit holds eleven ring stones, an ash bed, five charred logs in a star with two split logs over the centre, coals, a half-log bench with a red blanket to the west, two stumps to the east (one with a teal cushion) and a small woodpile to the north-west. The north side stays open toward the city.
+
+`--preview` also renders the old hearth and the kit from the desktop and phone campfire shots and a close review shot into `renders/campfire-kit/`, and saves `campfire_kit_rN.blend` with the next free N. The site side (`src/scene/aerie/campfire.js`) loads in its own chunk, puts the lit parts on the island toon material, pulses the coals, and draws the flame as camera-facing toon cards with round sparks.
+
 ## City as out-of-focus lights: 3 November 2026
 
 The owner read the soft street lines as fake. `city-backdrop.js` now draws the city as a field of separate lights, each one a round bokeh disc of a few CSS pixels on screen, in sodium orange, warm white and a few cool whites. The lights gather along the street grid, stay off the river and the parks, and dim by district and outside the ring. Two blended levels of the field keep each disc the same size on screen at any distance and keep the mean light per area the same. Boulevards, the ring and the quays add only a faint glow. Captures: `renders/city-procedural/bokeh_*.jpg`.

@@ -69,6 +69,8 @@ const ROCK_CREASE = (78 * Math.PI) / 180
 const BEVEL = new THREE.Color(0xdcbc72)
 const TELESCOPE = { anchor: 'Anchor_Telescope', reach: 1.5, lift: 0.2 }
 const DARK_FAMILIES = ['web_dark_matte', 'web_metal_dark']
+// The surfaces that can cover the water mesh at the stream mouth.
+const WATER_BANKS = ['web_grass', 'web_soil']
 // Glow sprites merge the emissive faces in cells of this size, in metres.
 const GLOW_CELL = 0.9
 const MAX_GLOWS = 600
@@ -521,9 +523,18 @@ export function applyIslandLook(gltf, { sky, detail: detailBuild = null, anisotr
         }
     })
 
+    // The waterfall starts on the stream mouth edge, so scene-manager.js reads it from the look.
+    let waterMouth = null
     if (water.length) {
-        const pond = Math.max(...water.map((mesh) => prepareWater(mesh, lip)))
-        const material = createWaterMaterial({ pond, time, moonDirection: moon, moon: uniforms.uToonMoon.value, sky: sky.horizon })
+        // The grass and soil decide how much of the mouth is open water.
+        const ground = []
+        gltf.scene.traverse((child) => {
+            if (child.isMesh && WATER_BANKS.includes(child.userData.webMaterial)) ground.push(child)
+        })
+        const prepared = water.map((mesh) => prepareWater(mesh, lip, ground))
+        const pond = Math.max(...prepared.map((result) => result.pond))
+        waterMouth = prepared.find((result) => result.mouth)?.mouth ?? null
+        const material = createWaterMaterial({ pond, time, mouth: waterMouth })
         water.forEach((mesh) => {
             mesh.material = material
         })
@@ -573,5 +584,5 @@ export function applyIslandLook(gltf, { sky, detail: detailBuild = null, anisotr
         carpet.dispose()
         shadows?.userData.dispose()
     }
-    return { uniforms, materials, meshes, litterAt, glowSpots: glows.fitted, glowsShrunk: glows.shrunk, aoMeshes, update, dispose }
+    return { uniforms, materials, meshes, litterAt, glowSpots: glows.fitted, glowsShrunk: glows.shrunk, aoMeshes, waterMouth, update, dispose }
 }

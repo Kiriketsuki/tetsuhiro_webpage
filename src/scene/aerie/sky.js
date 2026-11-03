@@ -35,7 +35,7 @@ export const NIGHT_SKY = {
     hazeDeep: new THREE.Color(0x18152e),
 }
 
-// The haze colour seen along a view direction. The sky dome, the city layers and the mist share
+// The haze colour seen along a view direction. The sky dome and the city layers share
 // it, so the city melts into the same gradient as the sky around it.
 export const HAZE_AT = /* glsl */ `
 uniform vec3 uHaze;

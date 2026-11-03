@@ -178,9 +178,9 @@ export const PINS = [
         id: 'island',
         group: '3d',
         kind: 'hero',
-        title: 'This island',
+        title: 'This aerie',
         year: '2022 to 2026',
-        line: 'This site: a night island built in Blender and drawn in Three.js.',
+        line: 'This site: a night aerie built in Blender and drawn in Three.js.',
         stack: ['Three.js', 'GLSL', 'Blender', 'Vue'],
         link: 'https://github.com/Kiriketsuki/tetsuhiro_webpage',
         page: 'island',
@@ -206,7 +206,7 @@ export const PINS = [
         kind: 'note',
         title: 'Resonant Respite',
         year: '2024',
-        line: 'A floating island that moves with the music. The first island.',
+        line: 'A floating world that moves with the music. The first of its kind here.',
         stack: ['Three.js', 'Web Audio'],
         link: '',
         page: 'resonant-respite',
@@ -217,7 +217,7 @@ export const PINS = [
 
 // The red strings. Each one joins two pins, with a short label.
 export const STRINGS = [
-    ['resonant-respite', 'island', 'the music island became home'],
+    ['resonant-respite', 'island', 'the music world became this aerie'],
     ['aetherial-verdancy', 'island', 'Vue, Three.js and Blender again'],
     ['resonant-respite', 'aetherial-verdancy', 'music drives the scene, 2024'],
     ['kinopy', 'island', 'shipped in the same October'],

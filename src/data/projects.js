@@ -109,7 +109,7 @@ export const projects = [
     },
     {
         id: 'island',
-        title: 'This island',
+        title: 'This aerie',
         stack: 'Three.js, GLSL, Blender, Vue',
         year: '2022 to 2026',
         role: 'Solo, open source',

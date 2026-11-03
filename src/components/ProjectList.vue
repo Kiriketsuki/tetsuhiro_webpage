@@ -84,7 +84,7 @@
 
         <div class="flex flex-wrap justify-center gap-3 self-center">
             <router-link v-if="wallShown" to="/projects" class="action">Back to the wall</router-link>
-            <router-link to="/" class="action">Back to the island</router-link>
+            <router-link to="/" class="action">Back to the aerie</router-link>
         </div>
     </main>
 </template>

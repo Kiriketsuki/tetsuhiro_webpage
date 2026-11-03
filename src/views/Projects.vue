@@ -9,7 +9,7 @@
                     </p>
                     <h1 class="font-slab text-[clamp(1.9rem,5vw,3.25rem)] leading-none text-text-strong">Things I have made</h1>
                     <div class="wall-actions">
-                        <router-link to="/" class="action" @pointerdown.stop>back to the island</router-link>
+                        <router-link to="/" class="action" @pointerdown.stop>back to the aerie</router-link>
                         <router-link :to="{ path: '/projects', query: { list: null } }" class="action" @pointerdown.stop>list view</router-link>
                     </div>
                 </header>

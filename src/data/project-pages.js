@@ -153,20 +153,20 @@ const pages = {
         ],
     },
     island: {
-        blurb: 'This site: a night island built in Blender and drawn in Three.js.',
-        coverAlt: 'The island at night: a tall house with a steel frame, red autumn trees and lit windows.',
+        blurb: 'This site: a night aerie built in Blender and drawn in Three.js.',
+        coverAlt: 'The aerie at night: a tall house with a steel frame, red autumn trees and lit windows.',
         body: [
-            'You are standing in it. The island is modelled in Blender and drawn in Three.js, with toon shading, a soft ink outline and a split tone, after the cozy look of Leaf it Alone.',
-            'The first version of this site went up in 2022. I rebuilt it in 2025, and again in 2026 around this island: a workshop with this corkboard, a telescope that opens onto the skills, and a city of lights below.',
-            'Every frame has a budget. The scene code stays under 200 kB, the extra views load only when you need them, and the island renders only when something moves.',
+            'You are standing in it. The aerie is modelled in Blender and drawn in Three.js, with toon shading, a soft ink outline and a split tone, after the cozy look of Leaf it Alone.',
+            'The first version of this site went up in 2022. I rebuilt it in 2025, and again in 2026 around this aerie: a workshop with this corkboard, a telescope that opens onto the skills, and a city of lights below.',
+            'Every frame has a budget. The scene code stays under 200 kB, the extra views load only when you need them, and the aerie renders only when something moves.',
         ],
         links: [{ label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/tetsuhiro_webpage' }],
     },
     'resonant-respite': {
-        blurb: 'A floating island that moves with the music. The first island.',
+        blurb: 'A floating world that moves with the music. The first of its kind here.',
         body: [
-            'An audio-visual piece from 2024. A song plays, and the scene answers it: the water moves with the bass, the island and the stars with the chords, and the sun with the drums.',
-            'Each part of the music runs its analysis in its own Web Worker, so the scene keeps its frame rate. It was the first time I built a floating island in Three.js, and this one grew out of it.',
+            'An audio-visual piece from 2024. A song plays, and the scene answers it: the water moves with the bass, the land and the stars with the chords, and the sun with the drums.',
+            'Each part of the music runs its analysis in its own Web Worker, so the scene keeps its frame rate. It was the first floating world I built in Three.js, and this aerie grew out of it.',
         ],
     },
     'aetherial-verdancy': {

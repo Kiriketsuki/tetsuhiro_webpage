@@ -261,7 +261,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The parts that need no download draw first, so the night sky shows at once.
     parts.sky = createSky()
     parts.stars = createStars({ small, pixelRatio: renderer.getPixelRatio() })
-    parts.city = createCityBackdrop({ haze: NIGHT_SKY.haze, hazeDensity: CITY_HAZE_DENSITY })
+    parts.city = createCityBackdrop({ haze: NIGHT_SKY.haze, hazeDensity: CITY_HAZE_DENSITY, pixelRatio: () => renderer.getPixelRatio() })
     scene.add(parts.sky.mesh, parts.stars.points, parts.city.group)
     buildPipeline(tierIndex)
 

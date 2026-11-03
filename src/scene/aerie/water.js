@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { createDropRay } from './drop-ray.js'
 
 // The pond and the stream (web_water), drawn as flat toon water. One material covers both,
 // so they read as one body of water:
@@ -46,6 +47,9 @@ const UPSTREAM_FAR = 6
 const MOUTH_SAMPLES = 25
 const MOUTH_PROBE = 0.15
 const RAY_HEIGHT = 2
+// One drop-ray grid per ground array. shapeIsland passes the same array to every water mesh, so
+// the grid is built once. The ground meshes must not change while the array lives.
+const dropRays = new WeakMap()
 
 const vertexShader = /* glsl */ `
 #include <common>
@@ -244,17 +248,20 @@ function mouthLine(edges, flow) {
 // The water mesh runs on under the grass, so its mouth (3.7 m) is wider than the open water
 // (about 2.5 m). A row of short rays finds where the ground rises over the water just inside
 // the mouth, and the mouth shrinks to the open run round its centre. The ground is the grass
-// and soil only, about 10k triangles, so the rays cost a few milliseconds once at load.
+// and soil only, about 10k triangles. A Raycaster tested every one of them for each ray, so the
+// rays go through a drop-ray grid (drop-ray.js). It gives the same hits and tests only the
+// triangles near each ray. The grid builds here, and only when a mouth line exists.
 function trimMouth(line, ground) {
     if (!line || !ground.length) return line
     const step = line.b.clone().sub(line.a).divideScalar(MOUTH_SAMPLES - 1)
-    const ray = new THREE.Raycaster()
-    ray.far = RAY_HEIGHT
-    const down = new THREE.Vector3(0, -1, 0)
+    let drop = dropRays.get(ground)
+    if (!drop) {
+        drop = createDropRay(ground)
+        dropRays.set(ground, drop)
+    }
     const open = Array.from({ length: MOUTH_SAMPLES }, (_, i) => {
         const p = line.a.clone().addScaledVector(step, i).addScaledVector(line.normal, -MOUTH_PROBE)
-        ray.set(new THREE.Vector3(p.x, p.y + RAY_HEIGHT, p.z), down)
-        return ray.intersectObjects(ground, false).length === 0
+        return drop.cast(new THREE.Vector3(p.x, p.y + RAY_HEIGHT, p.z), RAY_HEIGHT) === null
     })
     const middle = (MOUTH_SAMPLES - 1) / 2
     const nearest = open.reduce((best, isOpen, i) => (isOpen && (best < 0 || Math.abs(i - middle) < Math.abs(best - middle)) ? i : best), -1)

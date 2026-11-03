@@ -349,9 +349,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // Steps the move through the eyepiece. Each leg starts the camera on its way when its time
     // comes. The iris closes, the picture swaps while it is shut, and the iris opens again.
-    // A leg that starts in the workshop leaves through its doorway, not through its walls. It
-    // takes its duration from its path, which slows at the door (camera-move.js). In its fixed
-    // 1.6 s the camera passed the porch at 40 m/s. The legs and the iris still ahead wait for it.
+    // A leg that starts in the workshop or the bedroom leaves through its door, not through its
+    // walls. It takes its duration from its path, which slows at the door (camera-move.js). In
+    // its fixed 1.6 s the camera passed the porch at 40 m/s. The legs and the iris still ahead
+    // wait for it.
     const stepScope = (delta) => {
         const s = scope
         s.t += delta

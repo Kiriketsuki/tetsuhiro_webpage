@@ -2,12 +2,14 @@
 
 Run it from this folder with background Blender. Never run it inside the open source file.
 
-    blender --factory-startup -b island_b_route_r34.blend --python export_island_b.py -- [--replace] [--no-compress]
+    blender --factory-startup -b island_b_route_r35.blend --python export_island_b.py -- [--replace] [--no-compress]
 
 The painted city layers for the site come from a second mode, which also works on a copy:
 
-    blender --factory-startup -b island_b_route_r34.blend --python export_island_b.py -- --city-layers
+    blender --factory-startup -b island_b_route_r35.blend --python export_island_b.py -- --city-layers
 
+island_b_route_r35.blend comes from round21_telescope.py, which reads island_b_route_r34.blend and builds a
+finer brass refractor on the telescope terrace, aligned for the look through its eyepiece.
 island_b_route_r34.blend comes from round20_glass.py, which reads island_b_route_r33.blend and takes the
 frame and the glass screens of the stair tower back from island_b_route_r20.blend.
 island_b_route_r33.blend comes from round19_look.py, which reads island_b_route_r30.blend. Its earlier
@@ -84,11 +86,13 @@ SITE=ROOT.parent.parent
 # lawn rises along the south side of the paving, and the wedge west of the pad drops into a rock cleft.
 # Round 20 reads r34: the glass stair tower comes back. The slim steel frame and every glass screen
 # return from r20, and the timber rafters and beams under the flat roof go.
-SOURCE=ROOT/'island_b_route_r34.blend'
+# Round 21 reads r35: a finer brass refractor whose eyepiece faces the telescope stop, so the camera
+# can end on its optical axis.
+SOURCE=ROOT/'island_b_route_r35.blend'
 SCENE='Island_B_Cozy_Interiors'
 WEB_SCENE='Island_B_Web'
-WORK=ROOT/'island_b_route_r34_web_export.blend'
-REPORT=ROOT/'island_b_route_r34_web_export_report.json'
+WORK=ROOT/'island_b_route_r35_web_export.blend'
+REPORT=ROOT/'island_b_route_r35_web_export_report.json'
 # The site imports its models from src/assets/models with a ?url import, so the GLBs sit beside island.glb.
 MODELS=SITE/'src'/'assets'/'models'
 OUT_DESKTOP=MODELS/'island_b.glb'

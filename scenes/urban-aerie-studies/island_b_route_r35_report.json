@@ -1,0 +1,26 @@
+{
+  "object": "SS_TL_Telescope",
+  "triangles_before": 944,
+  "triangles": 4668,
+  "budget": 5000,
+  "eye_lens_gltf": [
+    -7.5688,
+    8.3739,
+    -3.7655
+  ],
+  "optical_axis_gltf": [
+    -0.1,
+    0.5001,
+    -0.8602
+  ],
+  "axle_gltf": [
+    -7.66,
+    8.83,
+    -4.55
+  ],
+  "foot_gltf": [
+    -7.66,
+    7.45,
+    -4.55
+  ]
+}

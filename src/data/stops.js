@@ -109,14 +109,16 @@ export const stops = {
         tallView: { position: [-10.4, 10.2, -0.4], target: [-7.6, 9.3, -4.6], fov: 44 },
         tall: [0, 0.08],
     },
-    // The look through the telescope. The eyepiece sits under the back of the brass tube and
-    // faces the terrace, nearly on the line from the telescope stop. So the move in is a push
-    // with little turn, and it ends with the eyepiece lens at the frame centre, where the iris
-    // closes (scene-manager.js).
+    // The look through the telescope. The camera sits 0.22 m behind the eye lens on the optical
+    // axis and looks along it, so the eyepiece sits at the frame centre, where the iris closes
+    // (scene-manager.js). The eye lens and the axis come from round21_telescope.py (its report:
+    // eye lens [-7.5688, 8.3739, -3.7655], axis [-0.1, 0.5001, -0.8602]). The target sits on the
+    // axis 0.5 m past the eye lens, inside the tube. A target far up the axis made the move look
+    // at empty sky half way in, and this one keeps the telescope in frame the whole way.
     eyepiece: {
         camera: null,
         anchor: 'Anchor_Telescope',
-        fallback: { position: [-7.51, 8.61, -4.17], target: [-7.24, 8.4, -4.46], fov: 38 },
+        fallback: { position: [-7.547, 8.264, -3.576], target: [-7.619, 8.624, -4.196], fov: 35 },
         shift: [0, 0],
         tall: [0, 0],
     },

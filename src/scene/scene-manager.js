@@ -16,7 +16,7 @@ import { createWaterfall } from './aerie/waterfall.js'
 import { createCampfire, findCampfireSpot } from './aerie/campfire.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
 import { createCorkboard, findBoard } from './aerie/corkboard.js'
-import { projects } from '../data/projects.js'
+import { homeProjects } from '../data/projects.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
@@ -406,7 +406,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (board) {
                 // The card atlas uses the site fonts, so it waits for them.
                 await fonts
-                parts.cards = createCorkboard({ board, projects })
+                parts.cards = createCorkboard({ board, projects: homeProjects })
                 scene.add(parts.cards.mesh)
             }
 

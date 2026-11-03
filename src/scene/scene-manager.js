@@ -156,9 +156,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
 
     // Swaps the picture between the island and the skill sky. `reveal` lights the stars up in
     // order. Without it they all show at once.
+    // A call before the sky has built waits for it, and runs only if no later call has turned
+    // the sky off in the meantime.
     const showSky = (on, { reveal = true } = {}) => {
+        skyWanted = on
         if (!parts.constellation) {
-            if (on) skyReady.then(() => showSky(on, { reveal }))
+            if (on && !skyFailed) skyReady.then(() => skyWanted && showSky(true, { reveal }), () => {})
             return
         }
         view = on ? 'sky' : 'island'
@@ -183,7 +186,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         }
         // The iris holds shut until the skill sky has built, in the rare case that a visitor
         // looks through the telescope within a second of the reveal.
-        if (!s.swapped && s.t >= s.swap && s.on && !parts.constellation) s.t = s.swap - 1e-3
+        if (!s.swapped && s.t >= s.swap && s.on && !parts.constellation && !skyFailed) s.t = s.swap - 1e-3
         if (!s.swapped && s.t >= s.swap) {
             s.swapped = true
             showSky(s.on)
@@ -328,14 +331,25 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // telescope does not stall. The site shows the island first on every route but Skills.
     const skyModule = import('./aerie/constellation.js')
     skyModule.catch(() => {})
+    // A failed sky chunk leaves the island as it is: the telescope then opens on the island.
     let skyBuild = null
+    let skyFailed = false
+    let skyWanted = false
     const buildSky = () =>
-        (skyBuild ??= Promise.all([skyModule, fonts]).then(async ([{ createConstellation }]) => {
-            const built = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
-            built.resize(camera.aspect)
-            await renderer.compileAsync(built.scene, built.camera)
-            parts.constellation = built
-        }))
+        (skyBuild ??= Promise.all([skyModule, fonts])
+            .then(async ([{ createConstellation }]) => {
+                const built = createConstellation({ pixelRatio: renderer.getPixelRatio(), small })
+                built.resize(camera.aspect)
+                await renderer.compileAsync(built.scene, built.camera)
+                // A resize or a quality step during the compile did not reach the sky yet.
+                built.resize(camera.aspect)
+                built.setPixelRatio(renderer.getPixelRatio())
+                parts.constellation = built
+            })
+            .catch((error) => {
+                skyFailed = true
+                console.error('The skill sky did not load.', error)
+            }))
 
     let islandBytes = 0
     const report = (files) => onProgress(Math.min(1, 0.7 * islandBytes + 0.3 * files))

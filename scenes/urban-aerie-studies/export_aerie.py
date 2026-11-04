@@ -2,11 +2,11 @@
 
 Run it from this folder with background Blender. Never run it inside the open source file.
 
-    blender --factory-startup -b island_b_route_r35.blend --python export_island_b.py -- [--replace] [--no-compress]
+    blender --factory-startup -b island_b_route_r35.blend --python export_aerie.py -- [--replace] [--no-compress]
 
 The painted city layers for the site come from a second mode, which also works on a copy:
 
-    blender --factory-startup -b island_b_route_r35.blend --python export_island_b.py -- --city-layers
+    blender --factory-startup -b island_b_route_r35.blend --python export_aerie.py -- --city-layers
 
 island_b_route_r35.blend comes from round21_telescope.py, which reads island_b_route_r34.blend and builds a
 finer brass refractor on the telescope terrace, aligned for the look through its eyepiece.
@@ -95,9 +95,9 @@ WORK=ROOT/'island_b_route_r35_web_export.blend'
 REPORT=ROOT/'island_b_route_r35_web_export_report.json'
 # The site imports its models from src/assets/models with a ?url import, so the GLBs sit beside island.glb.
 MODELS=SITE/'src'/'assets'/'models'
-OUT_DESKTOP=MODELS/'island_b.glb'
-OUT_LOD1=MODELS/'island_b_lod1.glb'
-CITY_JSON=MODELS/'island_b_city.json'
+OUT_DESKTOP=MODELS/'aerie.glb'
+OUT_LOD1=MODELS/'aerie_lod1.glb'
+CITY_JSON=MODELS/'aerie_city.json'
 GLTF_TRANSFORM='@gltf-transform/cli@4.5.1'
 ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 
@@ -689,8 +689,8 @@ def city_boxes():
         pts=[mw@v.co for v in part];lo=Vector(map(min,*pts));hi=Vector(map(max,*pts));c=(lo+hi)/2;s=hi-lo
         out.setdefault(group,[]).append(((c.x,c.z,-c.y),(s.x,s.z,s.y)))
     bm.free()
-    data={'note':'Distant city from LP_SS_Distant_City_Fine_Blocks, left out of island_b.glb. Metres, glTF Y-up, '
-                 'same frame as island_b.glb. Each box is axis aligned. Instance one unit BoxGeometry per group with '
+    data={'note':'Distant city from LP_SS_Distant_City_Fine_Blocks, left out of aerie.glb. Metres, glTF Y-up, '
+                 'same frame as aerie.glb. Each box is axis aligned. Instance one unit BoxGeometry per group with '
                  'InstancedMesh: position = centre, scale = size. Groups that share a few sizes store a size table and '
                  'one index per box.','source_tris':tris(me),'groups':{}}
     colours={'buildings':[m.name for m in me.materials[:2]],'windows_warm':me.materials[2].name,'windows_cool':me.materials[3].name}
@@ -783,7 +783,7 @@ def build():
             'renames':'none. Cam_01 to Cam_05, every earlier Anchor_* and every web_* name are unchanged.','city_json':str(CITY_JSON),'city_boxes':city_counts,
             'lights':'none exported. Emissive materials carry windows, lanterns, screens and pad lights.',
             'ambient_occlusion':ao,'desktop':desktop,'budget':BUDGET}
-    report['desktop']['raw_bytes']=export(scene,raw/'island_b.glb')
+    report['desktop']['raw_bytes']=export(scene,raw/'aerie.glb')
     bpy.ops.wm.save_as_mainfile(filepath=str(WORK),check_existing=False)
 
     # Mobile LOD: no flowers, far fewer leaves, thinner meadow and planting.
@@ -793,10 +793,10 @@ def build():
     lod=[o for o in coll.objects if o.type=='MESH']
     report['lod1_thinned_faces']=thin(lod,'lod1')
     for ob in lod:compact_slots(ob.data)
-    report['lod1']=stats(lod);report['lod1']['raw_bytes']=export(scene,raw/'island_b_lod1.glb')
+    report['lod1']=stats(lod);report['lod1']['raw_bytes']=export(scene,raw/'aerie_lod1.glb')
     if '--no-compress' not in ARGS:
-        report['desktop']['glb']=str(OUT_DESKTOP);report['desktop']['compress']=compress(raw/'island_b.glb',OUT_DESKTOP)
-        report['lod1']['glb']=str(OUT_LOD1);report['lod1']['compress']=compress(raw/'island_b_lod1.glb',OUT_LOD1)
+        report['desktop']['glb']=str(OUT_DESKTOP);report['desktop']['compress']=compress(raw/'aerie.glb',OUT_DESKTOP)
+        report['lod1']['glb']=str(OUT_LOD1);report['lod1']['compress']=compress(raw/'aerie_lod1.glb',OUT_LOD1)
     report['raw_dir']=str(raw)
     for k in ('desktop','lod1'):
         report[k]['within_budget']=report[k]['tris']<BUDGET[k]['tris'] and report[k]['draws']<BUDGET[k]['draws']
@@ -978,7 +978,7 @@ def city_layers():
     name,px,sigma,quality=MIST;m=mist_field(px,sigma)
     path=CITY_DIR/'city_mist.webp';bytes_=save_webp(scene,np.repeat(m[...,None],3,axis=2)**2.2,path,quality)
     mist={'file':path.name,'px':px,'bytes':bytes_,'tileable':True}
-    manifest={'note':'Painted city layers from export_island_b.py --city-layers. Positions are in the GLB frame (metres, Y up). '
+    manifest={'note':'Painted city layers from export_aerie.py --city-layers. Positions are in the GLB frame (metres, Y up). '
                      'Each image is a top-down orthographic render of a sheared city, soft clipped as 1 - exp(-radiance * gain). '
                      'Decode with radiance = -log(1 - v) / gain.','shear':CITY_SHEAR,'layers':layers,'mist':mist,
               'total_bytes':sum(l['bytes'] for l in layers)+mist['bytes']}

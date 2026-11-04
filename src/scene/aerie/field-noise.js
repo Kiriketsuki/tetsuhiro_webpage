@@ -103,7 +103,7 @@ export function along(palette, t, out) {
 
 export const luma = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
 
-// True for the colour layout the baked islands use: a plain, normalized Uint16 attribute. The
+// True for the colour layout the baked aerie models use: a plain, normalized Uint16 attribute. The
 // fast loops below read and write the raw array and repeat what getX and setXYZ do for this
 // layout, which is a divide or a Math.round by 65535. Any other layout takes the slow path. A
 // Float16BufferAttribute also keeps a Uint16Array, but its getX decodes half floats, so it

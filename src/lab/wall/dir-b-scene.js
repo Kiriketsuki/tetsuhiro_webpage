@@ -53,7 +53,7 @@ function speckle() {
     return texture
 }
 
-// The warm lamp pool and a cool fill: the split tone of the island, warm lights over cool shade.
+// The warm lamp pool and a cool fill: the split tone of the aerie, warm lights over cool shade.
 function light(scene) {
     const spot = new THREE.SpotLight(0xffe2c2, 3.2, 0, 1.1, 0.9, 1.2)
     spot.position.set(...LAMP)

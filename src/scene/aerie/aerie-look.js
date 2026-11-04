@@ -14,7 +14,7 @@ import { createContactShadows, propSpots } from './contact-shadows.js'
 import { createLookWorker } from './look-client.js'
 import { createDropRay } from './drop-ray.js'
 
-// Puts the cozy night look, after the art style of Leaf it Alone, on a loaded island_b GLB.
+// Puts the cozy night look, after the art style of Leaf it Alone, on a loaded aerie GLB.
 // Opaque parts share one toon material with half-lambert light, warm hue-keeping shadows
 // and a painted world-space detail texture. Each mesh gets an aSurface attribute that
 // picks its detail. palette.js and autumn.js repaint the baked vertex colours as smooth
@@ -196,7 +196,7 @@ function tagSurface(geometry, family, mesh) {
     geometry.setAttribute('aSurface', new THREE.Uint8BufferAttribute(surface, 1))
 }
 
-// export_island_b.py bakes ambient occlusion per vertex into the glTF attribute _AO, and
+// export_aerie.py bakes ambient occlusion per vertex into the glTF attribute _AO, and
 // GLTFLoader names it `_ao`. The toon shader reads it as `aoBake`. One opaque program serves
 // every mesh, so a mesh from an older GLB without the bake gets 1.0, which means open sky.
 function adoptAoBake(geometry) {
@@ -486,7 +486,7 @@ function assertCrownNormals(meshes) {
         if (!CROWN_SHAPES.has(mesh.userData.webMaterial)) return
         const normal = mesh.geometry.attributes.normal
         if (normal && normal.count > 0 && normal.array.every((value) => value === 0)) {
-            throw new Error(`island-look: ${mesh.name} kept the zero normals of the crown skip`)
+            throw new Error(`aerie-look: ${mesh.name} kept the zero normals of the crown skip`)
         }
     })
 }
@@ -496,10 +496,10 @@ function assertCrownNormals(meshes) {
 // fitted glow sprites. It reads and writes geometry, userData and plain numbers only, so
 // look-worker.js runs it off the page. It runs the same steps in the same order as the page
 // ran them before, so the look is the same.
-// meshes: every island mesh, in scene order, with world matrices set and the materials
+// meshes: every aerie mesh, in scene order, with world matrices set and the materials
 // swapped. opaque: the material of the toon meshes. water: the stream meshes. lip, telescope:
 // anchor positions or null. bounces: the window spill rooms. spots: the glow sprites.
-export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, spots }) {
+export function shapeAerie({ meshes, opaque, water, lip, telescope, bounces, spots }) {
     let aoMeshes = 0
     meshes.forEach((child) => {
         if (child.material !== opaque) return
@@ -540,7 +540,7 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
     const outdoor = spots.filter((spot) => !bounces.some((room) => spot.position.distanceTo(room) < INDOOR_GLOW))
     const glows = fitGlowsToWalls(outdoor.slice(0, MAX_GLOWS), meshes)
     const litterAt = applyAutumn(meshes)
-    // The leaf piles join the island meshes after the paint, so the litter cards fall on them.
+    // The leaf piles join the aerie meshes after the paint, so the litter cards fall on them.
     const blocked = litterBlocked(meshes)
     const piles = createLeafPiles({ meshes, material: opaque, litterAt, blocked })
     if (piles) meshes.push(piles)
@@ -552,9 +552,9 @@ export function shapeIsland({ meshes, opaque, water, lip, telescope, bounces, sp
 
 // sky: { horizon, zenith } for the glass reflection. detail, carpet: the texture builds that
 // scene-manager.js started early. worker: a look worker from createLookWorker, started early
-// too. The page swaps the materials and builds the glow spots, the worker runs shapeIsland,
+// too. The page swaps the materials and builds the glow spots, the worker runs shapeAerie,
 // and the page puts the shaped geometry back on its meshes.
-export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1, worker = null } = {}) {
+export async function applyAerieLook(gltf, { sky, detail: detailBuild = null, carpet: carpetBuild = null, anisotropy = 1, worker = null } = {}) {
     gltf.scene.updateMatrixWorld(true)
     const moon = anchorPosition(gltf, 'Anchor_Moon') ?? new THREE.Vector3(-28, 71, 24)
     const lip = anchorPosition(gltf, 'Anchor_Waterfall_Top')
@@ -564,7 +564,7 @@ export async function applyIslandLook(gltf, { sky, detail: detailBuild = null, c
         return p ? { x: p.x, y: p.y, z: p.z, radius } : null
     }).filter(Boolean)
 
-    // The two texture builds keep their slices running while the worker shapes the island, and
+    // The two texture builds keep their slices running while the worker shapes the aerie, and
     // finish only after its reply. The uniforms hold the texture objects, so they need no
     // finished data yet, and nothing renders or compiles before the finish below.
     const detail = detailBuild ?? createDetailTexture({ anisotropy, sliced: false })

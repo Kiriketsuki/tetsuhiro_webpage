@@ -4,15 +4,15 @@ import { litterLookup } from './autumn.js'
 import { pack, unpack, packGeometry, unpackGeometry, buffersOf } from './look-transfer.js'
 
 // The page side of the look worker (look-worker.js). scene-manager.js starts the worker with
-// the scene, so it loads and parses beside the island download. shape() sends the island
+// the scene, so it loads and parses beside the aerie download. shape() sends the aerie
 // meshes to it, and puts the shaped geometry and userData back on the same meshes. The page
-// stays free for the loading screen while the worker runs shapeIsland, about 2.5 s of work
+// stays free for the loading screen while the worker runs shapeAerie, about 2.5 s of work
 // on a 4x throttled phone.
 //
 // The worker sends { ready: true } once its script has run. The job goes out only after that,
 // because its buffers move to the worker and the page copies are empty from then on. A worker
 // that fails or stays silent before that point costs nothing: the page then runs the same
-// worker script itself (shapeOnPage), so the island still loads.
+// worker script itself (shapeOnPage), so the aerie still loads.
 
 // How long the worker may take to say it is ready, and to answer the job, in milliseconds. A
 // cold dev server builds the worker modules on first request, which can take longer.
@@ -20,7 +20,7 @@ const READY_WAIT_MS = import.meta.env.DEV ? 120000 : 20000
 const REPLY_WAIT_MS = 60000
 
 // The page meshes as plain data. Each typed array moves to the worker, so the page geometry
-// is empty until the reply comes back. The island is not in the scene until then. Meshes that
+// is empty until the reply comes back. The aerie is not in the scene until then. Meshes that
 // share one geometry send it once, and `ancestor` names the nearest mesh above each mesh, so
 // Box3.setFromObject in the worker sees the same mesh tree as the page.
 function packJob({ meshes, opaque, water, lip, telescope, bounces, spots }) {
@@ -108,7 +108,7 @@ async function shapeOnPage(message) {
 
 // The page fallback, with a note in the console that names the worker failure.
 function shapeLocally(message, failure) {
-    console.warn('The look worker is not running, so the page shapes the island itself.', failure)
+    console.warn('The look worker is not running, so the page shapes the aerie itself.', failure)
     return shapeOnPage(message)
 }
 

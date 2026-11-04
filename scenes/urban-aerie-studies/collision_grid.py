@@ -48,6 +48,24 @@ def dilate(mask):
     return out
 
 
+def clear_saddles(mask):
+    """Blocks the cells of every 2x2 square where only two diagonal cells are walkable.
+
+    At such a square two outline edges start from one corner, and boundary_loops kept only
+    one of them. Its loop then broke into short pieces, the shortest were dropped as small
+    holes, and the walker slipped through the gap in the rim fence. The square is blocked
+    until none is left, so every corner starts at most one edge.
+    """
+    out = mask.copy()
+    while True:
+        a, b, c, d = out[:-1, :-1], out[:-1, 1:], out[1:, :-1], out[1:, 1:]
+        saddle = (a & d & ~b & ~c) | (b & c & ~a & ~d)
+        if not saddle.any():
+            return out
+        js, is_ = np.nonzero(saddle)
+        out[js, is_] = out[js, is_ + 1] = out[js + 1, is_] = out[js + 1, is_ + 1] = False
+
+
 def boundary_loops(mask):
     """Traces the cell edges between walkable and blocked cells into closed loops."""
     ny, nx = mask.shape

@@ -125,6 +125,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const loaders = createLoaders()
     // The rAF timestamp of the last frame, or null before the first frame of a run.
     let frameAt = null
+    // The walk on foot (scene/explore) steps the walker before the rig places the camera. It
+    // returns true while the walker or its camera moves, so the frame draws and counts as a move.
+    let walker = null
     let seconds = 0
     let ambient = 0
     let ambientFps = AMBIENT_FPS
@@ -449,11 +452,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         frameAt = time
         seconds += delta
         ambient += delta
+        const walking = walker?.(delta) ?? false
         rig.update(delta)
         const effects = advanceEffects(delta)
         // The wall has nothing that twinkles, so its frames draw only when something moves.
         const tickAmbient = !state.reduced && view !== 'wall' && ambientFps > 0 && ambient >= 1 / ambientFps
-        if (!rig.moving && !effects && !state.dirty && !tickAmbient) return
+        if (!rig.moving && !effects && !state.dirty && !tickAmbient && !walking) return
         if (tickAmbient) {
             parts.city?.update(seconds)
             parts.glow?.update(seconds)
@@ -464,7 +468,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.leaves?.update(seconds)
             ambient = 0
         }
-        const moving = rig.moving || performance.now() - steeredAt < STEER_MS
+        const moving = rig.moving || walking || performance.now() - steeredAt < STEER_MS
         if (pendingTier !== null && !rig.moving) {
             buildPipeline(pendingTier)
             pendingTier = null
@@ -791,6 +795,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             update()
         },
         settle,
+        // fn(delta) steps the walk on each frame of the loop, or null ends it.
+        setWalker: (fn) => (walker = fn),
         pause: () => {
             state.wanted = false
             update()

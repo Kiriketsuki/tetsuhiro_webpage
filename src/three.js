@@ -4,6 +4,7 @@ import { useWaypoints } from './composables/useWaypoints.js'
 import { useExplore } from './composables/useExplore.js'
 import { useWall } from './composables/useWall.js'
 import { useWalk } from './composables/useWalk.js'
+import { useProps } from './composables/useProps.js'
 import { createSceneManager } from './scene/scene-manager.js'
 import { stopForRoute } from './data/stops.js'
 import { bedroomDoor } from './data/route.js'
@@ -254,6 +255,11 @@ function boot() {
         })
         document.documentElement.addEventListener('mouseleave', () => manager.clearPointer())
     }
+
+    // The props that open a page from the scene sit in their own chunk, after the aerie.
+    manager.ready
+        .then(({ root }) => import('./scene/aerie/props.js').then((m) => (useProps().controls.value = m.createProps(manager, root, () => reducedMotion.value))))
+        .catch((error) => console.error('The scene props did not load.', error))
 
     // Handy in the console while tuning shots. Not in the build.
     if (import.meta.env.DEV) window.__scene = manager

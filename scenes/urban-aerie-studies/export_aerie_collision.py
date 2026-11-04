@@ -54,7 +54,7 @@ import collision_grid  # noqa: E402
 
 importlib.reload(collision_grid)
 from collision_grid import (  # noqa: E402
-    boundary_loops, dilate, erode, largest_region, reach, simplify)
+    boundary_loops, clear_saddles, dilate, erode, largest_region, reach, simplify)
 
 ROOT = Path(__file__).resolve().parent
 SITE = ROOT.parent.parent
@@ -702,7 +702,7 @@ def build(objs, report):
     if door:
         report['bedroom_door'] = {'at': [round(c, 2) for c in door['at']], 'normal': [round(c, 2) for c in door['normal']], 'width': door['width']}
 
-    report['fence_quads'] = fence(solids, ground, erode(region), lo)
+    report['fence_quads'] = fence(solids, ground, clear_saddles(erode(region)), lo)
     report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point)
 
     tidy(floors, 4.0)

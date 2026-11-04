@@ -33,15 +33,15 @@
     ],
     "width": 0.71
   },
-  "fence_quads": 185,
+  "fence_quads": 179,
   "slice_quads": 1311,
   "before_decimate": {
     "floors": 6290,
     "walls": 2194,
-    "solids": 1146
+    "solids": 1134
   },
   "after_decimate": {
-    "floors": 2566,
+    "floors": 2578,
     "walls": 2194
   },
   "triangles": 5920,
@@ -54,7 +54,7 @@
     "Lookout": true,
     "Upper_Terrace": true
   },
-  "reach_cells": 10117,
+  "reach_cells": 10121,
   "rooms_closed": {
     "inside_workshop": true,
     "inside_lounge": true,
@@ -134,8 +134,8 @@
       0.3
     ]
   },
-  "raw_bytes": 114136,
+  "raw_bytes": 114076,
   "compress": {
-    "bytes": 26944
+    "bytes": 26972
   }
 }

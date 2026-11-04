@@ -21,11 +21,12 @@ const PEAK = 2.4
 const MASK = 128
 // The share of the steady fill and desk light that matches the room at the dark point of the
 // lamp switch, for each share of room light. The board under the fill and desk light alone
-// matches the room copy at the board stop with its exposure at about 0.042 (lamp probe,
-// November 2026: 0.048 on a desktop, 0.037 on a phone). The full switch dims the room to that
-// share, so the fill stays steady and only the lamp warms. The shallower reduced motion
-// switch keeps the fill steady too, and its longer still blend covers the gap at the swap.
-const DARK_MATCH = 24
+// matched the lit room copy at the board stop with its exposure at about 0.042 (lamp probe,
+// November 2026: 0.048 on a desktop, 0.037 on a phone). The room copy is now unlit at 0.35 of
+// that light (wall.js), so the match is at 0.12. The full switch dims the room to that share,
+// so the fill stays steady and only the lamp warms. The shallower reduced motion switch keeps
+// the fill steady too, and its longer still blend covers the gap at the swap.
+const DARK_MATCH = 1 / 0.12
 const smooth = THREE.MathUtils.smoothstep
 
 // The wash on the cork plane, 1 under the middle of the bar. It falls to about 0.32 at the

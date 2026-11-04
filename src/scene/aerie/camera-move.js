@@ -47,7 +47,7 @@ const TURN_RATE = 1.05
 // brakes before a bend and speeds up after it with no surge. On a phone the flights into the
 // telescope view bend hard round the house corner: the camera took that bend at 12 to 17 m/s
 // and reached up to 298 m/s2.
-const BEND = { lateral: 60, span: 1.5, brake: 40 }
+const BEND = { lateral: 60, span: 1, brake: 40 }
 // Samples of that pace for each spline segment.
 const PACE_SAMPLES = 64
 // A move takes MOVE_TIME.base seconds plus one second for each MOVE_TIME.speed metres of pace,
@@ -322,6 +322,19 @@ export function createMove({ position, target, shot, duration = null, field = nu
         for (let k = 1; k <= count; k += 1) capSpeed(k, k - 1, metres[k])
         for (let k = count - 1; k >= 0; k -= 1) capSpeed(k, k + 1, metres[k + 1])
     }
+    // One motion: the pace per metre sets the speed. In the second half of the path the camera
+    // never speeds up again once it has slowed, and in the first half it never slows before it
+    // has sped up, so a bend, a view turn or a doorway late in a move reads as the start of the
+    // landing and not as a second move. The welcome to Skills flight slowed to 20 m/s where its
+    // view swung round to the terrace, sped up to 22 m/s, and the owner saw two motions. A walk
+    // keeps its own pace along the walkway, so it skips this: its time is capped, and the rule
+    // made the walkway surge to 55 m/s.
+    const middle = Math.round(tableIndex(flown, 0.5))
+    const oneMotion = (steps) => {
+        const per = (k) => (metres[k] > 0 ? steps[k] / metres[k] : 0)
+        for (let k = middle + 1; k <= count; k += 1) if (per(k) < per(k - 1)) steps[k] = per(k - 1) * metres[k]
+        for (let k = middle - 1; k >= 1; k -= 1) if (per(k) < per(k + 1)) steps[k] = per(k + 1) * metres[k]
+    }
     // The running pace for one turn weight. The weight rises until the fastest turn of the
     // view, at cruise speed, stays under TURN_RATE. The move time comes from the plain pace:
     // the first weight, with no slow-down. A heavier weight and the slow-down stretch it in
@@ -333,10 +346,12 @@ export function createMove({ position, target, shot, duration = null, field = nu
         for (const weight of TURN_METRES) {
             pace = new Float32Array(count + 1)
             let share = 0
+            const steps = new Float32Array(count + 1)
+            for (let k = 1; k <= count; k += 1) steps[k] = Math.hypot(metres[k], weight * turns[k]) * slow[k]
+            if (!slows) oneMotion(steps)
             for (let k = 1; k <= count; k += 1) {
-                const step = Math.hypot(metres[k], weight * turns[k]) * slow[k]
-                pace[k] = pace[k - 1] + step
-                if (step > 0) share = Math.max(share, turns[k] / step)
+                pace[k] = pace[k - 1] + steps[k]
+                if (steps[k] > 0) share = Math.max(share, turns[k] / steps[k])
             }
             // A walk takes its time from the whole pace, slow-down included, so the camera keeps
             // the walkway pace and does not rush the walk to fit MOVE_TIME.max.

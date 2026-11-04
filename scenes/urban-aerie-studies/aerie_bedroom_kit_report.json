@@ -1,13 +1,14 @@
 {
  "glb": "src/assets/models/aerie_bedroom_kit.glb",
- "bytes": 261880,
+ "bytes": 261276,
  "tris": {
   "Bedroom_Wood": 6304,
   "Bedroom_Fabric": 13380,
   "Bedroom_Metal": 5148,
   "Bedroom_Plain": 10926,
   "Bedroom_Plaster": 1208,
-  "Bedroom_Paper": 6132,
+  "Bedroom_Paper": 2604,
+  "Bedroom_Prints": 3528,
   "Bedroom_Screen": 124,
   "Bedroom_Glow": 1460,
   "Bedroom_Glass": 284
@@ -26,6 +27,5 @@
    10.36,
    -1.62
   ]
- },
- "blend": "C:\\Users\\Kidriel\\dev\\Personal\\tetsuhiro_webpage\\.claude\\worktrees\\about-room-overhaul-12db30\\scenes\\urban-aerie-studies\\aerie_bedroom_kit_r4.blend"
+ }
 }

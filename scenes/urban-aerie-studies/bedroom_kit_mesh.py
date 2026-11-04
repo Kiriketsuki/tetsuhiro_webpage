@@ -5,7 +5,7 @@ per kit material. A primitive gets one base colour. Its vertices take that colou
 noise field, so neighbouring faces get close values and the toon shading shows coherent facets,
 never a per-face checkerboard.
 
-All points are Blender world metres (Z up) in the island frame, so the kit needs no transform.
+All points are Blender world metres (Z up) in the aerie frame, so the kit needs no transform.
 """
 import math
 import bmesh

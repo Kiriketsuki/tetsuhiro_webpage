@@ -754,6 +754,11 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const api = {
         ready,
         planned,
+        // The aerie toon material, SURFACE and softenGeometry, for a kit in a lazy chunk that must
+        // not import from the scene chunk (scene/aerie/room.js). Null until the aerie look is built.
+        get toon() {
+            return parts.look ? { material: parts.look.materials[0], surface: SURFACE, soften: softenGeometry } : null
+        },
         renderer,
         scene,
         camera,

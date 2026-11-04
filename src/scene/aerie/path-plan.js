@@ -227,7 +227,9 @@ export function planPath(field, a, b) {
     const rough = shortcut(field, ends, [a.clone(), ...way, b.clone()])
     const band = relax(field, ends, resample(rough, SPACING))
     const keep = Math.max(1, Math.round(CONTROL / SPACING))
-    return band.filter((_, i) => i === band.length - 1 || (i % keep === 0 && band.length - 1 - i >= keep / 2))
+    // The start always stays. A short band, such as a move between two stops in the About room,
+    // otherwise kept only its end, and a path of one point broke the walk spline.
+    return band.filter((_, i) => i === 0 || i === band.length - 1 || (i % keep === 0 && band.length - 1 - i >= keep / 2))
 }
 
 const keyOf = (a, b) => [a, b].map((p) => p.toArray().map((v) => v.toFixed(2)).join(',')).join('|')

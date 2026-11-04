@@ -5,15 +5,15 @@ Run it from this folder with background Blender on an empty file:
 
 The script builds the room in a new scene and writes one Draco GLB,
 src/assets/models/aerie_bedroom_kit.glb, plus aerie_bedroom_kit_report.json beside this script.
-It only reads island_b.glb.
+It only reads aerie.glb.
 
---preview RENDER_DIR also imports island_b.glb for context, takes the old bedroom things out of
+--preview RENDER_DIR also imports aerie.glb for context, takes the old bedroom things out of
 it, renders the layout and the tour shots into RENDER_DIR, and saves aerie_bedroom_kit_rN.blend
 with the next free N, so no earlier .blend is overwritten.
 
-The kit sits in the island frame: every vertex is an island coordinate, so the site adds the kit
+The kit sits in the aerie frame: every vertex is an aerie coordinate, so the site adds the kit
 with an identity transform. The room box, the openings and the layout are in
-bedroom_kit_props.py. The site hides the old bedroom things of island_b.glb inside the room box.
+bedroom_kit_props.py. The site hides the old bedroom things of aerie.glb inside the room box.
 
 One mesh per material, so the site swaps one material per mesh:
 - Bedroom_Wood (kit_wood): floor boards, wainscot, trims, beams and the wooden furniture
@@ -21,7 +21,8 @@ One mesh per material, so the site swaps one material per mesh:
 - Bedroom_Fabric (kit_fabric): bedding, cushions, curtains, the rug and the chair
 - Bedroom_Metal (kit_metal): frames, the rack, brass and steel details
 - Bedroom_Plain (kit_plain): plastics, ceramics and the electronics
-- Bedroom_Paper (kit_paper): books, the notebook and the prints. The prints carry UV 0..1 for photos
+- Bedroom_Paper (kit_paper): books, the notebook and the two painted posters
+- Bedroom_Prints (kit_print): the six photo prints, with UVs into the atlas src/assets/about-prints.webp
 - Bedroom_Screen (kit_screen): the monitors, the handheld and the tablet. UV 0..1 per screen
 - Bedroom_Glow (kit_glow): the lamp shade, the lantern, the fairy lights and small LEDs
 - Bedroom_Glass (kit_glass): the case glass, the lens and the snow globe
@@ -45,7 +46,8 @@ import bedroom_kit_props as props  # noqa: E402
 from bedroom_kit_corners import build_corners  # noqa: E402
 
 SITE = ROOT.parent.parent
-ISLAND = SITE / 'src' / 'assets' / 'models' / 'island_b.glb'
+ISLAND = SITE / 'src' / 'assets' / 'models' / 'aerie.glb'
+ATLAS_IMAGE = SITE / 'src' / 'assets' / 'about-prints.webp'
 OUT = SITE / 'src' / 'assets' / 'models' / 'aerie_bedroom_kit.glb'
 REPORT = ROOT / 'aerie_bedroom_kit_report.json'
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
@@ -54,13 +56,13 @@ BUDGET_BYTES = 1_500_000
 
 NAMES = {
     'kit_wood': 'Bedroom_Wood', 'kit_plaster': 'Bedroom_Plaster', 'kit_fabric': 'Bedroom_Fabric', 'kit_metal': 'Bedroom_Metal',
-    'kit_plain': 'Bedroom_Plain', 'kit_paper': 'Bedroom_Paper', 'kit_screen': 'Bedroom_Screen', 'kit_glow': 'Bedroom_Glow',
+    'kit_plain': 'Bedroom_Plain', 'kit_paper': 'Bedroom_Paper', 'kit_print': 'Bedroom_Prints', 'kit_screen': 'Bedroom_Screen', 'kit_glow': 'Bedroom_Glow',
     'kit_glass': 'Bedroom_Glass',
 }
 # name: (metallic, roughness, emission strength, alpha)
 LOOK = {
     'kit_wood': (0.0, 0.7, 0.0, 1.0), 'kit_plaster': (0.0, 0.95, 0.0, 1.0), 'kit_fabric': (0.0, 1.0, 0.0, 1.0),
-    'kit_metal': (0.8, 0.4, 0.0, 1.0), 'kit_plain': (0.0, 0.5, 0.0, 1.0), 'kit_paper': (0.0, 0.85, 0.0, 1.0),
+    'kit_metal': (0.8, 0.4, 0.0, 1.0), 'kit_plain': (0.0, 0.5, 0.0, 1.0), 'kit_paper': (0.0, 0.85, 0.0, 1.0), 'kit_print': (0.0, 0.6, 0.0, 1.0),
     'kit_screen': (0.0, 0.3, 1.6, 1.0), 'kit_glow': (0.0, 0.8, 3.0, 1.0), 'kit_glass': (0.0, 0.05, 0.0, 0.12),
 }
 
@@ -152,7 +154,7 @@ def inside_room(p, pad=0.05):
     return all(ROOM_LO[i] - pad <= p[i] <= ROOM_HI[i] + pad for i in range(3))
 
 
-def import_island(collection):
+def import_aerie(collection):
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(ISLAND))
     new = [o for o in bpy.data.objects if o not in before]
@@ -160,8 +162,8 @@ def import_island(collection):
         for c in list(ob.users_collection):
             c.objects.unlink(ob)
         collection.objects.link(ob)
-    # The old bedroom things leave the island, as the site does at runtime.
-    # The preview draws the island glass opaque, so it hides the room. The site draws it clear.
+    # The old bedroom things leave the aerie, as the site does at runtime.
+    # The preview draws the aerie glass opaque, so it hides the room. The site draws it clear.
     for ob in new:
         if ob.name.startswith('Glass'):
             ob.hide_render = True
@@ -290,6 +292,15 @@ def graduation_photo(collection):
     collection.objects.link(ob)
 
 
+def atlas_on_prints():
+    """Shows the photo atlas on the prints in the review renders, as the site does."""
+    m = bpy.data.materials['kit_print']
+    tex = m.node_tree.nodes.new('ShaderNodeTexImage')
+    tex.image = bpy.data.images.load(str(ATLAS_IMAGE))
+    bsdf = next(n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
+    m.node_tree.links.new(tex.outputs['Color'], bsdf.inputs['Base Color'])
+
+
 def preview(scene, kit_objects, out_dir):
     out_dir.mkdir(parents=True, exist_ok=True)
     scene.render.engine = 'BLENDER_EEVEE'
@@ -313,10 +324,13 @@ def preview(scene, kit_objects, out_dir):
     light(lights, 'Fill', 'AREA', (-5.2, 3.42, 10.2), 90, (1.0, 0.92, 0.82), 2.4, aim=(-5.2, 3.42, 7.4))
     light(lights, 'Shelf', 'AREA', (-6.56, 4.75, 8.9), 18, (1.0, 0.85, 0.65), 0.6, aim=(-6.56, 5.2, 8.4))
     light(lights, 'Moon', 'SUN', (-5.0, 8.0, 14.0), 0.6, (0.7, 0.8, 1.0), aim=(-5.2, 3.42, 7.4))
-    context = bpy.data.collections.new('Island_Context')
+    context = bpy.data.collections.new('Aerie_Context')
     scene.collection.children.link(context)
-    import_island(context)
-    graduation_photo(lights)
+    import_aerie(context)
+    if ATLAS_IMAGE.exists():
+        atlas_on_prints()
+    else:
+        graduation_photo(lights)
     cut_coll = bpy.data.collections.new('Cutaway')
     scene.collection.children.link(cut_coll)
     shell = [o for o in kit_objects if o.name in ('Bedroom_Plaster', 'Bedroom_Wood')]

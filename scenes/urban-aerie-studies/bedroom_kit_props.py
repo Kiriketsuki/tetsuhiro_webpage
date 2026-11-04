@@ -1,7 +1,7 @@
 """The room and its things for the aerie bedroom kit (aerie_bedroom_kit.py).
 
-Blender world metres, Z up, in the island frame. The room box and its openings come from a ray
-scan of the House mesh in island_b.glb (3 November 2026):
+Blender world metres, Z up, in the aerie frame. The room box and its openings come from a ray
+scan of the House mesh in the aerie GLB, then island_b.glb (3 November 2026):
 - inner walls x -6.93 (west) to -3.5 (east), y 1.62 (front, the balcony) to 5.23 (back),
   floor z 7.41, ceiling z 10.36
 - front window x -6.33 to -5.33, z 8.41 to 9.61. Glass door x -4.63 to -4.03, z 7.51 to 9.71
@@ -51,11 +51,14 @@ CLAY = hexc('b8714d')
 SCREEN = hexc('2a3550')
 WARM_GLOW = hexc('ffd9a0')
 
-MATERIALS = ('kit_wood', 'kit_fabric', 'kit_metal', 'kit_plain', 'kit_plaster', 'kit_paper', 'kit_screen', 'kit_glow', 'kit_glass')
+MATERIALS = ('kit_wood', 'kit_fabric', 'kit_metal', 'kit_plain', 'kit_plaster', 'kit_paper', 'kit_print', 'kit_screen', 'kit_glow', 'kit_glass')
+# The photo prints share one atlas of ATLAS columns by ATLAS rows (src/assets/about-prints.webp).
+# Cell 0 is the top left, and the cells run left to right, then down.
+ATLAS = (3, 2)
 
 
 def new_parts():
-    return {name: Part(uv=name in ('kit_paper', 'kit_screen')) for name in MATERIALS}
+    return {name: Part(uv=name in ('kit_paper', 'kit_print', 'kit_screen')) for name in MATERIALS}
 
 
 # ---------------------------------------------------------------- the shell
@@ -279,8 +282,11 @@ def camera(P, base, turn):
             rot=Vector((1, 0, 0)).rotation_difference((b - a).normalized()).to_matrix(), var=0.03)
 
 
-def frame(P, centre, w, h, normal, colour, mat=0.03, painter=None):
-    """A picture frame on a wall, facing along normal (+X or -X, +Y or -Y)."""
+def frame(P, centre, w, h, normal, colour, mat=0.03, painter=None, cell=None):
+    """A picture frame on a wall, facing along normal (+X or -X, +Y or -Y). A print with an atlas
+    cell goes into kit_print and maps that cell of the photo atlas. Its vertex colours keep the
+    painted stand-in for a review render without the atlas. A print without a cell is a painted
+    poster in kit_paper."""
     n = Vector(normal)
     side = Vector((0, 0, 1)).cross(n)
     size = lambda a, b, c: (abs(a * side.x) + abs(c * n.x), abs(a * side.y) + abs(c * n.y), b)
@@ -299,9 +305,13 @@ def frame(P, centre, w, h, normal, colour, mat=0.03, painter=None):
         v = (p.z - origin.z) / ih
         return paint(max(0.0, min(1.0, u)), max(0.0, min(1.0, v)))
     def uv_at(p):
-        return ((p - origin).dot(side) / iw, (p.z - origin.z) / ih)
+        u, v = (p - origin).dot(side) / iw, (p.z - origin.z) / ih
+        if cell is None:
+            return (u, v)
+        col, row = cell % ATLAS[0], cell // ATLAS[0]
+        return ((col + u) / ATLAS[0], (ATLAS[1] - 1 - row + v) / ATLAS[1])
     from bedroom_kit_mesh import panel_with_holes as panel
-    part = P['kit_paper']
+    part = P['kit_paper' if cell is None else 'kit_print']
     start = len(part.faces)
     panel(part, origin, side, Vector((0, 0, 1)), (iw, ih), [], colour_at, step=min(iw, ih) / 14)
     for k in range(start, len(part.faces)):
@@ -358,6 +368,6 @@ def photo_wall(P):
         ((x, 3.0, 8.84), 0.24, 0.3, tree_lights),
         ((x, 3.6, 8.84), 0.24, 0.3, eiffel),
     ]
-    for centre, w, h, painter in frames:
-        frame(P, centre, w, h, (1, 0, 0), INK, painter=painter)
-    frame(P, (x, 2.1, 8.92), 0.4, 0.48, (1, 0, 0), WALNUT, mat=0.05, painter=graduation)
+    for cell, (centre, w, h, painter) in enumerate(frames):
+        frame(P, centre, w, h, (1, 0, 0), INK, painter=painter, cell=cell)
+    frame(P, (x, 2.1, 8.92), 0.4, 0.48, (1, 0, 0), WALNUT, mat=0.05, painter=graduation, cell=5)

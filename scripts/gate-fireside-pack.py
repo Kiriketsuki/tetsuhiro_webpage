@@ -27,7 +27,9 @@ LIFT = np.array([0.0095, 0.006, 0.0125])
 SIZES = {'d': 1600, 'p': 960}
 # Kinako and the fire are the focus of the picture, so they encode finer, for a screen of two
 # device pixels to the CSS pixel.
-FOCUS_SIZES = {'d': 2400, 'p': 1440}
+FOCUS_SIZES = {'d': 2000, 'p': 1280}
+# The first paint pictures inline in index.html, so they stay small: this size and quality.
+INLINE = {'size': 1600, 'nap': 74, 'embers': 50, 'embers_size': 1200}
 # The focus falloff: the lawn past the lap blurs, darkens and greys a little, so Kinako and
 # the fire carry the picture. The radii are in units of the lap ellipse, the blur is a share
 # of the picture width, and the dark and grey shares apply at full falloff.
@@ -128,13 +130,15 @@ def stage(p, s):
 
 
 def tracks():
-    out = {'.ga-glow': lambda p: p}
+    """Each track: its function of the share, and the shares where it turns a corner."""
+    step = 1 / (STAGES - 1)
+    out = {'.ga-glow': (lambda p: p, ())}
     for s in range(STAGES):
-        out[f'.ga-fire-{s}'] = lambda p, s=s: stage(p, s)
+        out[f'.ga-fire-{s}'] = (lambda p, s=s: stage(p, s), ((s - 1) * step, s * step, (s + 1) * step, (s + 1) * step + 0.05))
     for i in range(PAWS):
-        out[f'.ga-paw:nth-child({i + 1})'] = lambda p, i=i: min(1.0, max(0.0, p * PAWS - i))
+        out[f'.ga-paw:nth-child({i + 1})'] = (lambda p, i=i: min(1.0, max(0.0, p * PAWS - i)), (i / PAWS, (i + 1) / PAWS))
     for g in range(3):
-        out[f'.ga-rise-{g}'] = lambda p, g=g: min(1.0, max(0.0, p * 3 - g))
+        out[f'.ga-rise-{g}'] = (lambda p, g=g: min(1.0, max(0.0, p * 3 - g)), (g / 3, (g + 1) / 3))
     return out
 
 
@@ -143,11 +147,12 @@ def count(p):
 
 
 def digit_tracks():
+    crossings = tuple(n / 100 for n in range(101))
     out = {}
     for d in range(10):
-        out[f'.ga-ones i:nth-child({d + 1})'] = lambda p, d=d: 1.0 if count(p) % 10 == d else 0.0
-        out[f'.ga-tens i:nth-child({d + 1})'] = lambda p, d=d: 1.0 if count(p) >= 10 and (count(p) // 10) % 10 == d else 0.0
-    out['.ga-hund i'] = lambda p: 1.0 if count(p) == 100 else 0.0
+        out[f'.ga-ones i:nth-child({d + 1})'] = (lambda p, d=d: 1.0 if count(p) % 10 == d else 0.0, crossings)
+        out[f'.ga-tens i:nth-child({d + 1})'] = (lambda p, d=d: 1.0 if count(p) >= 10 and (count(p) // 10) % 10 == d else 0.0, crossings)
+    out['.ga-hund i'] = (lambda p: 1.0 if count(p) == 100 else 0.0, crossings)
     return out
 
 
@@ -165,20 +170,22 @@ def dawn_offset(share):
     return None
 
 
-def dawn_css(name, fn, steps=False):
-    """Keyframes that play fn along the dawn: the dawn offsets, plus every share where fn
-    turns a corner, so the CSS matches the meter's frames where it takes over."""
+def dawn_css(name, fn, corners, steps=False):
+    """Keyframes that play fn along the dawn: the dawn offsets, plus the shares where fn turns a
+    corner, so the CSS matches the meter's frames where it takes over. A track that holds one
+    value through the dawn needs no keyframes, and this returns None for it."""
     marks = {o for o, _ in DAWN}
-    corners = [k / 300 for k in range(0, 49)]
     for c in corners:
         o = dawn_offset(c)
         if o is not None:
             marks.add(round(o, 3))
     marks = sorted(marks)
+    values = [round(fn(dawn_share(o)), 4) for o in marks]
+    if len(set(values)) == 1:
+        return None
     frames = []
     last = None
-    for o in marks:
-        v = round(fn(dawn_share(o)), 4)
+    for o, v in zip(marks, values):
         if steps:
             if v != last:
                 frames.append(f'{o}% {{ opacity: {v}; animation-timing-function: step-end; }}')
@@ -277,12 +284,12 @@ def main(work, out, root):
         for f, img in enumerate(row):
             strip.paste(img, (f * img.width, 0))
         for key, size in FOCUS_SIZES.items():
-            img = scaled(strip, size / master)
             # The embers paint with the first paint, from a data URL, so they need no file.
             if s == 0:
                 if key == 'd':
-                    first_fire = data_url(img, 70)
+                    first_fire = data_url(scaled(strip, INLINE['embers_size'] / master), INLINE['embers'])
                 continue
+            img = scaled(strip, size / master)
             sizes[f'fire-{s}-{key}'] = webp(img, out / f'fire-{s}-{key}.webp', QUALITY['fire'])
 
     # Kinako's sheets.
@@ -294,11 +301,11 @@ def main(work, out, root):
         for k, img in enumerate(row):
             strip.paste(img, (k * img.width, 0))
         for key, size in FOCUS_SIZES.items():
-            img = scaled(strip, size / master)
             if sheet == 'nap':
                 if key == 'd':
-                    first_nap = data_url(img, 82)
+                    first_nap = data_url(scaled(strip, INLINE['size'] / master), INLINE['nap'])
                 continue
+            img = scaled(strip, size / master)
             sizes[f'k-{sheet}-{key}'] = webp(img, out / f'k-{sheet}-{key}.webp', QUALITY['k'])
         x0, y0, x1, y1 = layout['boxes'][sheet]
         css.append(f'.ga-k-{sheet} {{ --kw: {round(x1 - x0, 4)}; --kh: {round(y1 - y0, 4)}; }}')
@@ -370,15 +377,17 @@ def main(work, out, root):
         s = float(depth_at(deg))
         css.append(f'.ga-paw:nth-child({i + 1}) {{ left: {pct(x)}; top: {pct(y)}; transform: translate(-50%, -50%) scale({round(s, 3)}) scaleY({round(k * 1.3, 3)}) rotate({round(tangent, 1)}deg); }}')
 
-    # The dawn keyframes, one per track, and the rule that runs each.
-    for selector, fn in tracks().items():
-        name = 'ga-dawn-lit' if selector == '.ga-glow' else f'ga-dawn-{slug(selector)}'
-        css.append(dawn_css(name, fn))
-        css.append(f'#gate-art {selector} {{ opacity: {round(fn(0), 4)}; animation: {name} {DAWN_S}s linear forwards; }}')
-    for selector, fn in digit_tracks().items():
-        name = f'ga-dawn-{slug(selector)}'
-        css.append(dawn_css(name, fn, steps=True))
-        css.append(f'#gate-art {selector} {{ opacity: {round(fn(0), 4)}; animation: {name} {DAWN_S}s linear forwards; }}')
+    # The dawn keyframes, one per track that moves in the dawn, and the rule that runs each.
+    for group, steps in ((tracks(), False), (digit_tracks(), True)):
+        for selector, (fn, corners) in group.items():
+            name = 'ga-dawn-lit' if selector == '.ga-glow' else f'ga-dawn-{slug(selector)}'
+            frames = dawn_css(name, fn, corners, steps)
+            if frames is None:
+                if fn(0):
+                    css.append(f'#gate-art {selector} {{ opacity: {round(fn(0), 4)}; }}')
+                continue
+            css.append(frames)
+            css.append(f'#gate-art {selector} {{ opacity: {round(fn(0), 4)}; animation: {name} {DAWN_S}s linear forwards; }}')
 
     css.append(f'.ga-first {{ background-image: url({first_url}); }}')
     css.append(f'.ga-k-nap .ga-k-still {{ background-image: url({first_nap}); }}')

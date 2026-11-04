@@ -16,8 +16,10 @@
 const WAKE = [0.25, 0.4, 0.5, 0.25]
 // The fade between two states, in milliseconds.
 const SWAP_MS = 250
-// The longest Kinako waits for its frames before it gives up and naps on, in milliseconds.
-const LOAD_WAIT_MS = 20000
+// The longest Kinako waits for its sit frames once the load is done, in milliseconds. Past it,
+// Kinako stays as it is. The wake has no limit: on a slow line the run frames can arrive late,
+// and Kinako still wakes and runs if the load is not done by then.
+const SIT_WAIT_MS = 60000
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const within = (promise, ms) => Promise.race([promise.then(() => true), wait(ms).then(() => false)])
@@ -26,6 +28,9 @@ const within = (promise, ms) => Promise.race([promise.then(() => true), wait(ms)
 export function createFiresideKinako(art) {
     let state = 'nap'
     let started = null
+    // True once the load is done. A wake that has not begun by then does not begin.
+    let done = false
+    let waking = false
     const has = (flag) => art?.when?.(flag) ?? Promise.resolve()
     const set = (next) => {
         if (!art) return
@@ -57,19 +62,22 @@ export function createFiresideKinako(art) {
         // Wakes Kinako and starts the laps once the frames are in. Under reduced motion
         // Kinako naps on until the load is done.
         start(reduced) {
-            if (!art || reduced) return
-            started ??= (async () => {
-                if (!(await within(has('has-run'), LOAD_WAIT_MS)) || state !== 'nap') return
+            if (!art || reduced || started) return
+            started = has('has-run').then(async () => {
+                if (done || state !== 'nap') return
+                waking = true
                 await wake()
                 if (state === 'wake') set('run')
-            })()
+            })
         },
         // Kinako sits on the near side of the fire. A running Kinako finishes its lap first.
         // Resolves once Kinako sits, or at once if its frames never arrive.
         async sit(reduced) {
             if (!art || state === 'sit') return
-            if (!(await within(has('has-sit'), LOAD_WAIT_MS))) return
-            await started
+            done = true
+            if (!(await within(has('has-sit'), SIT_WAIT_MS))) return
+            // The sit frames load after the run frames, so a wake has begun by now or never will.
+            if (waking) await started
             if (state === 'run' && !reduced) {
                 const lap = lapAnimations()
                 const spin = lap.find((a) => a.animationName === 'ga-spin')
@@ -85,6 +93,7 @@ export function createFiresideKinako(art) {
         // A second greeting finds Kinako sat by the fire at once.
         reset() {
             started = Promise.resolve()
+            done = true
             set('sit')
         },
     }

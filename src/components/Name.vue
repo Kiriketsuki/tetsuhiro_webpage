@@ -98,14 +98,15 @@ const kinako = createKinakoWalk(art)
 const preloadVisit = () => {
     const loads = [
         ...[...document.fonts].map((face) => face.load()),
-        // Kinako's walk in, which plays once the load is done.
-        kinako.load(),
         import('../views/Skills.vue'),
         import('../views/Projects.vue'),
         import('../views/AboutRoom.vue'),
         // The logos on the skill sky cards, which otherwise load when the first card opens.
         import('../data/skill-icons.js'),
     ].map((load) => load.catch(() => {}))
+    // Kinako's walk in loads with the next pages, but the way in does not wait for it. It is a
+    // greeting, and on slow 3G it held the way in by about 1.5 s.
+    kinako.load()
     let left = loads.length
     loads.forEach((load) =>
         load.then(() => {

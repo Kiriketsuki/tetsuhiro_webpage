@@ -32,8 +32,9 @@ const SIT_AT = 0.88
 // The fade between the nap and the walk, and the fades under reduced motion, in seconds.
 const FADE = 0.12
 const STILL_FADE = 0.4
-// The longest the walk waits for its frames, in milliseconds.
-const LOAD_WAIT_MS = 3000
+// The longest the walk waits for its frames, in milliseconds. The way in does not wait for
+// them (Name.vue), so on a slow line they can arrive after the load is done.
+const LOAD_WAIT_MS = 15000
 
 const frameKey = (index, offset) => ({ transform: `translateX(${(-100 * index) / COUNT}%)`, offset: Math.min(1, offset), easing: 'step-end' })
 const at = ([x, y]) => `translate(${x}px, ${y}px)`

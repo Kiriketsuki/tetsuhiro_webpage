@@ -16,9 +16,9 @@ const CAP = 0.96
 const LEAD = 0.15
 const LEAD_S = 5
 // The time constant, in seconds, of the drift toward CAP that keeps a goal ahead of the real
-// share creeping on. At 90 s the meter sat near 92 percent for 1 to 2 s while the last work
-// settled, and the count held one number. At 12 s the count keeps stepping there.
-const DRIFT_S = 12
+// share creeping on. A shorter drift ran the meter well ahead of a slow 3G load: at 12 s the
+// meter reached 90 percent at 42 s and then held near 95 percent for 20 s.
+const DRIFT_S = 90
 // The spring stiffness, 1/s. A larger value follows the goal more closely. The spring trails a
 // steady goal by 2 / STIFFNESS seconds.
 const STIFFNESS = 2.4

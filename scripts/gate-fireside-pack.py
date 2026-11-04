@@ -111,14 +111,19 @@ def alpha_box(images, pad=4):
 
 
 # The tracks of Name.vue. Each takes the share p and gives the opacity of one element.
-def hat(p, c):
-    return min(1.0, max(0.0, 1 - abs(p - c) * (STAGES - 1)))
+def stage(p, s):
+    """A fire stage fades in over the stage below it, and the stage below drops out only once
+    this one is fully in, so the fire never turns see-through between two stages."""
+    step = 1 / (STAGES - 1)
+    rise = 1.0 if s == 0 else min(1.0, max(0.0, (p - (s - 1) * step) / step))
+    fall = 1.0 if s == STAGES - 1 else min(1.0, max(0.0, 1 - (p - (s + 1) * step) * 20))
+    return min(rise, fall)
 
 
 def tracks():
     out = {'.ga-glow': lambda p: p}
     for s in range(STAGES):
-        out[f'.ga-fire-{s}'] = lambda p, c=s / (STAGES - 1): hat(p, c)
+        out[f'.ga-fire-{s}'] = lambda p, s=s: stage(p, s)
     for i in range(PAWS):
         out[f'.ga-paw:nth-child({i + 1})'] = lambda p, i=i: min(1.0, max(0.0, p * PAWS - i))
     for g in range(3):

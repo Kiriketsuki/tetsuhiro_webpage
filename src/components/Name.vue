@@ -90,8 +90,11 @@ const preloadVisit = () => {
 const clamp = (v) => Math.min(1, Math.max(0, v))
 // The whole number the count shows at share p.
 const count = (p) => Math.min(100, Math.floor(p * 100 + 1e-6))
-// The fire stages: each peaks at its own share and hands over to the next.
+// The fire stages. Each fades in over the stage below it, and the stage below drops out only
+// once this one is fully in, so the fire never turns see-through between two stages.
 const STAGES = 4
+const STEP = 1 / (STAGES - 1)
+const stage = (p, s) => Math.min(s === 0 ? 1 : clamp((p - (s - 1) * STEP) / STEP), s === STAGES - 1 ? 1 : clamp(1 - (p - (s + 1) * STEP) * 20))
 // The pawprints of the ring and the groups of leaves in the updraft.
 const PAWS = 24
 const RISE = 3
@@ -102,7 +105,7 @@ const tracks = () => {
     return [
         { el: pick('.ga-glow'), frame: (p) => ({ opacity: p }) },
         { el: pick('.ga-title .is-lit'), frame: (p) => ({ opacity: p }) },
-        ...Array.from({ length: STAGES }, (_, s) => ({ el: pick(`.ga-fire-${s}`), frame: (p) => ({ opacity: clamp(1 - Math.abs(p - s / (STAGES - 1)) * (STAGES - 1)) }) })),
+        ...Array.from({ length: STAGES }, (_, s) => ({ el: pick(`.ga-fire-${s}`), frame: (p) => ({ opacity: stage(p, s) }) })),
         ...all('.ga-paw').map((el, i) => ({ el, frame: (p) => ({ opacity: clamp(p * PAWS - i) }) })),
         ...Array.from({ length: RISE }, (_, g) => ({ el: pick(`.ga-rise-${g}`), frame: (p) => ({ opacity: clamp(p * RISE - g) }) })),
         // The count shows one whole number at a time. Each digit place shows one digit with an

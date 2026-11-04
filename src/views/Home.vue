@@ -36,11 +36,12 @@
             back to walking
         </button>
         <ExplorePad v-if="exploring" />
+        <PropTags v-if="propControls" />
     </div>
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, defineAsyncComponent, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Name from '../components/Name.vue'
@@ -53,6 +54,11 @@ import { useWaypoints, sections, takeLanding } from '../composables/useWaypoints
 import { useExplore } from '../composables/useExplore.js'
 import { useWalk } from '../composables/useWalk.js'
 import { useScramble } from '../composables/useScramble.js'
+import { useProps } from '../composables/useProps.js'
+
+// The labels of the props that open a page load once the scene has its props.
+const PropTags = defineAsyncComponent(() => import('../components/PropTags.vue'))
+const { controls: propControls } = useProps()
 
 gsap.registerPlugin(ScrollTrigger)
 // Phone toolbars grow and shrink the viewport while you scroll. Without this

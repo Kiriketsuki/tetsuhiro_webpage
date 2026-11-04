@@ -1,4 +1,4 @@
-import { GRID, isOpen } from './city-map.js'
+import { GRID } from './city-map.js'
 
 // The plan of the skyline: every tower as a stack of parts, each part one prism. The towers
 // mix the shapes of the cities the plan draws on: plain slabs, New York setbacks with a
@@ -127,8 +127,9 @@ function towerParts(rand, h, w, d) {
 }
 
 // Every part of the skyline as a plain record: shape, centre XZ, base height, size, turn,
-// colour, lit share, kind, seed, and whether it carries the crown band.
-export function planSkyline(look) {
+// colour, lit share, kind, seed, and whether it carries the crown band. isOpen(x, z) is true
+// on the water and the parks, where no tower stands.
+export function planSkyline(look, isOpen) {
     const rand = random(20261103)
     const parts = []
     const gridTurn = Math.atan2(-GRID.y, GRID.x)

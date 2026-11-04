@@ -3,8 +3,8 @@ import { NOISE_GLSL } from './city-glsl.js'
 
 // The plan of the invented night city below the aerie. The GPU bakes it once at load into
 // one map texture, so the city shader reads its districts, water and avenues in one fetch
-// and never computes them per pixel. The plan mixes four cities: a river with quays and
-// bridges and star places with boulevards out from them (Paris), a grid of avenues with a
+// and never computes them per pixel. The plan mixes five cities: a wide river with parks and
+// bridges of many kinds (Seoul, city-river.js), star places with boulevards out from them (Paris), a grid of avenues with a
 // long diagonal across it, a dark rectangular park and a cluster of tall towers (New York),
 // dense neon districts with small streets and lines of rail (Tokyo), and magenta and cyan
 // neon over all of it as a mood. All positions are world XZ metres. The plane sits at
@@ -21,15 +21,8 @@ export const BOKEH = [4.5, 6.5]
 export const GRID = new THREE.Vector2(0.783, -0.622)
 export const GRID_NORMAL = new THREE.Vector2(-GRID.y, GRID.x)
 
-// The river runs along the grid. Its centre line sits RIVER_SHIFT metres off the grid line
-// through RIVER_ORIGIN, with two slow bends, and it has an island near u -100.
-const RIVER_ORIGIN = [-700, -1000]
-const RIVER_SHIFT = 125
-export const RIVER = 85
-const ISLE = { u: -100, length: 260, width: 24 }
-// The bridges cross the river this far apart, as on the Seine, so the river reads as a dark
-// band crossed by lit lines from far above.
-const BRIDGE_STEP = 300
+// The river, its parks and bridges come from city-river.js, which loads in its own chunk.
+// The bake reads them through riverAt( p ), from the GLSL that module writes.
 
 // Districts as soft round blobs: centre, radius, light density, neon share and neon hue
 // (-1 magenta, 1 cyan). The neon share is the chance that a light in the blob is a neon sign.
@@ -76,12 +69,8 @@ const toGrid = (x, z, [ox, oz]) => {
     const dz = z - oz
     return [dx * GRID.x + dz * GRID.y, dx * GRID_NORMAL.x + dz * GRID_NORMAL.y]
 }
-const riverOffset = (u) => RIVER_SHIFT + 120 * Math.sin(u / 700) + 50 * Math.sin(u / 260 + 1)
-
-// True where the ground is water or park, so no tower stands there.
-export function isOpen(x, z) {
-    const [u, n] = toGrid(x, z, RIVER_ORIGIN)
-    if (Math.abs(n - riverOffset(u)) < RIVER + 25) return true
+// True in the dark park of the grid district, so no tower stands there.
+export function inPark(x, z) {
     const [a, b] = toGrid(x, z, PARK.at)
     return Math.abs(a) < PARK.half[0] + 20 && Math.abs(b) < PARK.half[1] + 20
 }
@@ -91,9 +80,9 @@ const f1 = (x) => x.toFixed(3)
 const gridTurn = Math.atan2(GRID.y, GRID.x)
 
 // The bake shader writes R the light density, G the neon (0.5 none, under it magenta, over
-// it cyan, and the distance from 0.5 the share), B the glow of the avenues, quays and
-// bridges, and A the water.
-const bakeShader = (look) => /* glsl */ `
+// it cyan, and the distance from 0.5 the share), B the glow of the avenues, highways and
+// bridges, and A the water. river is the GLSL of riverAt (city-river.js).
+const bakeShader = (look, river) => /* glsl */ `
 varying vec2 vUv;
 ${NOISE_GLSL}
 const vec2 GRID = ${v2([GRID.x, GRID.y])};
@@ -108,6 +97,7 @@ float lamp( float d, float w ) {
 float repeatDist( float x, float step ) {
     return abs( x - step * floor( x / step + 0.5 ) );
 }
+${river}
 void main() {
     vec2 p = ${v2([MAP_CENTRE[0] - MAP_SIZE / 2, MAP_CENTRE[1] - MAP_SIZE / 2])} + vUv * ${f1(MAP_SIZE)};
     float density = 0.32 + 0.35 * smoothstep( 0.3, 0.75, noise( p / 900.0 + 3.0 ) ) + 0.15 * noise( p / 260.0 );
@@ -120,12 +110,10 @@ void main() {
     }`).join('\n    ')}
     neon = clamp( neon, -0.9, 0.9 );
 
-    vec2 r = toGrid( p, ${v2(RIVER_ORIGIN)} );
-    float across = r.y - ( ${f1(RIVER_SHIFT)} + 120.0 * sin( r.x / 700.0 ) + 50.0 * sin( r.x / 260.0 + 1.0 ) );
-    float isle = ${f1(ISLE.width)} * smoothstep( ${f1(ISLE.length)}, ${f1(ISLE.length * 0.7)}, abs( r.x - ${f1(ISLE.u)} ) );
-    float water = lamp( abs( across ), ${f1(RIVER)} ) * ( 1.0 - lamp( abs( across ), isle ) );
-    float bridge = lamp( repeatDist( r.x, ${f1(BRIDGE_STEP)} ), 12.0 ) * lamp( abs( across ), ${f1(RIVER + 10)} );
-    float quay = lamp( abs( abs( across ) - ${f1(RIVER + 7)} ), 5.0 );
+    // x the water, y the river parks, z the bridge decks, w the bank highways.
+    vec4 river = riverAt( p );
+    float bridge = river.z;
+    float water = river.x * ( 1.0 - bridge );
 
     vec2 pk = abs( toGrid( p, ${v2(PARK.at)} ) );
     float park = smoothstep( ${f1(PARK.half[0] + 12)}, ${f1(PARK.half[0] - 12)}, pk.x ) * smoothstep( ${f1(PARK.half[1] + 12)}, ${f1(PARK.half[1] - 12)}, pk.y );
@@ -142,16 +130,18 @@ void main() {
         lines = max( lines, lamp( length( d ) * abs( sin( off ) ), 10.0 ) * smoothstep( ${f1(length)}, ${f1(length * 0.4)}, length( d ) ) );
         lines = max( lines, lamp( abs( length( d ) - 60.0 ), 7.0 ) );
     }`).join('\n    ')}
-    // The avenues stop under the bridges, so the bridges read as the brightest lines over the dark river.
-    lines = max( min( lines * ${f1(look.avenue)}, 0.62 ), max( 0.8 * quay, bridge ) );
-    density *= ( 1.0 - water * ( 1.0 - bridge ) ) * ( 1.0 - 0.92 * park );
-    gl_FragColor = vec4( clamp( density, 0.0, 1.0 ), 0.5 + 0.5 * neon, clamp( lines, 0.0, 1.0 ), water * ( 1.0 - bridge ) );
+    // The avenues stop at the river and its parks, so the bridges and highways read as the
+    // only lines over the dark band of the river.
+    float open = max( river.x, river.y );
+    lines = max( min( lines * ${f1(look.avenue)}, 0.62 ) * ( 1.0 - open ), max( river.w, 0.7 * bridge ) );
+    density *= ( 1.0 - water ) * ( 1.0 - 0.92 * max( park, river.y * ( 1.0 - bridge ) ) );
+    gl_FragColor = vec4( clamp( density, 0.0, 1.0 ), 0.5 + 0.5 * neon, clamp( lines, 0.0, 1.0 ), water );
 }
 `
 
 // Draws one fragment shader into a mipmapped render target of size texels, with one draw.
-// The shader reads vUv. wrap is the texture wrap mode.
-export function bake(renderer, size, fragmentShader, wrap = THREE.ClampToEdgeWrapping) {
+// The shader reads vUv. wrap is the texture wrap mode, and uniforms the shader uniforms.
+export function bake(renderer, size, fragmentShader, wrap = THREE.ClampToEdgeWrapping, uniforms = {}) {
     const target = new THREE.WebGLRenderTarget(size, size, {
         depthBuffer: false,
         generateMipmaps: true,
@@ -163,6 +153,7 @@ export function bake(renderer, size, fragmentShader, wrap = THREE.ClampToEdgeWra
     const material = new THREE.ShaderMaterial({
         vertexShader: 'varying vec2 vUv;\nvoid main() {\n    vUv = uv;\n    gl_Position = vec4( position.xy, 0.0, 1.0 );\n}',
         fragmentShader,
+        uniforms,
         depthTest: false,
         depthWrite: false,
     })
@@ -177,5 +168,5 @@ export function bake(renderer, size, fragmentShader, wrap = THREE.ClampToEdgeWra
     return target
 }
 
-// Bakes the plan into the city map.
-export const bakeCityMap = (renderer, look) => bake(renderer, MAP_TEXELS, bakeShader(look))
+// Bakes the plan into the city map. river holds the GLSL and uniforms of riverAt.
+export const bakeCityMap = (renderer, look, river) => bake(renderer, MAP_TEXELS, bakeShader(look, river.glsl), THREE.ClampToEdgeWrapping, river.uniforms)

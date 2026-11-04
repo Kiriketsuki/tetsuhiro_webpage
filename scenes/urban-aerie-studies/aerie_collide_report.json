@@ -1,5 +1,5 @@
 {
-  "source": "src/assets/models/island_b.glb",
+  "source": "src/assets/models/aerie.glb",
   "out": "src/assets/models/aerie_collide.glb",
   "ramps": 7,
   "hops": [
@@ -20,6 +20,19 @@
     "lounge",
     "bedroom"
   ],
+  "bedroom_door": {
+    "at": [
+      -4.31,
+      1.62,
+      7.45
+    ],
+    "normal": [
+      0.0,
+      -1.0,
+      0.0
+    ],
+    "width": 0.71
+  },
   "fence_quads": 185,
   "slice_quads": 1311,
   "before_decimate": {
@@ -65,8 +78,8 @@
       1.0
     ],
     "Zone_Bedroom": [
-      -7.27,
-      2.667,
+      -4.309,
+      0.92,
       7.45,
       0.8,
       0.8,

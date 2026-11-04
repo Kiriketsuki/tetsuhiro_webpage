@@ -2,9 +2,9 @@
 
 ## Collision for explore on foot: 3 November 2026
 
-`export_aerie_collision.py` builds the walker's collision proxy in background Blender and writes `src/assets/models/aerie_collide.glb` (27 kB, 5,920 triangles) and `aerie_collide_report.json`. It reads the shipped `island_b.glb` (`aerie.glb` after the rename) and `campfire_kit.glb`, so it never opens a `.blend` and cannot collide with an aerie export. The live model came from `island_b_route_r35.blend` with the round 21 telescope.
+`export_aerie_collision.py` builds the walker's collision proxy in background Blender and writes `src/assets/models/aerie_collide.glb` (27 kB, 5,920 triangles) and `aerie_collide_report.json`. It reads the shipped `aerie.glb` and `campfire_kit.glb`, so it never opens a `.blend` and cannot collide with an aerie export. The live model came from `island_b_route_r35.blend` with the round 21 telescope.
 
-The proxy has the floors of the lawn, paths, pad, rocks and house. Seven stair flights become ramps. Walls come from horizontal slices, each stood up as a short strip, and props and trunks become fitted boxes and posts. Each room is a closed block, and a ground scan fences the rim and the water. The empties are `Zone_*` (scale gives the half size), `Hop_*` and `Spawn_Campfire`. `collision_grid.py` holds the masks and the reach check. The export stops unless every zone and the upper terrace can be reached from the campfire, and unless no room floor can be reached.
+The proxy has the floors of the lawn, paths, pad, rocks and house. Seven stair flights become ramps. Walls come from horizontal slices, each stood up as a short strip, and props and trunks become fitted boxes and posts. Each room is a closed block, and a ground scan fences the rim and the water. The empties are `Zone_*` (scale gives the half size), `Hop_*` and `Spawn_Campfire`. `collision_grid.py` holds the masks and the reach check. The export stops unless every zone and the upper terrace can be reached from the campfire, and unless no room floor can be reached. A door scan casts rays out of the bedroom block at 0.2 m over its floor and finds the one opening, in the south wall at x -4.31. `Zone_Bedroom` stands on the balcony 0.7 m outside it, so the walker stops at the door.
 
 ## Campfire kit: 3 November 2026
 

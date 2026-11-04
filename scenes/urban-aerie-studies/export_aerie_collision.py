@@ -4,8 +4,7 @@ Run it from this folder with background Blender:
 
     blender --factory-startup -b --python export_aerie_collision.py -- [--no-compress] [--keep-scene]
 
-It reads the shipped aerie model (aerie.glb, or island_b.glb before the rename), so the
-proxy matches what the site draws. It never opens or saves a .blend, so it cannot collide
+It reads the shipped aerie.glb, so the proxy matches what the site draws. It never opens or saves a .blend, so it cannot collide
 with an aerie export. The live model came from island_b_route_r35.blend, with the round 21
 telescope.
 
@@ -60,9 +59,7 @@ from collision_grid import (  # noqa: E402
 ROOT = Path(__file__).resolve().parent
 SITE = ROOT.parent.parent
 MODELS = SITE / 'src/assets/models'
-# The orchestrator renames island_b.glb to aerie.glb. Either name works until that lands.
-SOURCE = next((MODELS / n for n in ('aerie.glb', 'island_b.glb') if (MODELS / n).exists()),
-              MODELS / 'aerie.glb')
+SOURCE = MODELS / 'aerie.glb'
 # The site places the campfire kit at Anchor_Campfire (src/scene/aerie/campfire.js).
 CAMPFIRE_KIT = MODELS / 'campfire_kit.glb'
 OUT = MODELS / 'aerie_collide.glb'
@@ -114,6 +111,12 @@ HOP_MIN_TOP = 0.10
 # A floor with a ceiling closer than this is indoors. The rooms have ceilings about 2.9 m
 # up, and the telescope terrace sits 5.4 m under the roof overhang.
 CEILING = 3.2
+
+# The door scan (find_door): the ray height over the floor, the start inside the block, the
+# ray length, the step along each wall, the narrowest opening that counts as a door, and the
+# widest post inside one opening.
+# A zone stands `out` metres outside the door, on the terrace.
+DOOR = {'lift': 0.2, 'inset': 0.3, 'reach': 0.9, 'step': 0.05, 'min_width': 0.5, 'post': 0.15, 'out': 0.7}
 
 # Interiors: the floor bands of the three rooms, in metres of world height.
 ROOM_BANDS = {'workshop': (0.9, 4.1), 'lounge': (4.15, 7.3), 'bedroom': (7.35, 10.4)}
@@ -433,9 +436,52 @@ def room_blocks(bm_out, objs):
         corners, *_ = fitted_box(pts, z0 + 0.05, z1 - 0.05, aligned=True)
         add_box(bm_out, corners)
         centre = sum(corners[:4], Vector()) / 4
-        rooms[name] = Vector((centre.x, centre.y, z0 + 0.15))
+        rooms[name] = {'centre': Vector((centre.x, centre.y, z0 + 0.15)), 'floor': z0 + 0.1,
+                       'min': Vector(map(min, *corners)), 'max': Vector(map(max, *corners))}
     bm.free()
     return rooms
+
+
+def find_door(house, room):
+    """Finds the door of a room: the widest opening in the house walls round its block.
+
+    Rays run out through the walls from just inside the block, DOOR['lift'] over the floor.
+    At that height a window still has wall under it, so only a door lets a ray through. The
+    house mesh holds no door glass, so an open frame and a glass door both count. Returns the
+    middle of the opening on the wall line, and the outward normal, or None.
+    """
+    lo, hi = room['min'], room['max']
+    z = room['floor'] + DOOR['lift']
+    sides = (((lo.x, lo.y), (hi.x, lo.y), (0, -1)), ((hi.x, lo.y), (hi.x, hi.y), (1, 0)),
+             ((hi.x, hi.y), (lo.x, hi.y), (0, 1)), ((lo.x, hi.y), (lo.x, lo.y), (-1, 0)))
+    best = None
+
+    def close(run, n):
+        nonlocal best
+        width = (run[-1] - run[0]).length if len(run) > 1 else 0.0
+        if width >= DOOR['min_width'] and (best is None or width > best[0]):
+            best = (width, (run[0] + run[-1]) / 2, n)
+
+    for a, b, n in sides:
+        a, b, n = Vector(a), Vector(b), Vector(n)
+        steps = max(1, int((b - a).length / DOOR['step']))
+        run = []
+        for k in range(steps + 1):
+            p = a.lerp(b, k / steps)
+            start = p - n * DOOR['inset']
+            if house.ray_cast(Vector((start.x, start.y, z)), Vector((n.x, n.y, 0)), DOOR['reach'])[0] is not None:
+                continue
+            # A post up to DOOR['post'] wide, such as the stile between two door leaves,
+            # stays inside one opening.
+            if run and (p - run[-1]).length > DOOR['post'] + DOOR['step']:
+                close(run, n)
+                run = []
+            run.append(p)
+        close(run, n)
+    if best is None:
+        return None
+    width, middle, n = best
+    return {'at': Vector((middle.x, middle.y, room['floor'])), 'normal': Vector((n.x, n.y, 0)), 'width': round(width, 2)}
 
 
 # The ground scan and the fence ----------------------------------------------------------
@@ -479,12 +525,12 @@ def anchor(objs, name):
     return objs[name].matrix_world.translation.copy()
 
 
-def zone_spots(objs, proxy, terraces):
+def zone_spots(objs, proxy, terraces, bedroom_door):
     """Places each zone on the proxy floor next to the thing it opens.
 
     A ray from just over each spot drops it onto the proxy, so the porch zone lands on the
-    porch and not on the lawn under it. The bedroom zone takes the outdoor terrace spot
-    nearest the bedroom that stays clear of the telescope zone.
+    porch and not on the lawn under it. The bedroom zone stands on the terrace outside the
+    bedroom door (find_door). The walker never enters the room, so the zone stays outside.
     """
     tree = BVHTree.FromBMesh(proxy)
 
@@ -493,11 +539,11 @@ def zone_spots(objs, proxy, terraces):
         return hit[0] if hit[0] is not None else p
 
     telescope = anchor(objs, 'Anchor_Telescope')
-    bedroom = anchor(objs, 'Anchor_Bedroom')
     deck = [c for c in terraces if abs(c.z - 7.45) < 0.15]
     scope = min(deck, key=lambda c: (c.to_2d() - telescope.to_2d()).length, default=telescope)
-    clear = [c for c in deck if (c.to_2d() - scope.to_2d()).length > 1.4]
-    door = min(clear, key=lambda c: (c.to_2d() - bedroom.to_2d()).length, default=bedroom)
+    if bedroom_door is None:
+        raise RuntimeError('The door scan found no bedroom door.')
+    door = bedroom_door['at'] + bedroom_door['normal'] * DOOR['out']
     entry = anchor(objs, 'Anchor_Entry_Light')
     return {
         'Pad': drop(anchor(objs, 'Anchor_Pad'), 2.0),
@@ -652,6 +698,9 @@ def build(objs, report):
     report['trunk_posts'] = trunk_posts(solids, objs, ground, on_aerie_point)
     rooms = room_blocks(solids, objs)
     report['rooms'] = list(rooms)
+    door = find_door(roof, rooms['bedroom']) if 'bedroom' in rooms else None
+    if door:
+        report['bedroom_door'] = {'at': [round(c, 2) for c in door['at']], 'normal': [round(c, 2) for c in door['normal']], 'width': door['width']}
 
     report['fence_quads'] = fence(solids, ground, erode(region), lo)
     report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point)
@@ -678,14 +727,14 @@ def build(objs, report):
     bmesh.ops.remove_doubles(out, verts=out.verts, dist=0.005)
     bmesh.ops.triangulate(out, faces=out.faces)
     report['triangles'] = len(out.faces)
-    spots = zone_spots(objs, out, terraces)
+    spots = zone_spots(objs, out, terraces, door)
     spawn = campfire_spawn(ground, anchor(objs, 'Anchor_Campfire'), region, lo)
     # The barbecue stands on the upper terrace. The check aims 1.9 m east of it, onto the boards.
     targets = {**spots, 'Upper_Terrace': anchor(objs, 'Anchor_BBQ') + Vector((1.9, 0.4, -0.78))}
     report['reach'], report['reach_cells'] = reach(out, spawn, targets, FLOOR_NZ)
     # The owner's rule: the walker never enters a room, so the low-poly interiors are never
     # seen close up. The floor inside each room must stay out of reach.
-    inside, _ = reach(out, spawn, {f'inside_{k}': p for k, p in rooms.items()}, FLOOR_NZ)
+    inside, _ = reach(out, spawn, {f'inside_{k}': r['centre'] for k, r in rooms.items()}, FLOOR_NZ)
     report['rooms_closed'] = {k: not v for k, v in inside.items()}
     return out, spots, hops, spawn
 

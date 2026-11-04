@@ -163,7 +163,7 @@ export function createCameraRig({ camera, shots, start = 'overview' }) {
         const travelFrom = tween ? Math.sin(Math.PI * tween.s) : 0
         const coast = velocity.lengthSq() + lookVelocity.lengthSq() > 1e-6 ? { position, look: baseLook.clone(), velocity: velocity.clone(), lookVelocity: lookVelocity.clone(), brake: false } : null
         const midway = Boolean(coast)
-        let move = moves.createMove({ position, target: from, shot, duration, field, midway, door })
+        let move = moves.createMove({ position, target: from, shot, duration, field, midway, door, leg: `${current}>${id}` })
         let v0 = 0
         const along = move.camPath.tangentAt(0, new THREE.Vector3()).dot(velocity)
         if (coast && along < BRAKE_SHARE * velocity.length()) {

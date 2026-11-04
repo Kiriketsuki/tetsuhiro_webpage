@@ -206,7 +206,7 @@ Any input wakes Kinako, and the walk starts at once. The idle habits run on the 
 
 ### Collision and the walkable area
 
-- **A low-poly proxy from Blender.** A new script, `scenes/urban-aerie-studies/export_aerie_collision.py`, writes `src/assets/models/aerie_collide.glb`. It reads the shipped aerie model (`island_b.glb`, `aerie.glb` after the rename) and `campfire_kit.glb`, so the proxy matches what the site draws, and it never opens or saves a `.blend`. It holds:
+- **A low-poly proxy from Blender.** A new script, `scenes/urban-aerie-studies/export_aerie_collision.py`, writes `src/assets/models/aerie_collide.glb`. It reads the shipped `aerie.glb` and `campfire_kit.glb`, so the proxy matches what the site draws, and it never opens or saves a `.blend`. It holds:
   - the walkable floors: the lawn, the paths, the pad, the ramp, the deck, the bridge, the porch, the landings and both roof terraces.
   - every stair flight as a smooth ramp, so the capsule needs no step logic. The script finds each flight from its treads.
   - walls from horizontal slices through the house, the glass, the paths, the rocks and the pad, each stood up as a short vertical strip.

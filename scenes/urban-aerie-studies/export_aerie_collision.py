@@ -74,6 +74,8 @@ WALL_MIN_Z = -0.6
 # The lawn needs about 2,500 floor triangles to sit within 2 cm of the drawn ground at the
 # median. At 4,000 in all, the median gap was 5 cm, which shows under the walker's paws.
 TRIANGLE_LIMIT = 6000
+# The height of the guard strips along each ramp side, in metres over the ramp.
+RAMP_GUARD = 0.6
 
 FLOOR_MESHES = ('Island', 'Paths', 'Pad', 'Rock', 'House')
 # Walls come from slices, not from their own faces. Each slice height gets a wall strip
@@ -102,6 +104,8 @@ TREAD_RUN = (0.12, 0.60)
 CELL = 0.2
 FENCE_DOWN, FENCE_UP = 0.4, 1.2
 FENCE_SIMPLIFY = 0.25
+# The water fence reaches this far under and over the water level, in metres.
+WATER_FENCE = (0.5, 1.0)
 MIN_HOLE_LOOP = 1.6
 
 # Low props the walker hops onto: the top stands this high over the ground.
@@ -243,8 +247,14 @@ def chain_flights(treads):
     return flights
 
 
-def flight_ramp(chain):
-    """Returns the ramp quad and the box that holds the flight's treads and risers."""
+def flight_ramp(chain, tree=None):
+    """Returns the ramp quad and the box that holds the flight's treads and risers.
+
+    tree: a BVH of the mesh, to read the floor past the last tread. When that floor stands at
+    the last tread's height, the last tread is the first board of the landing. The ramp then
+    ends at the riser line under it, at the landing height, and the board stays a floor. The
+    ramp used to run one riser past the landing, so the walker stepped down a 0.2 m lip.
+    """
     first, last = chain[0], chain[-1]
     d = (last['centre'] - first['centre']).to_2d()
     length = d.length
@@ -260,10 +270,18 @@ def flight_ramp(chain):
     foot = first['centre'].to_2d() - d * (run / 2 + 0.06)
     head = last['centre'].to_2d() + d * (run / 2 + 0.06)
     z_foot, z_head = first['z'] - rise - 0.06 * rise / run, last['z'] + rise + 0.06 * rise / run
+    landing = False
+    if tree is not None:
+        past = last['centre'].to_2d() + d * (run * 0.8)
+        hit = tree.ray_cast(Vector((past.x, past.y, last['z'] + 0.3)), Vector((0, 0, -1)), 0.6)
+        landing = hit[0] is not None and abs(hit[0].z - last['z']) < 0.04
+    if landing:
+        head = last['centre'].to_2d() - d * (run / 2)
+        z_head = last['z']
     quad = [Vector((*(foot - side * half_w), z_foot)), Vector((*(head - side * half_w), z_head)),
             Vector((*(head + side * half_w), z_head)), Vector((*(foot + side * half_w), z_foot))]
     box = {'origin': first['centre'].to_2d() - d * run / 2, 'd': d, 'side': side,
-           'length': length + run, 'half_w': half_w - 0.02,
+           'length': length if landing else length + run, 'half_w': half_w - 0.02,
            'z': (first['z'] - rise - 0.02, last['z'] + 0.02)}
     return quad, box
 
@@ -499,7 +517,8 @@ def scan(ground, lo, hi):
     return walk, height
 
 
-def fence(bm_out, ground, mask, lo):
+def fence(bm_out, mask, lo, span):
+    """A fence along every outline of mask. span(x, y) gives the bottom and top of each post."""
     count = 0
     for loop in boundary_loops(mask):
         pts = [(lo.x + (i - 0.5) * CELL, lo.y + (j - 0.5) * CELL) for i, j in loop]
@@ -508,15 +527,45 @@ def fence(bm_out, ground, mask, lo):
             continue
         half = len(pts) // 2
         pts = simplify(pts[:half + 1], FENCE_SIMPLIFY)[:-1] + simplify(pts[half:] + pts[:1], FENCE_SIMPLIFY)[:-1]
-        zs = [ground.z(x, y) for x, y in pts]
+        posts = [span(x, y) for x, y in pts]
         for k in range(len(pts)):
             (x0, y0), (x1, y1) = pts[k], pts[(k + 1) % len(pts)]
-            za, zb = zs[k], zs[(k + 1) % len(pts)]
-            v = [bm_out.verts.new(c) for c in ((x0, y0, za - FENCE_DOWN), (x1, y1, zb - FENCE_DOWN),
-                                                (x1, y1, zb + FENCE_UP), (x0, y0, za + FENCE_UP))]
+            (a0, a1), (b0, b1) = posts[k], posts[(k + 1) % len(pts)]
+            v = [bm_out.verts.new(c) for c in ((x0, y0, a0), (x1, y1, b0), (x1, y1, b1), (x0, y0, a1))]
             bm_out.faces.new(v)
             count += 1
     return count
+
+
+def water_fence(bm_out, ground, lo, shape):
+    """A fence on the banks of the pond and the stream, one cell out from the water.
+
+    The rim fence follows the walkable outline, and a ray from above meets a bridge deck before
+    the stream under it, so the stream under a bridge counted as walkable. The walker went
+    under the bridge foot ramp into the stream bed. Under a deck each post stops just below it,
+    so the walk over the bridge stays open.
+    """
+    tree = ground.trees['Water']
+    water = np.zeros(shape, dtype=bool)
+    levels = []
+    for j in range(shape[0]):
+        for i in range(shape[1]):
+            loc = tree.ray_cast(Vector((lo.x + i * CELL, lo.y + j * CELL, 40.0)), Vector((0, 0, -1)))[0]
+            if loc is not None:
+                water[j, i] = True
+                levels.append(loc.z)
+    if not levels:
+        return 0
+    level = sorted(levels)[len(levels) // 2]
+
+    def span(x, y):
+        top = level + WATER_FENCE[1]
+        hit = ground.hit(x, y)
+        if hit and hit[0] in ('Paths', 'Pad') and hit[1].z > level + 0.3:
+            top = min(top, hit[1].z - 0.08)
+        return level - WATER_FENCE[0], top
+
+    return fence(bm_out, clear_saddles(dilate(water)), lo, span)
 
 
 # Zones -----------------------------------------------------------------------------------
@@ -672,8 +721,9 @@ def build(objs, report):
         bm = world_bmesh(objs[name])
         up = [f for f in bm.faces if f.normal.z >= FLOOR_NZ and f.calc_center_median().z > WALL_MIN_Z]
         if name in ('House', 'Paths'):
+            mesh_tree = BVHTree.FromBMesh(bm)
             for chain in chain_flights(find_treads(up)):
-                quad, box = flight_ramp(chain)
+                quad, box = flight_ramp(chain, mesh_tree)
                 ramps.append(quad)
                 boxes.append(box)
         def in_any(f):
@@ -702,7 +752,9 @@ def build(objs, report):
     if door:
         report['bedroom_door'] = {'at': [round(c, 2) for c in door['at']], 'normal': [round(c, 2) for c in door['normal']], 'width': door['width']}
 
-    report['fence_quads'] = fence(solids, ground, clear_saddles(erode(region)), lo)
+    rim = lambda x, y: (ground.z(x, y) - FENCE_DOWN, ground.z(x, y) + FENCE_UP)
+    report['fence_quads'] = fence(solids, clear_saddles(erode(region)), lo, rim)
+    report['water_fence_quads'] = water_fence(solids, ground, lo, walk.shape)
     report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point)
 
     tidy(floors, 4.0)
@@ -710,12 +762,18 @@ def build(objs, report):
     tidy(solids, 1.0)
     report['before_decimate'] = {'floors': len(floors.faces), 'walls': len(walls.faces),
                                  'solids': len(solids.faces)}
-    budget = TRIANGLE_LIMIT - 80 - 2 * len(ramps) - len(solids.faces)
+    budget = TRIANGLE_LIMIT - 80 - 6 * len(ramps) - len(solids.faces)
     decimate_to(floors, budget - len(walls.faces))
     report['after_decimate'] = {'floors': len(floors.faces), 'walls': len(walls.faces)}
     # The ramps join after decimation, so each keeps its exact slope.
     for quad in ramps:
         solids.faces.new([solids.verts.new(c) for c in quad])
+        # A guard strip along each long side, as the stair stringers are. Between the slice
+        # heights the stair tower had no wall at a flight's side, so the walker stepped off a
+        # flight and fell out through the tower glass.
+        for a, b in ((quad[0], quad[1]), (quad[3], quad[2])):
+            up = Vector((0, 0, RAMP_GUARD))
+            solids.faces.new([solids.verts.new(c) for c in (a - up * 0.3, b - up * 0.3, b + up, a + up)])
 
     out = bmesh.new()
     for part in (floors, walls, solids):

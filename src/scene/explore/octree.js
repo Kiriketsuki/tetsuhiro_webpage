@@ -1,6 +1,6 @@
 // Copied from three r180, examples/jsm/math/Octree.js (MIT licence, the three.js authors).
-// Three changes, each marked in place. Change 1 drops Line3. Changes 2 and 3 make every
-// triangle two-sided for the capsule and for rays.
+// Three changes, each marked in place. Change 1 drops Line3. Change 2 makes every wall
+// two-sided for the capsule, and change 3 makes every triangle two-sided for rays.
 // Change 1: a small Segment class stands in for three's Line3. The Octree makes only two
 // Line3 calls, and nothing else on the site uses Line3, so the import grew the shared three
 // chunk, which counts toward the scene budget, by about 0.5 kB.
@@ -360,10 +360,12 @@ class Octree {
 
 		triangle.getPlane( _plane );
 
-		// Change 2: every triangle is two-sided. The proxy's wall strips and rim fence face
-		// whichever way their slice came out, and three's one-sided test let a capsule behind a
-		// strip walk straight through it. A capsule behind the plane meets the flipped plane.
-		if ( _plane.distanceToPoint( _v1.copy( capsule.start ).add( capsule.end ).multiplyScalar( 0.5 ) ) < 0 ) _plane.negate();
+		// Change 2: every wall is two-sided. The proxy's wall strips and rim fence face whichever
+		// way their slice came out, and three's one-sided test let a capsule behind a strip walk
+		// straight through it. A capsule behind a steep plane meets the flipped plane. A floor
+		// faces up and stays one-sided: flipped, it pushed a capsule that dipped under the lawn
+		// further down, and the walker sank through the lawn off the deck edge.
+		if ( Math.abs( _plane.normal.y ) < 0.5 && _plane.distanceToPoint( _v1.copy( capsule.start ).add( capsule.end ).multiplyScalar( 0.5 ) ) < 0 ) _plane.negate();
 
 		const d1 = _plane.distanceToPoint( capsule.start ) - capsule.radius;
 		const d2 = _plane.distanceToPoint( capsule.end ) - capsule.radius;
@@ -627,7 +629,7 @@ class Octree {
 
 		for ( let i = 0; i < triangles.length; i ++ ) {
 
-			// Change 3: two-sided, as for the capsule.
+			// Change 3: rays are two-sided, so the camera clamp and the step down see a wall from either side.
 			const result = ray.intersectTriangle( triangles[ i ].a, triangles[ i ].b, triangles[ i ].c, false, _v1 );
 
 			if ( result ) {

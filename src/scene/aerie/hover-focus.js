@@ -5,8 +5,8 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js'
 // cursor and writes it as a log depth in two bytes, because WebGL2 cannot read a depth texture
 // back. readRenderTargetPixelsAsync reads that pixel through a pixel buffer and a fence, so the
 // CPU never waits on the GPU. The depth covers every surface that writes depth. The city plane
-// writes none, so a pointer over the city reads the far plane, and the lens then keeps the city
-// sharp.
+// writes none, so a pointer over the city reads the far plane. The grade pass keeps the far city
+// partly soft even then.
 //
 // The values are a mutable object, so the owner can tune them live from the dev console.
 export const HOVER_FOCUS = {
@@ -16,9 +16,6 @@ export const HOVER_FOCUS = {
     rate: 18,
     // A change of log depth under this size keeps the focus where it is, so it does not hunt.
     dead: 0.15,
-    // How far the focus goes from the stop's own focus toward the hovered depth. At 0.8 the
-    // stop's subject keeps a fifth of its sharpness when the cursor rests far behind it.
-    cap: 0.8,
     // The cursor clear patch while the hover focus holds. 0.4 is the patch without it.
     clear: 0,
 }

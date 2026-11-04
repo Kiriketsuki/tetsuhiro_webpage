@@ -20,6 +20,15 @@ const FLOOR_NY = 0.5
 const STEP_DOWN = 0.22
 // The automatic hop (spec, Walker design): onto a Hop_ top that rises this much over the feet.
 const HOP = { min: 0.1, max: 0.5, ahead: 0.35, lift: 0.08 }
+// A ledge the probe finds must be this flat (the up share of its normal) to stand on. The probe
+// samples the ground at these distances ahead of the capsule middle, from just past its front to
+// HOP.ahead, so it finds a thin lip as well as a broad step.
+const LEDGE_FLAT = 0.8
+const LEDGE_SAMPLES = [0.18, 0.23, 0.28, 0.35]
+// The round foot of the capsule climbs a rise up to about RADIUS * (1 - cos 60 degrees), 0.075 m.
+// A probed ledge from LEDGE_MIN up takes a small hop, so no rise sits between a climb and a hop.
+// The pad rim is such a lip: 0.08 m over the lawn on the diagonals.
+const LEDGE_MIN = 0.05
 // A walker below this far under its spawn has left the aerie, so it goes back to the spawn.
 const LOST = 8
 
@@ -29,6 +38,9 @@ export function createMover(world) {
     const feet = new THREE.Vector3()
     const ray = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, -1, 0))
     const ahead = new THREE.Vector3()
+    const probe = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, -1, 0))
+    const up = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, 1, 0))
+    const normal = new THREE.Vector3()
     let onFloor = false
 
     const place = (p) => {
@@ -72,18 +84,52 @@ export function createMover(world) {
         if (capsule.start.y < world.spawn.y - LOST) place(world.spawn)
     }
 
-    // Hops onto a Hop_ top ahead along dir when the walker pushes against it, or when it walks
-    // into the top from outside. The lookout bench seat is a slab with open space under it, so a
-    // walker from the deck passes under the seat and never pushes against it. Returns true on a
-    // hop.
+    // The top of a low ledge ahead along dir, or null. Rays drop from over the highest hop onto
+    // the proxy at each sample, and the highest flat top counts. It must sit in the hop range over
+    // the feet and leave room for the capsule over it. This finds a ledge the export marks with no
+    // Hop_ box, such as the rim of the landing pad: a lip 0.11 to 0.15 m high round a pad that
+    // stands only 0.05 m over the lawn.
+    const ledgeTop = (at, dir) => {
+        let top = -Infinity
+        for (const d of LEDGE_SAMPLES) {
+            probe.origin.set(at.x + dir.x * d, at.y + HOP.max + 0.3, at.z + dir.z * d)
+            const hit = world.octree.rayIntersect(probe)
+            if (!hit || Math.abs(hit.triangle.getNormal(normal).y) < LEDGE_FLAT) continue
+            if (hit.position.y > top) {
+                top = hit.position.y
+                up.origin.set(probe.origin.x, top + 0.02, probe.origin.z)
+            }
+        }
+        const rise = top - at.y
+        if (rise < LEDGE_MIN || rise > HOP.max) return null
+        const roof = world.octree.rayIntersect(up)
+        return roof && roof.distance < HEIGHT ? null : top
+    }
+
+    // Hops onto a low top ahead along dir. A Hop_ top fires when the walker pushes against it,
+    // or when it walks into the top from outside. The lookout bench seat is a slab with open
+    // space under it, so a walker from the deck passes under the seat and never pushes against
+    // it. Any other low ledge fires when the walker pushes against it. Returns true on a hop.
+    // True when the walker stands, or presses on a wall with the floor right under its foot. The
+    // collide step keeps one contact, so a walker pushed against a lip reads the wall and not the
+    // floor, and onFloor turns false while it stands still.
+    const standing = () => {
+        if (onFloor) return true
+        if (velocity.y > 0.5) return false
+        ray.origin.copy(capsule.start)
+        const hit = world.octree.rayIntersect(ray)
+        return Boolean(hit) && hit.distance <= RADIUS + 0.04
+    }
+
     const tryHop = (dir, pushing) => {
-        if (!onFloor) return false
+        if (!standing()) return false
         const at = position()
         ahead.copy(at).addScaledVector(dir, HOP.ahead)
         const rises = (h) => h.top - at.y >= HOP.min && h.top - at.y <= HOP.max
         const hop = world.hops.find((h) => insideBox(h.node, ahead, true) && (pushing || !insideBox(h.node, at, true)) && rises(h))
-        if (!hop) return false
-        velocity.y = Math.sqrt(2 * GRAVITY * (hop.top - at.y + HOP.lift))
+        const top = hop ? hop.top : pushing ? ledgeTop(at, dir) : null
+        if (top === null) return false
+        velocity.y = Math.sqrt(2 * GRAVITY * (top - at.y + HOP.lift))
         onFloor = false
         return true
     }

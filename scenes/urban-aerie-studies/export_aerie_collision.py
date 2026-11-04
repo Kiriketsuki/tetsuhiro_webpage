@@ -88,9 +88,17 @@ SLICE_HEIGHTS = {
     'Glass': (0.6, 1.3, 2.0, 4.45, 7.7, 10.85),
     'Paths': (0.6, 1.3, 2.0),
     'Rock': (0.4, 0.9),
-    'Pad': (0.4, 0.9),
+    # The pad takes no slice at 0.4 m. That strip stood from 0.05 to 0.75 m, over the pad top at
+    # 0.62 m, and fenced the pad in. The rim fence guards the aerie edge past the pad.
+    'Pad': (0.9,),
 }
 SLICE_MESHES = tuple(SLICE_HEIGHTS)
+# A strip of a ground slice (paths, rocks, pad) stops at the higher floor on its two sides,
+# sampled this far out from the strip. A strip that stood over both floors fenced in low ledges
+# such as the pad rim and the deck edge, where the walker should hop. A strip with no ground on
+# one side keeps its full height, so a drop stays walled.
+LEDGE_SLICES = ('Paths', 'Rock', 'Pad')
+LEDGE_SIDE = 0.12
 SLICE_HALF = 0.35
 SLICE_SIMPLIFY = 0.07
 GROUND_MESHES = ('Island', 'Paths', 'Pad', 'Rock')
@@ -674,8 +682,24 @@ def chain_edges(edges):
     return lines
 
 
-def slice_walls(bm_out, objs, boxes, on_aerie):
-    """Wall strips from horizontal cuts through the house and its glass."""
+def strip_top(ground, name, a, b, z):
+    """The top of a slice strip from a to b at height z: z + SLICE_HALF, or lower at a ledge."""
+    top = z + SLICE_HALF
+    if name not in LEDGE_SLICES:
+        return top
+    mid = (a + b) / 2
+    side = Vector((-(b - a).y, (b - a).x)).normalized() * LEDGE_SIDE
+    floors = []
+    for p in (mid + side, mid - side):
+        h = ground.hit(p.x, p.y)
+        if h is None or h[0] == 'Water':
+            return top
+        floors.append(h[1].z)
+    return min(top, max(floors))
+
+
+def slice_walls(bm_out, objs, boxes, on_aerie, ground):
+    """Wall strips from horizontal cuts through the house, its glass and the ground meshes."""
     count = 0
     for name, heights in SLICE_HEIGHTS.items():
         for z in heights:
@@ -691,8 +715,11 @@ def slice_walls(bm_out, objs, boxes, on_aerie):
                     if (Vector((x1 - x0, y1 - y0)).length < 0.02
                             or any(in_flight(mid, b) for b in boxes)):
                         continue
+                    top = strip_top(ground, name, Vector((x0, y0)), Vector((x1, y1)), z)
+                    if top < z - SLICE_HALF + 0.03:
+                        continue
                     v = [bm_out.verts.new(c) for c in ((x0, y0, z - SLICE_HALF), (x1, y1, z - SLICE_HALF),
-                                                        (x1, y1, z + SLICE_HALF), (x0, y0, z + SLICE_HALF))]
+                                                        (x1, y1, top), (x0, y0, top))]
                     bm_out.faces.new(v)
                     count += 1
             bm.free()
@@ -755,7 +782,7 @@ def build(objs, report):
     rim = lambda x, y: (ground.z(x, y) - FENCE_DOWN, ground.z(x, y) + FENCE_UP)
     report['fence_quads'] = fence(solids, clear_saddles(erode(region)), lo, rim)
     report['water_fence_quads'] = water_fence(solids, ground, lo, walk.shape)
-    report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point)
+    report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point, ground)
 
     tidy(floors, 4.0)
     tidy(walls, 6.0)

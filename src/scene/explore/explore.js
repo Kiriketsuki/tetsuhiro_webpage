@@ -26,7 +26,9 @@ import { createCutaway } from './cutaway.js'
 const SPEED = { walk: 2.2, run: 4.5 }
 // A walker slower than this, in metres a second, has stopped, so a zone prompt may open.
 const STOPPED = 0.25
-// The share of the asked speed under which a push against a ledge counts as blocked.
+// The share of the asked speed under which a push against a ledge counts as blocked. It counts
+// the speed along the asked direction only: on a round rim the capsule slides sideways along the
+// lip and keeps its speed, but makes no progress.
 const BLOCKED = 0.35
 
 // Each zone: its prompt, and what it opens. section: the home section a card shows.
@@ -154,7 +156,10 @@ export function createExplore(manager, story) {
         mover.step(dt, wish)
         travel.set(mover.velocity.x, 0, mover.velocity.z)
         const moved = travel.length()
-        if (wish.lengthSq() > 0) mover.tryHop(wish.clone().normalize(), moved < BLOCKED * speed)
+        if (wish.lengthSq() > 0) {
+            const dir = wish.clone().normalize()
+            mover.tryHop(dir, mover.velocity.x * dir.x + mover.velocity.z * dir.z < BLOCKED * speed)
+        }
         const feet = mover.position()
         body.update(dt, feet, travel, mover.onFloor, reduced())
         const easing = follow.update(dt, feet, reduced())

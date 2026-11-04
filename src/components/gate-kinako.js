@@ -80,9 +80,13 @@ export function createKinakoWalk(art) {
     const row = art?.querySelector('.ga-w-row') ?? null
     let loading = null
     let loaded = false
-    // idle: napping. walking: on the way to the button. sitting: on it. out: gone.
+    // idle: napping. walking: on the way to the button. sitting: on it. out: gone in, or the
+    // visitor went in first, so no walk starts.
     let state = 'idle'
     let running = []
+    // The button of the last walk in, and whether a resize moved it during the walk.
+    let lastButton = null
+    let moved = false
 
     const stop = () => {
         running.forEach((animation) => animation.cancel())
@@ -159,6 +163,8 @@ export function createKinakoWalk(art) {
             if (!loaded) await Promise.race([this.load(), new Promise((resolve) => setTimeout(resolve, LOAD_WAIT_MS))])
             // Without its frames Kinako sleeps on. The button works either way.
             if (!loaded || state !== 'idle') return
+            lastButton = button
+            moved = false
             started()
             if (reduced) return sitStill(button, STILL_FADE)
             const box = fit()
@@ -181,11 +187,17 @@ export function createKinakoWalk(art) {
             state = 'walking'
             stop()
             await play(moves, frames, total, true)
-            if (state === 'walking') state = 'sitting'
+            if (state !== 'walking') return
+            state = 'sitting'
+            // The walk ran on the points of its start. After a resize Kinako sits where the
+            // button is now.
+            if (moved) sitStill(button, 0)
         },
 
         // Trots on ahead and out of view, from wherever Kinako is.
         walkOut(reduced) {
+            // A visitor who goes in before Kinako sets off leaves Kinako asleep.
+            if (state === 'idle') state = 'out'
             if (!walker || reduced || (state !== 'walking' && state !== 'sitting')) return
             const now = new DOMMatrix(getComputedStyle(walker).transform)
             const box = walker.getBoundingClientRect()
@@ -203,12 +215,15 @@ export function createKinakoWalk(art) {
         // Puts a sitting Kinako back on the button after a resize.
         settle(button) {
             if (state === 'sitting') sitStill(button, 0)
+            if (state === 'walking' && button === lastButton) moved = true
         },
 
         // Back to the nap, for a second greeting from the nav lantern.
+        // The last greeting's walk may still hold its fill, so every animation on the walker,
+        // the row and the nap goes, not only this instance's.
         reset() {
             stop()
-            nap?.getAnimations().forEach((animation) => animation.cancel())
+            for (const el of [walker, row, nap]) el?.getAnimations().forEach((animation) => animation.cancel())
             state = 'idle'
         },
     }

@@ -400,6 +400,9 @@
         #gate-art *::before {
           animation: none !important;
         }
+        #gate-art .ga-title {
+          transition: none !important;
+        }
         #gate-art.is-open {
           transition: opacity 0.6s;
         }
@@ -527,6 +530,14 @@
       }
       .gate-readout > .is-off {
         opacity: 0;
+      }
+      /* A load error is a sentence, so it wraps. */
+      .gate-readout.has-error {
+        height: auto;
+        line-height: 1.2rem;
+      }
+      .gate-readout.has-error > span {
+        white-space: normal;
       }
       /* Kinako trots along the top of the way in and sits on it, in front of the lit line, so
          the line gives way once Kinako sets off. */

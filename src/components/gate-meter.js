@@ -103,7 +103,10 @@ function stepKeys(next, frame, steps) {
         const [v0, v1] = [values[i - 1], values[i]]
         while (v1 > v0 && (n + 1) / steps <= v1 + 1e-9) {
             n += 1
-            const t = times[i - 1] + ((n / steps - v0) / (v1 - v0)) * (times[i] - times[i - 1])
+            // The slack on v1 can put a crossing a hair past the piece. The clamp keeps the
+            // offsets in order, which animate() requires.
+            const k = Math.min(1, Math.max(0, (n / steps - v0) / (v1 - v0)))
+            const t = times[i - 1] + k * (times[i] - times[i - 1])
             keys.push({ ...frame(n / steps), offset: Math.min(1, t / total), easing: 'step-end' })
         }
     }

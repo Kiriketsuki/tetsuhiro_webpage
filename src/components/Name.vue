@@ -26,14 +26,17 @@
         ></button>
 
         <div class="gate-foot">
-            <p class="gate-readout" aria-live="polite">
-                <span v-if="loadError">{{ loadError }}</span>
+            <p class="gate-readout" :class="{ 'has-error': loadError }">
+                <!-- One live line carries the state for screen readers. The lines on screen share
+                     one cell and only fade, which a screen reader does not announce. -->
+                <span class="sr-only" aria-live="polite">{{ loadError || (full ? 'the lamps are lit' : 'lighting the lamps') }}</span>
+                <span v-if="loadError" aria-hidden="true">{{ loadError }}</span>
                 <template v-else>
-                    <span :class="{ 'is-off': full }" :aria-hidden="full">
+                    <span :class="{ 'is-off': full }" aria-hidden="true">
                         lighting the lamps
-                        <b aria-hidden="true"><span class="gate-count"><span ref="drum" class="gate-drum"><i v-for="n in 101" :key="n">{{ n - 1 }}</i></span></span>%</b>
+                        <b><span class="gate-count"><span ref="drum" class="gate-drum"><i v-for="n in 101" :key="n">{{ n - 1 }}</i></span></span>%</b>
                     </span>
-                    <span :class="{ 'is-off': !full }" :aria-hidden="!full">the lamps are lit</span>
+                    <span :class="{ 'is-off': !full }" aria-hidden="true">the lamps are lit</span>
                 </template>
             </p>
 
@@ -217,8 +220,9 @@ watch(full, async (value) => {
     art?.classList.add('is-lit')
     await nextTick()
     enter.value?.focus({ preventScroll: true })
-    // Kinako wakes and walks down onto the way in. The button already works.
-    if (!entered.value && enter.value) kinako.walkIn(enter.value, reducedMotion.value, () => (walking.value = true))
+    // Kinako wakes and walks down onto the way in. The button already works. After a failed load
+    // Kinako sleeps on, so the error stays in view.
+    if (!entered.value && enter.value && !loadError.value) kinako.walkIn(enter.value, reducedMotion.value, () => (walking.value = true))
 })
 
 // A second greeting, from the nav lantern, finds the art hidden and fades it back in.

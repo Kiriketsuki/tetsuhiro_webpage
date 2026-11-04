@@ -142,7 +142,7 @@ The JS sizes are estimates. `Octree.js` and `Capsule.js` from three (r180) come 
 
 ### The walker
 
-- **Placeholder first.** A capsule body with two ear cones and a tail, in the toon material, walks until the real model exists. It uses the same size as the final animal.
+- **Placeholder first.** A capsule body with two ear cones and a tail, in the toon material, walked in E2 and E3. E4 replaced it with Kinako from `walker.glb` (`scenes/urban-aerie-studies/export_walker.py`), behind the same body interface in `src/scene/explore/body.js`.
 - **The final animal** is Kinako, a cat-fox kit. "Walker design" below sets its look, its rig and its behaviour.
 - **Size:** 0.25 m to the shoulder, about 0.55 m from nose to rump and 0.85 m from nose to tail tip. The capsule radius is 0.15 m and its height is 0.30 m. The stair and terrace routes passed body-clearance checks at 0.50 m wide (README, 24 October 2026), so a 0.30 m capsule fits with room to spare.
 - **Speed:** walk 2.2 m/s, run 4.5 m/s. A walk across the island takes about 15 s.
@@ -310,5 +310,7 @@ Each step ships on its own, as the plan requires.
 ## Open items
 
 - The greeter mascot: the orchestrator places it with the owner.
+- The sleeping Kinako by the fire in the story views. The walk shows Kinako asleep at the spawn until the first move, but the story views draw no Kinako. That needs glue in the scene chunk, which has 1.1 kB of its budget left.
+- The hop also fires when Kinako walks into a hop top from outside, not only when it pushes against a ledge. The lookout bench seat is a slab with open space under it, so a walker from the deck passed under it and never pushed against it.
 - The `arrival` and `campfire` shots, and the focus values, are tuned in the lab during S1.
 - The telescope eyepiece may change in the parallel telescope work. The skills chapter and `Zone_Telescope` follow whatever that work ships.

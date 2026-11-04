@@ -72,12 +72,16 @@ export function createMover(world) {
         if (capsule.start.y < world.spawn.y - LOST) place(world.spawn)
     }
 
-    // Hops onto a Hop_ top ahead along dir when the walker pushes against it. Returns true on a hop.
+    // Hops onto a Hop_ top ahead along dir when the walker pushes against it, or when it walks
+    // into the top from outside. The lookout bench seat is a slab with open space under it, so a
+    // walker from the deck passes under the seat and never pushes against it. Returns true on a
+    // hop.
     const tryHop = (dir, pushing) => {
-        if (!onFloor || !pushing) return false
+        if (!onFloor) return false
         const at = position()
         ahead.copy(at).addScaledVector(dir, HOP.ahead)
-        const hop = world.hops.find((h) => insideBox(h.node, ahead, true) && h.top - at.y >= HOP.min && h.top - at.y <= HOP.max)
+        const rises = (h) => h.top - at.y >= HOP.min && h.top - at.y <= HOP.max
+        const hop = world.hops.find((h) => insideBox(h.node, ahead, true) && (pushing || !insideBox(h.node, at, true)) && rises(h))
         if (!hop) return false
         velocity.y = Math.sqrt(2 * GRAVITY * (hop.top - at.y + HOP.lift))
         onFloor = false

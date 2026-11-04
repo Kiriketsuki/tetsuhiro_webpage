@@ -399,11 +399,14 @@ def build_face(b, cfg, head, tree, hc):
            (0.0, 0.0, -0.001), (0.0, -0.003, -0.004), (0.0, -0.0085, -0.0055),
            (0.0, -0.013, 0.000)]
     pts = [Vector(p) for p in pts]
-    for a, c in zip(pts, pts[1:]):
-        d = (c - a).normalized()
-        u = Vector((1, 0, 0))
-        v = d.cross(u).normalized()
-        tube(bm, [(a, u, v, 0.0013), (c, u, v, 0.0013)], 3)
+    # One tube through all the points, with each ring square to the line there. A tube per
+    # segment drew the same line with two hidden caps at every joint.
+    u = Vector((1, 0, 0))
+    rings = []
+    for i, p in enumerate(pts):
+        d = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
+        rings.append((p, u, d.cross(u).normalized(), 0.0013))
+    tube(bm, rings, 3)
     b.part('mouth', bm, ('pupil',), head, tip + Vector((-0.002, 0, -0.012)), ink=False)
 
     # Eyes: small bead eyes, wide-set and a little low, each with one glint.
@@ -649,4 +652,7 @@ def build():
     return report
 
 
-result = build()
+# export_walker.py imports this module for the kit and the poses, so only a direct run builds
+# the sheets. bpy.utils.execfile and the text editor both run it as __main__.
+if __name__ == '__main__':
+    result = build()

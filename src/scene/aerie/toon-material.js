@@ -211,6 +211,9 @@ uniform float uToonRimSpread;
 uniform float uToonCel;
 uniform vec3 uToonShadeTint;
 uniform sampler2D uToonDetail;
+float toonHash( float n ) { return fract( sin( n * 78.23 ) * 43758.5 ); }
+// 1 inside a line of half width w at distance d, with a soft edge of aa on each side.
+float toonLine( float d, float w, float aa ) { return 1.0 - smoothstep( w - aa, w + aa, d ); }
 
 // Per surface family, in SURFACE order: metres per detail tile along u (the board length)
 // and v, the channel to read (R wood boards, G mottle, B paving, A leaf clumps) and the
@@ -439,7 +442,10 @@ if ( toonSurface == ${SURFACE.lawn} ) {
 // The blue sky fill turned the cream plaster a cool grey-white. A small warm tint keeps it
 // cream (about #e6dccb where the moon lights it) without a change to the shared light rig.
 bool toonTimbered = toonSurface == ${SURFACE.timbered};
-if ( toonSurface == ${SURFACE.plaster} || toonTimbered ) {
+// Metres per pixel on the detail plane. The wall patterns below soften each line over one pixel
+// and fade a pattern to its mean tone where its lines would fall under a pixel and alias.
+float toonPx = max( length( fwidth( toonPlane ) ), 1e-4 );
+if ( toonSurface == ${SURFACE.plaster} ) {
     // Round 10 darkens and warms the cream, so the walls read clearly darker than the lit
     // windows. The pale grey-white plaster read almost as bright as the window glow.
     toonAlbedo *= vec3( 0.86, 0.79, 0.68 );
@@ -456,18 +462,49 @@ if ( toonSurface == ${SURFACE.plaster} || toonTimbered ) {
     // Round 19 doubles the grain and adds soft vertical brush strokes, about 0.1 m wide, so a
     // 300 px crop of the wall shows painted variation (S1, S4).
     toonAlbedo *= 0.94 + 0.12 * texture2D( uToonDetail, toonPlane / 0.25 + 0.29 ).g;
-    toonAlbedo *= 0.93 + 0.14 * texture2D( uToonDetail, toonPlane / vec2( 0.12, 0.9 ) + 0.47 ).g;
     // Round 20 drops the round 17 value mottle at 1.4 m and the umber wear patches. The review
-    // read them as a large dirty wash stain on the wall (S4). The even grain and the strokes stay.
+    // read them as a large dirty wash stain on the wall (S4).
+    // November 2026: the owner asked for wallpaper in place of the plain plaster, and picked
+    // asanoha. The upright walls take a hemp leaf paper over a honey wood wainscot. The ceilings
+    // keep the plain plaster. The asanoha is a triangle grid with each triangle split by three
+    // spokes from its centre. In barycentric terms an edge is where the smallest weight is 0 and
+    // a spoke is where the two smaller weights match.
+    if ( toonAxis.y < max( toonAxis.x, toonAxis.z ) ) {
+        vec2 toonHemp = vec2( toonPlane.x - toonPlane.y * 0.57735, toonPlane.y * 1.1547 ) / 0.32;
+        vec2 f = fract( toonHemp );
+        vec3 w = f.x > f.y ? vec3( 1.0 - f.x, f.x - f.y, f.y ) : vec3( 1.0 - f.y, f.y - f.x, f.x );
+        float lo = min( w.x, min( w.y, w.z ) );
+        float mid = 1.0 - lo - max( w.x, max( w.y, w.z ) );
+        float ink = mix( toonLine( min( lo, ( mid - lo ) * 0.58 ) * 0.277, 0.007, toonPx ), 0.22, smoothstep( 0.01, 0.025, toonPx ) );
+        vec3 paper = toonAlbedo * vec3( 1.04, 0.98, 0.86 );
+        paper = mix( paper, vec3( 0.9, 0.48, 0.32 ) * dot( paper, vec3( 0.333 ) ), ink );
+        // The wainscot: honey boards 0.14 m wide with dark seams, 0.86 m tall from the room floor,
+        // under a dark chair rail. The rooms stand on floors at 1.07, 4.26 and 7.41 m.
+        float h = toonPlane.y - ( toonPlane.y < 4.0 ? 1.07 : toonPlane.y < 7.2 ? 4.26 : 7.41 );
+        float board = toonPlane.x / 0.14;
+        vec3 wains = vec3( 0.62, 0.42, 0.26 ) * ( 0.9 + 0.2 * toonHash( floor( board ) ) ) * ( 0.85 + 0.3 * texture2D( uToonDetail, toonPlane / vec2( 0.06, 0.8 ) ).g );
+        wains *= 1.0 - 0.4 * toonLine( ( 0.5 - abs( fract( board ) - 0.5 ) ) * 0.14, 0.004, toonPx );
+        toonAlbedo = mix( mix( paper, wains, toonLine( h, 0.86, toonPx ) ), vec3( 0.34, 0.22, 0.14 ), toonLine( abs( h - 0.89 ), 0.035, toonPx ) );
+    }
 }
-// The outer walls read as the warm cream plaster of the store page cottages. Round 13 drops
-// the painted timber posts and braces: under the cladding boards they read as hard dark
-// diagonal and vertical streaks across the wall (S4). The real window frames, corner posts
-// and boards carry the honey trim. Below 1.7 m the wall turns to a stone base in light mortar.
+// November 2026: the owner picked board-formed concrete framed in wood for the outer walls, in
+// place of the cream plaster, which read as one flat field. The concrete carries the print of
+// 0.15 m formwork boards, each its own grey with a faint grain, and tie holes on a 0.6 m grid.
+// A dark timber band runs under each soffit (3.91, 7.21 and 10.36 m) and along each floor line
+// (4.2 and 7.35 m). The real window frames, corner posts and boards keep the honey trim.
+// Below 1.7 m the wall turns to a stone base in light mortar.
 if ( toonTimbered ) {
-    // The outer walls take back some of the yellow of the indoor plaster cut, so they read
-    // as a warm cream and not as mustard.
-    toonAlbedo *= vec3( 1.08, 1.1, 1.2 );
+    float row = floor( toonPlane.y / 0.15 );
+    float v = ( 0.9 + 0.14 * toonHash( row + floor( toonPlane.x / 2.4 + row * 0.37 ) * 7.0 ) )
+        * ( 0.9 + 0.2 * texture2D( uToonDetail, toonPlane / vec2( 0.9, 0.02 ) + 0.2 ).g )
+        * ( 0.92 + 0.16 * texture2D( uToonDetail, toonPlane / 1.3 + 0.6 ).g );
+    float seam = toonLine( abs( fract( toonPlane.y / 0.15 + 0.5 ) - 0.5 ) * 0.15, 0.003, toonPx ) * smoothstep( 0.01, 0.004, toonPx );
+    float hole = toonLine( length( abs( fract( toonPlane / 0.6 + vec2( 0.5, 0.25 ) ) - 0.5 ) * 0.6 ), 0.013, toonPx ) * smoothstep( 0.014, 0.006, toonPx );
+    toonAlbedo = vec3( 0.62, 0.6, 0.56 ) * v * ( 1.0 - 0.3 * seam ) * ( 1.0 - 0.6 * hole );
+    float top = toonPlane.y < 4.05 ? 3.91 : toonPlane.y < 7.3 ? 7.21 : 10.36;
+    float base = toonPlane.y < 4.05 ? 1.0 : toonPlane.y < 7.3 ? 4.2 : 7.35;
+    float trim = max( toonLine( abs( toonPlane.y - top + 0.12 ), 0.12, toonPx ), toonLine( abs( toonPlane.y - base - 0.09 ), 0.09, toonPx ) );
+    toonAlbedo = mix( toonAlbedo, vec3( 0.36, 0.25, 0.17 ) * ( 0.88 + 0.24 * texture2D( uToonDetail, toonPlane / vec2( 0.9, 0.05 ) ).g ), trim );
     float stoneBase = 1.0 - smoothstep( 1.66, 1.7, vToonWorld.y );
     // Round 13 darkens and warms the base, which read as a milky grey plinth through the S2 glass.
     // Round 19 paints the base as chunky warm grey-tan blocks about 0.4 m across under a darker
@@ -628,6 +665,10 @@ float toonDiffuse = toonWrap * toonWrap * toonShadow;
 // The look options are off by default. A uniform test skips their maths, and an option at zero
 // leaves the value exactly as it was, because mix( x, y, 0.0 ) is x for a finite y. The test is
 // uniform, so the derivative in the cel block stays in uniform flow.
+// The site never turns on the bands or the cel (SITE_LOOK in look-options.js), and only the lab
+// pages do. The production build holds no lab page, so only a dev build ships their code. That
+// frees scene budget for the wall patterns above.
+${import.meta.env.DEV ? /* glsl */ `
 // Soft cel bands: three steps, each with a short soft edge, so no band edge aliases.
 if ( uToonBands != 0.0 ) {
     float toonBand = ( floor( toonDiffuse * 3.0 ) + smoothstep( 0.4, 0.6, fract( toonDiffuse * 3.0 ) ) ) / 3.0;
@@ -640,6 +681,7 @@ if ( uToonCel != 0.0 ) {
     toonDiffuse = mix( toonDiffuse, mix( 0.12, 0.78, toonCel ), uToonCel );
     toonAlbedo = mix( toonAlbedo, toonAlbedo * uToonShadeTint, uToonCel * ( 1.0 - toonCel ) );
 }
+` : ''}
 // The shade side keeps its hue: darker values get richer and warmer instead of grey.
 toonAlbedo = max( toonAlbedo, vec3( 0.0 ) );
 // A power of 1.2 pushed every shaded honey board to red-brown, so the shade side keeps a
@@ -742,7 +784,7 @@ for ( int i = 0; i < ${TOON_BOUNCES}; i ++ ) {
 // Round 11 breaks the spill on the ground into soft irregular patches with the 1.7 m
 // mottle, so no round disc shows on the lawn, the deck or the steps.
 toonWarm *= mix( 1.0, 0.45 + 1.1 * texture2D( uToonDetail, vToonWorld.xz / 1.7 + 0.83 ).g, smoothstep( 0.5, 0.9, toonN.y ) );
-if ( uToonCel != 0.0 ) toonWarm = mix( toonWarm, 0.45 * smoothstep( 0.12, 0.16, toonWarm ) + 0.55 * smoothstep( 0.42, 0.48, toonWarm ), uToonCel );
+${import.meta.env.DEV ? 'if ( uToonCel != 0.0 ) toonWarm = mix( toonWarm, 0.45 * smoothstep( 0.12, 0.16, toonWarm ) + 0.55 * smoothstep( 0.42, 0.48, toonWarm ), uToonCel );' : ''}
 toonLight += uToonWarm * toonWarm * 1.25 / ( 1.0 + toonWarm );
 
 // Metal takes less diffuse light, so its highlights carry the form, as on real brass.

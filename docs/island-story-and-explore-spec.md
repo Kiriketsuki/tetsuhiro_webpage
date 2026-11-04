@@ -18,6 +18,7 @@ It extends `docs/site-rewrite-plan.md`. The budgets, the no-bloom rule, the smoo
 | Scroll feel | Snap, then travel. Scroll snaps to a section, then the camera follows the route to the next stop |
 | Explore mode | Option B: walk the island with a kinematic capsule and a follow camera. No physics engine |
 | Walker | A stylised animal, a mix of a cat and a fox. It need not be true to life. The model comes later, so a placeholder walks first |
+| Walker design (3 November) | Kinako, a fox-leaning cat-fox kit with a soft face. Kit size, an automatic hop up low steps, asleep by the campfire in the story views. See "Walker design" |
 | Walk reach | The ground and both roof terraces, by the stair tower |
 | Explore entry | The Welcome button and the Contact card at the campfire |
 
@@ -131,9 +132,9 @@ The JS sizes are estimates. `Octree.js` and `Capsule.js` from three (r180) come 
 | Item | Budget |
 |---|---|
 | `explore-*.js` | at most 20 kB gzip |
-| `island_b_collide.glb` | at most 60 kB |
-| `walker.glb` (the animal, later) | at most 80 kB, under 3k triangles |
-| Draw calls added | at most 4 (walker parts and its contact shadow) |
+| `aerie_collide.glb` | at most 60 kB and 6,000 triangles |
+| `walker.glb` (Kinako: the walk mesh and the sleep mesh) | at most 80 kB with quantized attributes. The walk mesh has at most 3k triangles |
+| Draw calls added | at most 4 (Kinako, its contact shadow, and the sleeping Kinako in the story views) |
 | CPU per frame for the walker, camera and zones | at most 0.5 ms on a mid Android |
 | Frame time while walking | 16.7 ms desktop, 22 ms mid Android, as the plan sets |
 
@@ -142,20 +143,80 @@ The JS sizes are estimates. `Octree.js` and `Capsule.js` from three (r180) come 
 ### The walker
 
 - **Placeholder first.** A capsule body with two ear cones and a tail, in the toon material, walks until the real model exists. It uses the same size as the final animal.
-- **The final animal** is a stylised cat-fox: low-poly, faceted, autumn colours that sit with the rust crowns. The owner designs it later. It is a brief, not a likeness of any real pet.
-- **Rigid parts, no skinning.** The model is a body, a head, four legs and a tail as separate meshes in one GLB. Code swings the legs, bobs the body and sways the tail. This avoids a `SkinnedMesh` program and an animation mixer.
-- **Size:** about 0.55 m long and 0.35 m to the shoulder. The capsule radius is 0.2 m. The stair and terrace routes passed body-clearance checks at 0.50 m wide (README, 24 October 2026), so a 0.4 m capsule fits.
+- **The final animal** is Kinako, a cat-fox kit. "Walker design" below sets its look, its rig and its behaviour.
+- **Size:** 0.25 m to the shoulder, about 0.55 m from nose to rump and 0.85 m from nose to tail tip. The capsule radius is 0.15 m and its height is 0.30 m. The stair and terrace routes passed body-clearance checks at 0.50 m wide (README, 24 October 2026), so a 0.30 m capsule fits with room to spare.
 - **Speed:** walk 2.2 m/s, run 4.5 m/s. A walk across the island takes about 15 s.
 - **Shadow:** a soft contact disc from `contact-shadows.js`, never the moon shadow map. The shadow map has `autoUpdate` off, and a moving caster would force a shadow pass every frame.
 
+### Walker design
+
+The owner locked this design on 3 November 2026 after five rounds of Blender concepts. The concept script is `scenes/urban-aerie-studies/walker_concepts.py`, with `walker_kit_geometry.py` beside it. The concept script saved its last round as `walker_concepts_r4.blend`.
+
+#### Look
+
+- **Name:** Kinako, after roasted soybean flour, the colour of its coat. Visible text may use the name, for example on a zone prompt.
+- **Shape:** the body leans fox: large pointed ears, a short fox snout, a slim body and a long brush tail. The face is soft and simple, in the mood of the mofusand illustrations, and copies no character. It has small wide-set bead eyes with one glint each, a tiny rose nose, a small three-arc mouth, a pink blush and chubby low cheeks. The cheeks end in small pointed ruffs.
+- **Joins:** the body and the tail are one surface, so the rump narrows into the tail root with no crease. Each ear rises from a low mound inside the skull. The neck is as wide as the chest at its foot and as wide as the jaw at its top. Shoulder and haunch masses on the body take the legs.
+- **Colour fields.** Each colour is one coherent field, set by a plane cut or a ring band. No face takes a colour of its own.
+
+| Field | Colour | Where |
+|---|---|---|
+| Oat | `#D9C59C` | the coat |
+| Cream | `#F1E8D4` | chest, belly, jaw, cheeks, lower muzzle, tail tip |
+| Rust | `#A8461C` | saddle patch on the back, patch over the left eye, left ear, right ear tip, socks, tail band |
+| Umber | `#5A2C1A` | tip of the rust left ear |
+| Rose | `#C07A66` | nose, inner ears |
+| Blush | `#E59C8A` | one oval on each cheek |
+| Ink | `#17151B` | eyes, mouth |
+
+- **Night look.** Kinako takes a warm rim from the nearest lamp or the fire. Its shadow side stays a warm grey, not the moon blue. It stays the warmest thing on the lawn, so the eye finds it from the follow camera. The rim is one uniform on the walker material, set from the nearest warm light each frame.
+- **Ink.** The walker takes the silhouette-only ink mask (the 0.5 value in `toon-material.js`). The depth ink in `grade-pass.js` then draws its outline but no line where one part enters another.
+
+#### Rig and mesh
+
+- **One mesh, one draw.** `walker.glb` holds one mesh. Each vertex stores the index of its part in a vertex attribute. The parts are the body, the neck, the head, two ears, and an upper leg, a lower leg and a paw for each leg. The walker material moves each part in the vertex shader, from a small uniform array of joint angles and pivots. Kinako costs one draw call and its contact shadow one more, inside the four-draw budget.
+- **The tail bends.** Each tail vertex stores its distance along the tail. The shader bends the tail over three joints, and each joint spreads its bend over 8 cm, so the tail curves and never kinks. This is a fixed bend in the walker shader, not a `SkinnedMesh`.
+- **Eyes close** by a scale on the eye parts. The glints hide while the eyes are closed.
+- **Triangles:** 3,000 at most. The concept sits at 3,002 and loses one ring at export.
+- **Sleep mesh.** `walker.glb` also holds the sleep pose as a second, plain mesh for the story views. It needs no walker shader, so the scene chunk only places it. See "Outside explore".
+
+#### Movement
+
+- **Gaits.** The walk is a four-beat gait, and the run is a gallop with a short flight phase. The leg cycle follows the ground speed, so the paws do not slide. The body bobs a little at a walk and stretches at a run. At a run the ears lie back and the tail streams out.
+- **Turning.** The body turns toward the move direction at up to 540 degrees per second. The head leads the turn by up to 25 degrees.
+- **Steps and ledges.** There is no jump button. The capsule steps up any rise under 0.10 m. A rise of 0.10 to 0.50 m plays an automatic hop of about 0.35 s: crouch, spring, land. The collision proxy marks the hop ledges, such as the lookout bench, whose seat stands 0.40 m over the deck. A rise over 0.50 m is a wall. Stairs stay smooth ramps.
+
+#### Idle habits
+
+The habits run in this order while the visitor gives no input:
+
+1. **At once:** ear flicks and a slow tail sway.
+2. **After about 4 s:** Kinako sits and looks around, toward the city or the camera.
+3. **Now and then while it sits:** Kinako lifts a front paw to its muzzle and grooms it.
+4. **After about 30 s:** Kinako curls up in the sleep pose until the visitor moves.
+
+Any input wakes Kinako, and the walk starts at once. The idle habits run on the ambient clock, so a resting walker does not force a full frame rate. Under reduced motion, Kinako holds a still sit pose and plays no idle habit.
+
+#### Outside explore
+
+- **Asleep by the fire.** In the story views, Kinako sleeps curled by the campfire. The scene chunk loads `walker.glb` after the island is on screen and shows the sleep mesh. It adds one draw call and no new shader.
+- **Waking.** "Explore on foot" and "wander the aerie" both start the walk at the fire. The camera moves down to Kinako, Kinako wakes and stretches, and the walk starts. This replaces the start at `Zone_Pad` from the Welcome button.
+- **Exit.** When the walk ends, Kinako trots back to the fire and curls up again while the camera returns to the story.
+- **Greeter.** The owner wants Kinako to be the site mascot in the greeter loading screen. The orchestrator owns that work (3 November 2026). It does not change this spec.
+
 ### Collision and the walkable area
 
-- **A low-poly proxy from Blender.** A new script, `scenes/urban-aerie-studies/export_collision.py`, writes `src/assets/models/island_b_collide.glb`. It holds:
+- **A low-poly proxy from Blender.** A new script, `scenes/urban-aerie-studies/export_aerie_collision.py`, writes `src/assets/models/aerie_collide.glb`. It reads the shipped `aerie.glb` and `campfire_kit.glb`, so the proxy matches what the site draws, and it never opens or saves a `.blend`. It holds:
   - the walkable floors: the lawn, the paths, the pad, the ramp, the deck, the bridge, the porch, the landings and both roof terraces.
-  - every stair flight as a smooth ramp, so the capsule needs no step logic.
-  - walls, railings, glass barriers, tree trunks and large props as boxes.
-  - an invisible fence round the island rim, so the walker cannot fall off.
-- **Target size:** under 4,000 triangles.
+  - every stair flight as a smooth ramp, so the capsule needs no step logic. The script finds each flight from its treads.
+  - walls from horizontal slices through the house, the glass, the paths, the rocks and the pad, each stood up as a short vertical strip.
+  - tree trunks as six-sided posts, and props as boxes fitted to their footprints.
+  - one closed block per room, so the walker stops at each door.
+  - an invisible fence round the island rim and round the water, so the walker cannot fall off or wade in.
+  - the hop ledges, such as the lookout bench, each an empty named `Hop_<n>`, so the walker hops onto them.
+  - `Spawn_Campfire`, the spot by the fire where Kinako sleeps and wakes.
+- **Target size:** under 6,000 triangles and 60 kB. The lawn needs about 2,500 floor triangles to sit within 2 cm of the drawn ground at the median. At 4,000 triangles in all, the median gap was 5 cm, which shows under the paws.
+- **Reach check.** The export floods the proxy floors from `Spawn_Campfire` and fails unless every zone and the upper terrace can be reached. It also fails if the floor inside the workshop, the lounge or the bedroom can be reached. The owner's rule is that the walker never enters a room, so nobody sees the low-poly interiors close up.
 - **Octree and capsule.** The explore chunk builds an `Octree` from the proxy once, then moves a `Capsule` each frame with gravity and slide, as the three `games_fps` example does.
 - **The interiors stay closed.** Each room is a portal zone at its door. The walker never walks into the workshop, the lounge or the bedroom.
 - **Update, 3 November 2026.** The owner opened the bedroom as the About room (`/about`, `src/views/AboutRoom.vue`, `src/scene/aerie/room.js`). The camera goes in through the balcony door and looks round, the way `/projects` goes into the workshop. The walker still stops at the door, and `Zone_Bedroom` can open `/about`.
@@ -214,14 +275,14 @@ Blender empties named `Zone_<name>` mark each zone. Their scale gives the zone s
 ### Entry and exit
 
 - **Entry.** The Welcome button "just the aerie" becomes "explore on foot". The Contact card at the campfire gets "wander the aerie".
-- **The move in.** The words fade as they do for `sceneOnly`. The explore chunk and the collision GLB load, and the camera moves from the current stop down to the walker in about 1.2 s. The walker appears at `Zone_Pad` from the Welcome button, and at the fire from the Contact card. The cutaway programs compile during this move.
+- **The move in.** The words fade as they do for `sceneOnly`. The explore chunk and the collision GLB load, and the camera moves from the current stop down to the walker in about 1.2 s. From either entry, Kinako wakes by the fire, as "Outside explore" sets. The cutaway programs compile during this move.
 - **Exit.** Escape, the leave button or `Zone_Pad` returns to the story. The camera moves back to the stop the visitor left from, and the words fade in.
 - **No URL.** Exploring is a state of Home, as `sceneOnly` is now. A route change ends the walk.
 - **ExplorePad stays** for the drag and pinch round the skill sky. It is not the walk mode.
 
 ### Explore acceptance checks
 
-1. From Welcome, press "explore on foot". The walker appears on the pad and walks to the fire, the lookout and up both terraces with keys only.
+1. From Welcome, press "explore on foot". Kinako wakes by the fire and walks to the pad, the lookout and up both terraces with keys only.
 2. On a phone, the joystick walks the same route. Pinch and two-finger drag change the camera.
 3. A gamepad walks the same route.
 4. Each zone opens its card only after the prompt. "Back to walking" returns to the same spot.
@@ -238,13 +299,13 @@ Each step ships on its own, as the plan requires.
 |---|---|
 | S1 | New order in `waypoints.js` and the nav. New `arrival` and `campfire` stops. Focus values per stop. The gate lands at `arrival` |
 | S2 | Route empties in Blender, `src/data/route.js`, and `rig.goTo` with a leg |
-| E1 | `export_collision.py`, `island_b_collide.glb` with the zones, and the budget lines |
+| E1 | `export_aerie_collision.py`, `aerie_collide.glb` with the zones, and the budget lines |
 | E2 | The explore chunk: placeholder walker, Octree and capsule, controls, follow camera, zones, entry and exit |
 | E3 | The cutaway and the leaf scatter |
-| E4 | The cat-fox model with rigid-part animation |
+| E4 | Kinako: `walker.glb` from the concept script, the walker shader (part rotations and the tail bend), the gaits, the hop, the idle habits and the sleeping Kinako by the fire |
 
 ## Open items
 
-- The cat-fox design: shape, colours and face. The owner decides before E4.
+- The greeter mascot: the orchestrator places it with the owner.
 - The `arrival` and `campfire` shots, and the focus values, are tuned in the lab during S1.
 - The telescope eyepiece may change in the parallel telescope work. The skills chapter and `Zone_Telescope` follow whatever that work ships.

@@ -15,8 +15,8 @@ import { CAMPFIRE_BOUNCE, SURFACE } from './aerie/toon-material.js'
 import { softenGeometry } from './aerie/soft-normals.js'
 import { createLeafCards } from './aerie/leaf-cards.js'
 import { createStars } from './aerie/stars.js'
-import { createWaterfall } from './aerie/waterfall.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
+import { WATER_COLORS } from './aerie/water.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
@@ -181,8 +181,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
     let steeredAt = -Infinity
 
-    // The lens follows the stop's focus point, and adds the depth under the resting cursor
-    // (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
+    // The lens keeps the stop's focus point sharp, and adds a second sharp slab at the depth
+    // under the resting cursor (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
     // the hover focus comes back after the move. Reduced motion keeps the stop's focus only. The
     // cursor patch and the vignette centre ease after the pointer, so they drift and never jump.
     // --aerie-lens tells the focus ring in the shell how strong the lens is, so the ring fades
@@ -208,9 +208,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const on = !!cursor && dof === 1 && !state.reduced
         // Reduced motion draws single frames, so a long step snaps the pull out in one frame.
         const hover = hoverFocus.update({ on, cursor, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
-        uniforms.uHoverFocus.value = hover.focus
+        uniforms.uFocus2.value = hover.focus
         uniforms.uHover.value = hover.weight
-        uniforms.uHoverCap.value = HOVER_FOCUS.cap
         if (cursor) lensCursor.uv.lerp(cursor, k)
         lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)
@@ -556,6 +555,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // campfire leaves the lawn bare and the rest of the aerie as it is.
     const campfireBuild = import('./aerie/campfire.js').then(async (module) => ({ module, kit: await module.loadCampfireKit(loaders.gltf) }))
     campfireBuild.catch(() => {})
+    // The waterfall loads in its own chunk too, so the scene chunk keeps room under its budget.
+    // A failed waterfall leaves the stream mouth without its fall.
+    const waterfallModule = import('./aerie/waterfall.js')
+    waterfallModule.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -684,8 +687,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const base = anchor(root, 'Anchor_Waterfall_Base')
             // The ribbon starts on the stream mouth that applyAerieLook found. The two anchors
             // only build a fallback mouth when the water mesh gave none.
-            if (look.waterMouth || (top && base)) {
-                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base })
+            const { createWaterfall } = await waterfallModule.catch(() => ({}))
+            if (createWaterfall && (look.waterMouth || (top && base))) {
+                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base, colors: WATER_COLORS })
                 scene.add(parts.waterfall.group)
             }
 

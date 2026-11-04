@@ -6,16 +6,18 @@
                 <h1 class="sr-only">Jovian Lim, software engineer in Singapore</h1>
 
                 <div class="hero-inner">
-                    <div class="flex flex-col items-start gap-4">
+                    <div class="hero-head">
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
-                        <p class="hero-chapter">01 / arrival &middot; 1&deg;17&prime;N 103&deg;51&prime;E</p>
-                        <button v-if="canWalk" type="button" class="action hero-scene" @click="startWalk('welcome')">
-                            explore on foot
-                        </button>
                     </div>
-                    <div class="flex flex-row-reverse">
+                    <div class="hero-foot">
                         <span ref="second" class="hero-word" aria-hidden="true">Lim</span>
+                        <div class="hero-readout">
+                            <p class="hero-chapter">01 / arrival &middot; 1&deg;17&prime;N 103&deg;51&prime;E</p>
+                            <button v-if="canWalk" type="button" class="action hero-scene" @click="startWalk('welcome')">
+                                explore on foot
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -184,23 +186,54 @@ body {
 /*
  * The plants_in_space title: one word top left, one bottom right. The two
  * words frame the aerie instead of sitting on it. The width cap keeps them
- * close to the aerie on a wide screen.
+ * close to the aerie on a wide screen. The aerie grows with the screen height,
+ * so the cap grows with it too: at 92rem, Lim sat on the rock of the aerie on a
+ * 2560x1080 screen.
+ *
+ * Each word carries one brass line. The role sits under Jovian, and the chapter
+ * readout and the action sit under Lim, flush with its right edge. The eye
+ * reads the name from top left to bottom right and ends on the action. When the
+ * action sat in the left column, it floated in the sky beside the aerie on a
+ * wide screen, far from the word it belonged to.
  */
 .hero-inner {
     position: relative;
     z-index: 10;
     display: flex;
-    max-width: 92rem;
+    max-width: max(92rem, 170svh);
     margin-inline: auto;
     flex-direction: column;
     justify-content: space-between;
     height: 100%;
     padding: clamp(2.5rem, 6vh, 4rem) clamp(1.5rem, 5vw, 4.5rem) clamp(6rem, 13vh, 8rem);
+    --hero-size: clamp(5rem, 13vw, 11rem);
+}
+
+.hero-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.hero-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.hero-readout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem 1.25rem;
+    margin-top: 1.1rem;
+    padding-right: 0.3rem;
 }
 
 .hero-word {
     font-family: var(--font-display);
-    font-size: clamp(5rem, 13vw, 11rem);
+    font-size: var(--hero-size);
     line-height: 0.8;
     color: var(--color-text-strong);
     text-shadow: 1px 1px 0 var(--color-bg-base);
@@ -208,28 +241,28 @@ body {
 }
 
 .hero-role {
-    margin-top: 0.9rem;
+    /* The line height of the words cuts off the hook of the J, so the role keeps clear of it. */
+    margin-top: calc(var(--hero-size) * 0.2);
     padding-left: 0.3rem;
     color: var(--color-sand);
     font-family: var(--font-label);
-    font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+    font-size: clamp(0.7rem, 0.75vw, 1rem);
     letter-spacing: 0.16em;
     text-transform: uppercase;
     text-shadow: 1px 1px 0 var(--color-bg-base);
 }
 
 .hero-chapter {
-    padding-left: 0.3rem;
     color: var(--color-brass);
     font-family: var(--font-label);
-    font-size: clamp(0.6rem, 0.75vw, 0.7rem);
+    font-size: clamp(0.6rem, 0.6vw, 0.8rem);
     letter-spacing: 0.16em;
     text-transform: uppercase;
     text-shadow: 1px 1px 0 var(--color-bg-base);
 }
 
 .hero-scene {
-    margin-left: 0.3rem;
+    align-self: center;
     text-shadow: 1px 1px 0 var(--color-bg-base);
 }
 

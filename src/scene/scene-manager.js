@@ -47,7 +47,9 @@ const BUILD_SHARE = { downloaded: 0.5, look: 0.64, leaves: 0.68, sky: 0.74, comp
 const FADE_EDGE = 0.35
 // The look through the telescope, in seconds: the flight from the terrace to the eyepiece,
 // the iris close and open, and how early the iris starts to close before the camera stops.
-const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3 }
+// The way out of the sky takes its own, slower times (out): the owner found the exit too fast,
+// with the iris shut in 0.5 s and the camera back on the terrace 1.8 s after.
+const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3, out: { fly: 2.8, close: 0.7, open: 1.1 } }
 // The place on the lamp switch track (light-switch.js) where the camera starts out of the
 // workshop: half way up the room light, after the swap.
 const WALL = { leave: 0.5 }
@@ -401,9 +403,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             s.swapped = true
             showSky(s.on)
         }
-        const k = s.t < s.swap ? (s.t - s.close) / SCOPE.close : 1 - (s.t - s.swap) / SCOPE.open
+        const k = s.t < s.swap ? (s.t - s.close) / s.iris.close : 1 - (s.t - s.swap) / s.iris.open
         pipeline.grade.uniforms.uIris.value = THREE.MathUtils.smoothstep(k, 0, 1)
-        if (s.t >= s.swap + SCOPE.open && !s.legs.length) {
+        if (s.t >= s.swap + s.iris.open && !s.legs.length) {
             scope = null
             s.done()
         }
@@ -946,11 +948,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             if (on) {
                 const lead = ['telescope', 'eyepiece'].includes(rig.current) ? 0 : 1.6
                 const shut = lead + fly - SCOPE.overlap
-                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1), done }
+                scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1), iris: SCOPE, done }
             } else {
-                const legs = [[close, 'eyepiece', 0], [close, 'telescope', fly]]
-                if (back !== 'telescope') legs.push([close + fly, back, 1.6])
-                scope = { t: close * from, on, close: 0, swap: close, legs, done }
+                const out = SCOPE.out
+                const legs = [[out.close, 'eyepiece', 0], [out.close, 'telescope', out.fly]]
+                if (back !== 'telescope') legs.push([out.close + out.fly, back, 1.6])
+                scope = { t: out.close * from, on, close: 0, swap: out.close, legs, iris: out, done }
             }
             requestRender()
             return finished

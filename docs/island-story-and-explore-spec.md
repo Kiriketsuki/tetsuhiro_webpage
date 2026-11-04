@@ -246,17 +246,19 @@ Blender empties named `Zone_<name>` mark each zone. Their scale gives the zone s
 | Input | Move | Camera | Use a zone | Leave |
 |---|---|---|---|---|
 | Keyboard | WASD or arrow keys, Shift to run | Q and E turn by 45 degrees | E or Enter | Escape |
-| Mouse | none | Wheel zooms, right-drag turns | Click the prompt | The leave button |
-| Touch | A floating joystick where the thumb lands on the left 60 percent of the screen. A far push runs | Two-finger drag turns, pinch zooms | Tap the prompt | The leave button |
+| Mouse | none | Wheel zooms, a drag with either button orbits round Kinako | Click the prompt | The leave button |
+| Touch | A fixed touch pad in the lower left. A far push runs | A one-finger drag anywhere else orbits, pinch zooms | Tap the prompt | The leave button |
 | Gamepad | Left stick, a far push runs | Right stick turns, triggers zoom | A | B |
 
 - Movement follows the camera: up on the stick or W walks away from the camera.
-- The Gamepad API needs no library. The joystick is about 1 kB of own code, not a package.
+- The Gamepad API needs no library. The touch pad is about 1 kB of own code, not a package.
 
 ### Camera
 
-- **Fixed three-quarter follow.** The default view looks from the south-west, about 35 degrees down, 7 m from the walker. This is close to the welcome view, so the island reads as the same place.
-- **Zoom** runs from 1.5 to 12 m. Under 5 m the pitch eases down, to 14 degrees at 1.5 m, so a close view looks at Kinako and not down on Kinako. **Turn** comes in 45 degree steps from keys, or freely from a drag or the right stick, eased back toward the nearest step.
+- **Chase follow.** While Kinako moves, the camera eases round behind Kinako's travel, like a drone that follows it, with a time constant of 0.6 s. The steering stays camera-relative, so a held left curves Kinako round. The walk starts from the south-west, 3.5 m from Kinako.
+- **Rest orbit.** Once Kinako stops, the camera holds still, and a drag orbits it round Kinako, sideways and up or down. Q and E turn it by 45 degrees. After a drag the chase waits 1.5 s, so the player can look round on the move.
+- **Zoom** runs from 1.5 to 12 m. Under 5 m the pitch eases down, to 14 degrees at 1.5 m, so a close view looks at Kinako and not down on Kinako. A drag tilts on top of that pitch.
+- **Focal point.** While Kinako walks, Kinako is the one focal point. The hover focus of the lens pulls no focus toward the cursor.
 - **The camera follows with a short lag**, about 0.15 s, so the walk reads smoothly.
 - **The lens focuses on the walker.** The rig's `focusPoint` takes the walker position, so the tilt-shift look stays on the animal.
 - **Cutaway.** When a crown, the stair canopy, the tower frame or the roof stands between the camera and the walker, those meshes open a soft round hole round the walker on screen. The toon shader discards those fragments when they are nearer than the walker. The meshes come from a tag list, and one uniform carries the walker's screen position and the hole radius.

@@ -1,7 +1,8 @@
 import './explore.css'
 
-// The walk's few words on screen: the leave button, the zone prompt, the touch joystick and a
-// short hint of the controls. Plain DOM in the explore chunk, so the shell stays small. The
+// The walk's few words on screen: the leave button, the zone prompt, the touch pad and a short
+// hint of the controls. On a touch screen the pad always shows in the lower left, so the thumb
+// knows where to go. Plain DOM in the explore chunk, so the shell stays small. The
 // glass and brass rules hold (docs/design-system.md): flat fills, no gradients.
 
 const touch = () => window.matchMedia('(pointer: coarse)').matches
@@ -30,7 +31,7 @@ export function createOverlay({ onUse, onLeave }) {
     hint.className = 'walk-hint'
 
     const ring = document.createElement('div')
-    ring.className = 'walk-stick'
+    ring.className = 'walk-stick walk-pad'
     ring.hidden = true
     const knob = document.createElement('div')
     knob.className = 'walk-knob'
@@ -46,9 +47,10 @@ export function createOverlay({ onUse, onLeave }) {
         root.hidden = !on
         clearTimeout(hintTimer)
         if (!on) return
+        ring.hidden = !touch()
         hint.textContent = touch()
-            ? 'drag on the left to walk, push far to run, two fingers to turn'
-            : 'WASD to walk, Shift to run, Q and E to turn, Esc to stop'
+            ? 'push the pad to walk, push far to run, drag anywhere to look round'
+            : 'WASD to walk, Shift to run, drag to look round, Esc to stop'
         hint.classList.remove('walk-hint-gone')
         hintTimer = setTimeout(() => hint.classList.add('walk-hint-gone'), HINT_MS)
     }
@@ -68,12 +70,16 @@ export function createOverlay({ onUse, onLeave }) {
         prompt.append(label)
     }
 
-    // stick: the joystick state from controls.js.
+    // stick: the pad state from controls.js. The knob rests in the middle of the fixed pad.
     const setStick = (stick, reach) => {
-        ring.hidden = !stick.shown
-        if (!stick.shown) return
-        ring.style.transform = `translate(${stick.x0}px, ${stick.y0}px)`
-        knob.style.transform = `translate(${stick.x * reach}px, ${-stick.y * reach}px)`
+        knob.style.transform = stick.shown ? `translate(${stick.x * reach}px, ${-stick.y * reach}px)` : ''
+    }
+
+    // The centre of the pad on screen, in client pixels, or null when no pad shows.
+    const padCentre = () => {
+        if (root.hidden || ring.hidden) return null
+        const box = ring.getBoundingClientRect()
+        return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
     }
 
     const dispose = () => {
@@ -81,5 +87,5 @@ export function createOverlay({ onUse, onLeave }) {
         root.remove()
     }
 
-    return { show, setPrompt, setStick, dispose }
+    return { show, setPrompt, setStick, padCentre, dispose }
 }

@@ -3,9 +3,9 @@
 //
 // - Keys: WASD or the arrows walk, Shift runs, Q and E turn by 45 degrees, E or Enter uses a
 //   zone, Escape leaves. While a zone prompt shows, E uses it instead of turning.
-// - Mouse: the wheel zooms, a right drag turns.
-// - Touch: a floating joystick where the thumb lands on the left 60 percent of the screen, and
-//   a far push runs. Two fingers drag to turn and pinch to zoom.
+// - Mouse: the wheel zooms, a drag with either button orbits the camera round Kinako.
+// - Touch: a fixed touch pad in the lower left (overlay.js) walks, and a far push runs. One
+//   finger dragged anywhere else orbits the camera. Two fingers pinch to zoom.
 // - Gamepad: the left stick walks and a far push runs, the right stick turns, the triggers zoom,
 //   A uses a zone and B leaves.
 
@@ -16,26 +16,30 @@ const KEYS = {
 // A push past this share of the full stick or joystick reach runs.
 const RUN_PUSH = 0.85
 const DEAD = 0.15
-// The joystick reach in CSS pixels, and the share of the screen width that starts it.
-const STICK = { reach: 56, side: 0.6 }
-// Radians a pixel of drag turns, and radians a second of the right stick.
+// The touch pad reach in CSS pixels. A touch within `grab` reaches of its centre takes the pad.
+const STICK = { reach: 56, grab: 1.6 }
+// Radians a pixel of drag turns and tilts, and radians a second of the right stick.
 const DRAG_TURN = 0.006
+const DRAG_TILT = 0.004
 const STICK_TURN = 2.4
 // Zoom per wheel step, and per second of a full trigger.
 const WHEEL_ZOOM = 1.1
 const TRIGGER_ZOOM = 1.8
 
-// True for page controls that keep their own clicks and touches.
-const onControl = (target) => Boolean(target?.closest?.('a, button, input, nav, header, [data-walk-ui]'))
+// True for page controls that keep their own clicks and touches. The touch pad sits in the walk
+// overlay but belongs to the controls.
+const onControl = (target) => Boolean(target?.closest?.('a, button, input, nav, header, [data-walk-ui]')) && !target.closest('.walk-pad')
 
-export function createControls({ onInput }) {
+// padCentre(): the centre of the touch pad on screen, in client pixels, or null with no pad.
+export function createControls({ onInput, padCentre = () => null }) {
     const held = new Set()
-    const intent = { x: 0, y: 0, run: false, turn: 0, turnSteps: 0, zoom: 1, use: false, leave: false }
+    const intent = { x: 0, y: 0, run: false, turn: 0, tilt: 0, turnSteps: 0, zoom: 1, use: false, leave: false }
     const stick = { id: null, x0: 0, y0: 0, x: 0, y: 0, shown: false }
     const pinch = new Map()
     let pinchSpan = 0
     let pinchMid = 0
-    let rightDrag = null
+    // A mouse drag or a one-finger camera drag: its pointer and its last position.
+    let orbit = null
     let promptOpen = false
     const pad = { a: false, b: false }
 
@@ -79,46 +83,69 @@ export function createControls({ onInput }) {
         return { span: Math.hypot(a.x - b.x, a.y - b.y), mid: (a.x + b.x) / 2 }
     }
 
+    const orbitBy = (event) => {
+        intent.turn -= (event.clientX - orbit.x) * DRAG_TURN
+        intent.tilt += (event.clientY - orbit.y) * DRAG_TILT
+        orbit.x = event.clientX
+        orbit.y = event.clientY
+    }
+
+    const steer = (event) => {
+        const dx = event.clientX - stick.x0
+        const dy = event.clientY - stick.y0
+        const length = Math.hypot(dx, dy)
+        const k = length > STICK.reach ? STICK.reach / length : 1
+        stick.x = (dx * k) / STICK.reach
+        stick.y = (-dy * k) / STICK.reach
+    }
+
     const down = (event) => {
         if (onControl(event.target)) return
         if (event.pointerType === 'mouse') {
-            if (event.button === 2) rightDrag = event.clientX
+            if (event.button === 0 || event.button === 2) orbit = { id: event.pointerId, x: event.clientX, y: event.clientY }
+            return
+        }
+        const centre = padCentre()
+        const onPad = centre && Math.hypot(event.clientX - centre.x, event.clientY - centre.y) < STICK.reach * STICK.grab
+        if (onPad && stick.id === null) {
+            Object.assign(stick, { id: event.pointerId, x0: centre.x, y0: centre.y, x: 0, y: 0, shown: true })
+            steer(event)
+            onInput()
             return
         }
         pinch.set(event.pointerId, { x: event.clientX, y: event.clientY })
         if (pinch.size === 2) {
-            stick.id = null
-            stick.shown = false
+            orbit = null
             ;({ span: pinchSpan, mid: pinchMid } = spanOf())
-        } else if (pinch.size === 1 && event.clientX < window.innerWidth * STICK.side) {
-            Object.assign(stick, { id: event.pointerId, x0: event.clientX, y0: event.clientY, x: 0, y: 0, shown: true })
+        } else if (pinch.size === 1) {
+            orbit = { id: event.pointerId, x: event.clientX, y: event.clientY }
         }
         onInput()
     }
 
     const move = (event) => {
         if (event.pointerType === 'mouse') {
-            if (rightDrag === null) return
-            intent.turn -= (event.clientX - rightDrag) * DRAG_TURN
-            rightDrag = event.clientX
+            if (orbit === null) return
+            orbitBy(event)
+            onInput()
+            return
+        }
+        if (event.pointerId === stick.id) {
+            steer(event)
+            event.preventDefault()
             onInput()
             return
         }
         if (!pinch.has(event.pointerId)) return
         pinch.set(event.pointerId, { x: event.clientX, y: event.clientY })
-        if (pinch.size === 2) {
+        if (orbit && event.pointerId === orbit.id && pinch.size === 1) {
+            orbitBy(event)
+        } else if (pinch.size === 2) {
             const { span, mid } = spanOf()
             if (pinchSpan > 0) intent.zoom *= span / pinchSpan
             intent.turn -= (mid - pinchMid) * DRAG_TURN
             pinchSpan = span
             pinchMid = mid
-        } else if (event.pointerId === stick.id) {
-            const dx = event.clientX - stick.x0
-            const dy = event.clientY - stick.y0
-            const length = Math.hypot(dx, dy)
-            const k = length > STICK.reach ? STICK.reach / length : 1
-            stick.x = (dx * k) / STICK.reach
-            stick.y = (-dy * k) / STICK.reach
         }
         event.preventDefault()
         onInput()
@@ -126,11 +153,12 @@ export function createControls({ onInput }) {
 
     const up = (event) => {
         if (event.pointerType === 'mouse') {
-            if (event.button === 2) rightDrag = null
+            if (orbit && orbit.id === event.pointerId) orbit = null
             return
         }
         pinch.delete(event.pointerId)
         if (event.pointerId === stick.id) Object.assign(stick, { id: null, x: 0, y: 0, shown: false })
+        if (orbit && orbit.id === event.pointerId) orbit = null
         if (pinch.size < 2) pinchSpan = 0
         onInput()
     }
@@ -155,7 +183,7 @@ export function createControls({ onInput }) {
             held.clear()
             pinch.clear()
             Object.assign(stick, { id: null, x: 0, y: 0, shown: false })
-            rightDrag = null
+            orbit = null
         }
         document.documentElement.classList.toggle('walking', value)
     }
@@ -207,8 +235,8 @@ export function createControls({ onInput }) {
             intent.turn -= pads.turn * STICK_TURN * dt
             if (pads.zoom) intent.zoom *= TRIGGER_ZOOM ** (pads.zoom * dt)
         }
-        const out = { ...intent, x, y, push, run, dragging: rightDrag !== null || pinch.size === 2 }
-        Object.assign(intent, { turn: 0, turnSteps: 0, zoom: 1, use: false, leave: false })
+        const out = { ...intent, x, y, push, run, dragging: orbit !== null || pinch.size === 2 }
+        Object.assign(intent, { turn: 0, tilt: 0, turnSteps: 0, zoom: 1, use: false, leave: false })
         return out
     }
 

@@ -77,7 +77,7 @@ export function createExplore(manager, story) {
         if (reduced() && !still && mode === 'walking') still = requestAnimationFrame(stillFrame)
         manager.requestRender()
     }
-    const controls = createControls({ onInput: wake })
+    const controls = createControls({ onInput: wake, padCentre: () => overlay.padCentre() })
     const overlay = createOverlay({ onUse: () => controls.use(), onLeave: () => controls.leave() })
 
     const built = (async () => {
@@ -144,7 +144,7 @@ export function createExplore(manager, story) {
         // lens focus onto Kinako.
         const arrived = rig.moveDuration === 0
         if (input.turnSteps) follow.turn(input.turnSteps)
-        if (input.turn) follow.drag(input.turn)
+        if (input.turn || input.tilt) follow.drag(input.turn, input.tilt)
         else if (!input.dragging) follow.release()
         if (input.zoom !== 1) follow.zoom(input.zoom)
         follow.forward(forward)
@@ -162,7 +162,7 @@ export function createExplore(manager, story) {
         }
         const feet = mover.position()
         body.update(dt, feet, travel, mover.onFloor, reduced())
-        const easing = follow.update(dt, feet, reduced())
+        const easing = follow.update(dt, feet, reduced(), travel)
         if (arrived) rig.jump('walk')
         cutaway.update(feet, Math.min(1, moved / SPEED.walk))
         zone = moved < STOPPED && mover.onFloor ? zoneAt(feet) : null

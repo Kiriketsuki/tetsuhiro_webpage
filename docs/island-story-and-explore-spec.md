@@ -204,7 +204,7 @@ Any input wakes Kinako, and the walk starts at once. The idle habits run on the 
 - **Asleep by the fire.** In the story views, Kinako sleeps curled by the campfire. The scene chunk loads `walker.glb` after the island is on screen and shows the sleep mesh. It adds one draw call and no new shader.
 - **Waking.** "Explore on foot" and "wander the aerie" both start the walk at the fire. The camera moves down to Kinako, Kinako wakes and stretches, and the walk starts. This replaces the start at `Zone_Pad` from the Welcome button.
 - **Exit.** When the walk ends, Kinako trots back to the fire and curls up again while the camera returns to the story.
-- **Greeter.** Kinako is the mascot of the gate (4 November 2026, the owner's pick: the fireside gate). Kinako naps by the aerie campfire, wakes, and runs laps round the fire while the aerie loads. A pawprint ring and the fire itself show the load. Once the load is done, Kinako sits by the fire and waits for the visitor. The gate shows toon renders of the aerie, the campfire kit and Kinako from `scripts/gate-fireside.py`, so the shell loads no three.js and no model. It does not change this spec.
+- **Greeter.** Kinako is the mascot of the gate (4 November 2026, the owner's pick: "lantern nap + walk us in"). Kinako naps on the lantern branch while the aerie loads and warms with the lamp. Once the load is done, Kinako wakes, hops down onto the way in and sits on it. On enter, Kinako trots on ahead. The gate shows pre-rendered frames from `lab/gate-kinako.html` (`scripts/gate-kinako.py`), so the shell loads no three.js and no model. It does not change this spec.
 
 ### Collision and the walkable area
 

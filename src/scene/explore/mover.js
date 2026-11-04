@@ -25,10 +25,20 @@ const HOP = { min: 0.1, max: 0.5, ahead: 0.35, lift: 0.08 }
 // HOP.ahead, so it finds a thin lip as well as a broad step.
 const LEDGE_FLAT = 0.8
 const LEDGE_SAMPLES = [0.18, 0.23, 0.28, 0.35]
+// The landing check: the floor this far past the highest top must lie within DROP of that top.
+// A thin wall strip or a rail has open air past it, and a hop over one fell 3 m off the landing.
+const LEDGE_LANDING = 0.3
 // The round foot of the capsule climbs a rise up to about RADIUS * (1 - cos 60 degrees), 0.075 m.
 // A probed ledge from LEDGE_MIN up takes a small hop, so no rise sits between a climb and a hop.
 // The pad rim is such a lip: 0.08 m over the lawn on the diagonals.
 const LEDGE_MIN = 0.05
+// A standing walker never steps off an edge with more than DROP metres of fall below it. Stairs
+// are ramps and hops only go up, so no path needs a deeper drop. The first tower landing has open
+// sides with 3.9 m down to the lawn, and the proxy has no wall there.
+const DROP = 1.0
+// A walker whose foot is this close over the proxy stands, though the collide step read a wall.
+// On a 38 degree flight the gap straight down from the foot middle is already 0.04 m.
+const STANDING_GAP = 0.08
 // A walker below this far under its spawn has left the aerie, so it goes back to the spawn.
 const LOST = 8
 
@@ -69,6 +79,14 @@ export function createMover(world) {
     }
 
     // wish: the horizontal velocity the controls ask for, in metres a second.
+    // The distance from the capsule foot down to the proxy, or Infinity.
+    const floorGap = () => {
+        ray.origin.copy(capsule.start)
+        const hit = world.octree.rayIntersect(ray)
+        return hit ? hit.distance - RADIUS : Infinity
+    }
+    const before = { start: new THREE.Vector3(), end: new THREE.Vector3() }
+
     const step = (dt, wish) => {
         const h = dt / SUBSTEPS
         for (let i = 0; i < SUBSTEPS; i += 1) {
@@ -76,10 +94,21 @@ export function createMover(world) {
             velocity.x += (wish.x - velocity.x) * k
             velocity.z += (wish.z - velocity.z) * k
             if (!onFloor) velocity.y -= GRAVITY * h
+            // A walker against a wall reads the wall contact, so standing also counts a floor right
+            // under the foot (see standing).
+            const grounded = velocity.y <= 0.5 && (onFloor || floorGap() <= STANDING_GAP)
+            before.start.copy(capsule.start)
+            before.end.copy(capsule.end)
             capsule.translate(ahead.copy(velocity).multiplyScalar(h))
             const wasOnFloor = onFloor
             collide()
             if (wasOnFloor && !onFloor && velocity.y <= 0) snapDown()
+            if (grounded && !onFloor && velocity.y <= 0 && floorGap() > DROP) {
+                capsule.start.copy(before.start)
+                capsule.end.copy(before.end)
+                velocity.set(0, 0, 0)
+                onFloor = true
+            }
         }
         if (capsule.start.y < world.spawn.y - LOST) place(world.spawn)
     }
@@ -91,17 +120,22 @@ export function createMover(world) {
     // stands only 0.05 m over the lawn.
     const ledgeTop = (at, dir) => {
         let top = -Infinity
+        let past = 0
         for (const d of LEDGE_SAMPLES) {
             probe.origin.set(at.x + dir.x * d, at.y + HOP.max + 0.3, at.z + dir.z * d)
             const hit = world.octree.rayIntersect(probe)
             if (!hit || Math.abs(hit.triangle.getNormal(normal).y) < LEDGE_FLAT) continue
             if (hit.position.y > top) {
                 top = hit.position.y
+                past = d + LEDGE_LANDING
                 up.origin.set(probe.origin.x, top + 0.02, probe.origin.z)
             }
         }
         const rise = top - at.y
         if (rise < LEDGE_MIN || rise > HOP.max) return null
+        probe.origin.set(at.x + dir.x * past, top + 0.3, at.z + dir.z * past)
+        const landing = world.octree.rayIntersect(probe)
+        if (!landing || landing.distance - 0.3 > DROP) return null
         const roof = world.octree.rayIntersect(up)
         return roof && roof.distance < HEIGHT ? null : top
     }
@@ -113,13 +147,7 @@ export function createMover(world) {
     // True when the walker stands, or presses on a wall with the floor right under its foot. The
     // collide step keeps one contact, so a walker pushed against a lip reads the wall and not the
     // floor, and onFloor turns false while it stands still.
-    const standing = () => {
-        if (onFloor) return true
-        if (velocity.y > 0.5) return false
-        ray.origin.copy(capsule.start)
-        const hit = world.octree.rayIntersect(ray)
-        return Boolean(hit) && hit.distance <= RADIUS + 0.04
-    }
+    const standing = () => onFloor || (velocity.y <= 0.5 && floorGap() <= STANDING_GAP)
 
     const tryHop = (dir, pushing) => {
         if (!standing()) return false

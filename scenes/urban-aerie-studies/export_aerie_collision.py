@@ -76,6 +76,11 @@ WALL_MIN_Z = -0.6
 TRIANGLE_LIMIT = 6000
 # The height of the guard strips along each ramp side, in metres over the ramp.
 RAMP_GUARD = 0.6
+# Each guard strip stops this far, in metres along the flight, short of its foot and its head.
+# A strip that ran to the foot of the second tower flight stood across the turn from the first
+# flight's landing, so the walker never reached the telescope deck. Near an end the flight is
+# within about 0.3 m of the landing, so a side step only drops onto the landing.
+RAMP_GUARD_INSET = 0.45
 
 FLOOR_MESHES = ('Island', 'Paths', 'Pad', 'Rock', 'House')
 # Walls come from slices, not from their own faces. Each slice height gets a wall strip
@@ -799,6 +804,8 @@ def build(objs, report):
         # heights the stair tower had no wall at a flight's side, so the walker stepped off a
         # flight and fell out through the tower glass.
         for a, b in ((quad[0], quad[1]), (quad[3], quad[2])):
+            along = (b - a).normalized() * RAMP_GUARD_INSET
+            a, b = a + along, b - along
             up = Vector((0, 0, RAMP_GUARD))
             solids.faces.new([solids.verts.new(c) for c in (a - up * 0.3, b - up * 0.3, b + up, a + up)])
 

@@ -132,7 +132,7 @@ The JS sizes are estimates. `Octree.js` and `Capsule.js` from three (r180) come 
 | Item | Budget |
 |---|---|
 | `explore-*.js` | at most 20 kB gzip |
-| `island_b_collide.glb` | at most 60 kB |
+| `aerie_collide.glb` | at most 60 kB and 6,000 triangles |
 | `walker.glb` (Kinako: the walk mesh and the sleep mesh) | at most 80 kB with quantized attributes. The walk mesh has at most 3k triangles |
 | Draw calls added | at most 4 (Kinako, its contact shadow, and the sleeping Kinako in the story views) |
 | CPU per frame for the walker, camera and zones | at most 0.5 ms on a mid Android |
@@ -184,7 +184,7 @@ The owner locked this design on 3 November 2026 after five rounds of Blender con
 
 - **Gaits.** The walk is a four-beat gait, and the run is a gallop with a short flight phase. The leg cycle follows the ground speed, so the paws do not slide. The body bobs a little at a walk and stretches at a run. At a run the ears lie back and the tail streams out.
 - **Turning.** The body turns toward the move direction at up to 540 degrees per second. The head leads the turn by up to 25 degrees.
-- **Steps and ledges.** There is no jump button. The capsule steps up any rise under 0.10 m. A rise of 0.10 to 0.30 m plays an automatic hop of about 0.35 s: crouch, spring, land. The collision proxy marks the hop ledges, such as the porch step and the lookout bench. A rise over 0.30 m is a wall. Stairs stay smooth ramps.
+- **Steps and ledges.** There is no jump button. The capsule steps up any rise under 0.10 m. A rise of 0.10 to 0.50 m plays an automatic hop of about 0.35 s: crouch, spring, land. The collision proxy marks the hop ledges, such as the lookout bench, whose seat stands 0.40 m over the deck. A rise over 0.50 m is a wall. Stairs stay smooth ramps.
 
 #### Idle habits
 
@@ -206,13 +206,17 @@ Any input wakes Kinako, and the walk starts at once. The idle habits run on the 
 
 ### Collision and the walkable area
 
-- **A low-poly proxy from Blender.** A new script, `scenes/urban-aerie-studies/export_collision.py`, writes `src/assets/models/island_b_collide.glb`. It holds:
+- **A low-poly proxy from Blender.** A new script, `scenes/urban-aerie-studies/export_aerie_collision.py`, writes `src/assets/models/aerie_collide.glb`. It reads the shipped `aerie.glb` and `campfire_kit.glb`, so the proxy matches what the site draws, and it never opens or saves a `.blend`. It holds:
   - the walkable floors: the lawn, the paths, the pad, the ramp, the deck, the bridge, the porch, the landings and both roof terraces.
-  - every stair flight as a smooth ramp, so the capsule needs no step logic.
-  - walls, railings, glass barriers, tree trunks and large props as boxes.
-  - an invisible fence round the island rim, so the walker cannot fall off.
-  - the hop ledges, such as the porch step and the lookout bench, each named `Hop_<name>`, so the walker hops onto them.
-- **Target size:** under 4,000 triangles.
+  - every stair flight as a smooth ramp, so the capsule needs no step logic. The script finds each flight from its treads.
+  - walls from horizontal slices through the house, the glass, the paths, the rocks and the pad, each stood up as a short vertical strip.
+  - tree trunks as six-sided posts, and props as boxes fitted to their footprints.
+  - one closed block per room, so the walker stops at each door.
+  - an invisible fence round the island rim and round the water, so the walker cannot fall off or wade in.
+  - the hop ledges, such as the lookout bench, each an empty named `Hop_<n>`, so the walker hops onto them.
+  - `Spawn_Campfire`, the spot by the fire where Kinako sleeps and wakes.
+- **Target size:** under 6,000 triangles and 60 kB. The lawn needs about 2,500 floor triangles to sit within 2 cm of the drawn ground at the median. At 4,000 triangles in all, the median gap was 5 cm, which shows under the paws.
+- **Reach check.** The export floods the proxy floors from `Spawn_Campfire` and fails unless every zone and the upper terrace can be reached. It also fails if the floor inside the workshop, the lounge or the bedroom can be reached. The owner's rule is that the walker never enters a room, so nobody sees the low-poly interiors close up.
 - **Octree and capsule.** The explore chunk builds an `Octree` from the proxy once, then moves a `Capsule` each frame with gravity and slide, as the three `games_fps` example does.
 - **The interiors stay closed.** Each room is a portal zone at its door. The walker never walks into the workshop, the lounge or the bedroom.
 - **Update, 3 November 2026.** The owner opened the bedroom as the About room (`/about`, `src/views/AboutRoom.vue`, `src/scene/aerie/room.js`). The camera goes in through the balcony door and looks round, the way `/projects` goes into the workshop. The walker still stops at the door, and `Zone_Bedroom` can open `/about`.
@@ -295,7 +299,7 @@ Each step ships on its own, as the plan requires.
 |---|---|
 | S1 | New order in `waypoints.js` and the nav. New `arrival` and `campfire` stops. Focus values per stop. The gate lands at `arrival` |
 | S2 | Route empties in Blender, `src/data/route.js`, and `rig.goTo` with a leg |
-| E1 | `export_collision.py`, `island_b_collide.glb` with the zones, and the budget lines |
+| E1 | `export_aerie_collision.py`, `aerie_collide.glb` with the zones, and the budget lines |
 | E2 | The explore chunk: placeholder walker, Octree and capsule, controls, follow camera, zones, entry and exit |
 | E3 | The cutaway and the leaf scatter |
 | E4 | Kinako: `walker.glb` from the concept script, the walker shader (part rotations and the tail bend), the gaits, the hop, the idle habits and the sleeping Kinako by the fire |

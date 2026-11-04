@@ -33,7 +33,7 @@ INLINE = {'size': 1600, 'nap': 74, 'embers': 50, 'embers_size': 1200}
 # The focus falloff: the lawn past the lap blurs, darkens and greys a little, so Kinako and
 # the fire carry the picture. The radii are in units of the lap ellipse, the blur is a share
 # of the picture width, and the dark and grey shares apply at full falloff.
-FOCUS = {'inner': 1.15, 'outer': 2.6, 'blur': 0.011, 'dark': 0.5, 'grey': 0.3}
+FOCUS = {'inner': 0.95, 'outer': 2.1, 'blur': 0.02, 'dark': 0.58, 'grey': 0.38}
 QUALITY = {'scene': 82, 'glow': 80, 'pit': 84, 'fire': 82, 'k': 86}
 # The first paint: a soft copy of the whole picture, this many pixels wide.
 FIRST_WIDTH = 240
@@ -219,12 +219,17 @@ def defocus(rgba, mask):
     h, w = rgba.shape[:2]
     small = 800
     img = to_image(rgba).convert('RGBa').resize((small, small), Image.LANCZOS)
-    img = img.filter(ImageFilter.GaussianBlur(FOCUS['blur'] * small))
-    soft = np.asarray(img.resize((w, h), Image.BICUBIC).convert('RGBA'), dtype=np.float32) / 255
+    light = img.filter(ImageFilter.GaussianBlur(FOCUS['blur'] * small * 0.35))
+    deep = img.filter(ImageFilter.GaussianBlur(FOCUS['blur'] * small))
+    as_pre = lambda im: (lambda a: np.concatenate([a[..., :3] * a[..., 3:4], a[..., 3:4]], -1))(  # noqa: E731
+        np.asarray(im.resize((w, h), Image.BICUBIC).convert('RGBA'), dtype=np.float32) / 255)
     m = mask[..., None]
     pre = np.concatenate([rgba[..., :3] * rgba[..., 3:4], rgba[..., 3:4]], -1)
-    soft_pre = np.concatenate([soft[..., :3] * soft[..., 3:4], soft[..., 3:4]], -1)
-    mixed = pre * (1 - m) + soft_pre * m
+    # The light blur takes over in the first half of the falloff, the deep blur in the second.
+    near = np.clip(m * 2, 0, 1)
+    far = np.clip(m * 2 - 1, 0, 1)
+    mixed = pre * (1 - near) + as_pre(light) * near
+    mixed = mixed * (1 - far) + as_pre(deep) * far
     alpha = mixed[..., 3:4]
     rgb = np.where(alpha > 1e-4, mixed[..., :3] / np.maximum(alpha, 1e-4), 0)
     v = (rgb * [0.2126, 0.7152, 0.0722]).sum(-1, keepdims=True)

@@ -427,8 +427,8 @@ def render_main():
     # Leaf litter ---------------------------------------------------------------------
     import random
     rng = random.Random(3)
-    # A light litter: the owner found a full carpet too busy, so the leaves stay few, near the
-    # fire, and a little dimmer than the site carpet.
+    # A light litter: the owner found a full carpet too busy, twice, so the leaves stay few,
+    # near the fire, and a little dimmer than the site carpet.
     leaf_mats = [toon(f'gate_leaf_{i}', linear(c), 0.48, moon, fire) for i, c in enumerate(CARPET)]
     shapes = []
     for i in range(3):
@@ -448,7 +448,7 @@ def render_main():
         bm.free()
         shapes.append(me)
     clear = [(fire, 0.8)]
-    for _ in range(700):
+    for _ in range(360):
         r = 0.8 + 2.2 * math.sqrt(rng.random())
         a = rng.random() * math.tau
         x, y = fire.x + math.cos(a) * r, fire.y + math.sin(a) * r

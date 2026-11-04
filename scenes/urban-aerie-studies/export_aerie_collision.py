@@ -82,6 +82,20 @@ RAMP_GUARD = 0.6
 # about 0.3 m of the landing, so a side step only drops onto the landing. The strip runs to the
 # head: beside the head of the third flight is the open stairwell, 5.8 m deep.
 RAMP_GUARD_INSET = 0.45
+# A floor face that hangs over a flight with less than this headroom over the ramp, in metres, is
+# dropped. The walker capsule stands 0.35 m tall. The top of the deck edge beam, a 6 cm strip at
+# 7.34 m, crossed the second tower flight 0.27 m over the ramp. Going up the walker met its one-sided
+# underside and passed, but going down it met the strip as a floor and could not walk down.
+RAMP_HEADROOM = 0.6
+# The walker capsule radius, so a face just past a flight's side still counts as over it.
+WALKER_RADIUS = 0.15
+# The headroom test leaves out this much of each flight end, in metres along it. There the ramp
+# dips just under its landing for one step, and the landing is a floor, not an overhang.
+RAMP_END_MARGIN = 0.45
+# Each ramp quad reaches this far, in metres, past its foot and its head, under the landings. A ramp
+# that ended exactly at the deck edge left a hairline crack, and a ray from a slow walker slipped
+# through it to the lawn 6.4 m below.
+RAMP_OVERLAP = 0.03
 
 FLOOR_MESHES = ('Island', 'Paths', 'Pad', 'Rock', 'House')
 # Walls come from slices, not from their own faces. Each slice height gets a wall strip
@@ -292,12 +306,44 @@ def flight_ramp(chain, tree=None):
     if landing:
         head = last['centre'].to_2d() - d * (run / 2)
         z_head = last['z']
-    quad = [Vector((*(foot - side * half_w), z_foot)), Vector((*(head - side * half_w), z_head)),
-            Vector((*(head + side * half_w), z_head)), Vector((*(foot + side * half_w), z_foot))]
+    foot_q, head_q = foot - d * RAMP_OVERLAP, head + d * RAMP_OVERLAP
+    quad = [Vector((*(foot_q - side * half_w), z_foot)), Vector((*(head_q - side * half_w), z_head)),
+            Vector((*(head_q + side * half_w), z_head)), Vector((*(foot_q + side * half_w), z_foot))]
     box = {'origin': first['centre'].to_2d() - d * run / 2, 'd': d, 'side': side,
            'length': length if landing else length + run, 'half_w': half_w - 0.02,
-           'z': (first['z'] - rise - 0.02, last['z'] + 0.02)}
+           'z': (first['z'] - rise - 0.02, last['z'] + 0.02),
+           'ramp': {'foot': foot, 'head': head, 'z': (z_foot, z_head), 'half_w': half_w}}
     return quad, box
+
+
+def overhangs(f, boxes):
+    """True when the face hangs over a flight ramp with less than RAMP_HEADROOM over it.
+
+    The test samples the corners, the middle and points along each edge, because a long thin
+    face can cross a flight with its middle and its corners outside the flight.
+    """
+    pts = [v.co for v in f.verts] + [f.calc_center_median()]
+    for e in f.edges:
+        a, c = e.verts[0].co, e.verts[1].co
+        pts += [a.lerp(c, k / 8) for k in range(1, 8)]
+    for box in boxes:
+        r = box['ramp']
+        d = r['head'] - r['foot']
+        length = d.length
+        if length < 1e-6:
+            continue
+        d = d / length
+        side = Vector((-d.y, d.x))
+        for p in pts:
+            rel = p.to_2d() - r['foot']
+            along, across = rel.dot(d), rel.dot(side)
+            if not (RAMP_END_MARGIN <= along <= length - RAMP_END_MARGIN
+                    and abs(across) <= r['half_w'] + WALKER_RADIUS):
+                continue
+            ramp_z = r['z'][0] + (r['z'][1] - r['z'][0]) * along / length
+            if 0.02 < p.z - ramp_z < RAMP_HEADROOM:
+                return True
+    return False
 
 
 def in_flight(c, box):
@@ -764,6 +810,9 @@ def build(objs, report):
             return any(in_flight(c, b) for b in boxes)
         if name in FLOOR_MESHES:
             keep = [f for f in up if not in_any(f) and (name in ('House', 'Paths') or on_aerie(f))]
+            low = [f for f in keep if overhangs(f, boxes)]
+            report['overhang_floors'] = report.get('overhang_floors', 0) + len(low)
+            keep = [f for f in keep if f not in low]
             copy_faces(floors, keep)
             if name == 'Paths':
                 ledges += floor_hops(ground, keep)

@@ -24,11 +24,15 @@ import { createCutaway } from './cutaway.js'
 
 // Walk and run speeds in metres a second (spec, The walker).
 const SPEED = { walk: 2.2, run: 4.5 }
+// A light push on the touch pad or a stick still walks at this share of the walk speed, about
+// 1 m/s, so Kinako never creeps. Below 1 m/s the walker stalled at the 6 cm lip at the foot of the
+// second tower flight.
+const MIN_PUSH = 0.45
 // A walker slower than this, in metres a second, has stopped, so a zone prompt may open.
 const STOPPED = 0.25
 // The share of the asked speed under which a push against a ledge counts as blocked. It counts
-// the speed along the asked direction only: on a round rim the capsule slides sideways along the
-// lip and keeps its speed, but makes no progress.
+// the real progress along the asked direction only (mover.progress): on a round rim the capsule
+// slides sideways along the lip, and at a low lip the velocity stays high while it stands still.
 const BLOCKED = 0.35
 
 // Each zone: its prompt, and what it opens. section: the home section a card shows.
@@ -149,7 +153,7 @@ export function createExplore(manager, story) {
         if (input.zoom !== 1) follow.zoom(input.zoom)
         follow.forward(forward)
         follow.right(right)
-        const speed = arrived ? (input.run ? SPEED.run : SPEED.walk) * Math.min(1, input.push) : 0
+        const speed = arrived && input.push > 0 ? (input.run ? SPEED.run : SPEED.walk) * THREE.MathUtils.clamp(input.push, MIN_PUSH, 1) : 0
         wish.copy(forward).multiplyScalar(input.y).addScaledVector(right, input.x)
         if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(speed)
         if (wish.lengthSq() > 0) follow.leaveLookout()
@@ -158,7 +162,7 @@ export function createExplore(manager, story) {
         const moved = travel.length()
         if (wish.lengthSq() > 0) {
             const dir = wish.clone().normalize()
-            mover.tryHop(dir, mover.velocity.x * dir.x + mover.velocity.z * dir.z < BLOCKED * speed)
+            mover.tryHop(dir, mover.progress.x * dir.x + mover.progress.z * dir.z < BLOCKED * speed)
         }
         const feet = mover.position()
         body.update(dt, feet, travel, mover.onFloor, reduced())

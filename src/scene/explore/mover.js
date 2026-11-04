@@ -83,19 +83,39 @@ export function createMover(world) {
         const hit = world.octree.rayIntersect(ray)
         if (!hit || hit.distance > RADIUS + STEP_DOWN) return
         capsule.translate(ahead.set(0, RADIUS - hit.distance, 0))
+        if (velocity.y > 0) velocity.y = 0
         onFloor = true
     }
 
     // wish: the horizontal velocity the controls ask for, in metres a second.
-    // The distance from the capsule foot down to the proxy, or Infinity.
-    const floorGap = () => {
-        ray.origin.copy(capsule.start)
+    // The distance from the capsule foot down to the proxy, or Infinity. dx and dz move the ray
+    // across the foot.
+    const floorGap = (dx = 0, dz = 0) => {
+        ray.origin.set(capsule.start.x + dx, capsule.start.y, capsule.start.z + dz)
         const hit = world.octree.rayIntersect(ray)
         return hit ? hit.distance - RADIUS : Infinity
     }
+    // True when the walker hangs over a drop deeper than DROP: no floor under the middle of its
+    // foot, and none CRACK metres further along its way. A hairline crack between a deck and a
+    // flight let one ray through to the lawn 6.4 m below, and the guard held a slow walker at the
+    // top of the second flight. Past a real edge both rays find open air.
+    const CRACK = 0.03
+    const overDrop = () => {
+        if (floorGap() <= DROP) return false
+        const speed = Math.hypot(velocity.x, velocity.z)
+        if (speed < 1e-4) return true
+        return floorGap((velocity.x / speed) * CRACK, (velocity.z / speed) * CRACK) > DROP
+    }
     const before = { start: new THREE.Vector3(), end: new THREE.Vector3() }
 
+    // The horizontal distance the walker really moved in the last step, per second. The collide
+    // step pushes the capsule back out of a lip by moving it and leaves the velocity alone, so a
+    // walker at a 6 cm lip kept a speed of 0.9 m/s while it stood still.
+    const progress = new THREE.Vector3()
+    const stepFrom = new THREE.Vector3()
+
     const step = (dt, wish) => {
+        stepFrom.copy(capsule.start)
         const h = dt / SUBSTEPS
         for (let i = 0; i < SUBSTEPS; i += 1) {
             const k = 1 - Math.exp(-h * (onFloor ? 14 : 3))
@@ -107,14 +127,21 @@ export function createMover(world) {
             // out of the ramp gives the walker an upward speed, and the guard let it step off the
             // side near the top of the third flight. Only a hop turns the guard off.
             const grounded = !hopping && (onFloor || floorGap() <= STANDING_GAP)
+            // Over a floor before the move: the middle of the foot had floor within DROP under it.
+            const overFloor = grounded && floorGap() <= DROP
             before.start.copy(capsule.start)
             before.end.copy(capsule.end)
             capsule.translate(ahead.copy(velocity).multiplyScalar(h))
-            const wasOnFloor = onFloor
             collide()
-            if (wasOnFloor && !onFloor && velocity.y <= 0) snapDown()
+            // The snap down holds a standing walker on a slope. Against a flight guard the collide
+            // step reads the guard and not the ramp, so the snap counts a standing walker. It once
+            // ran only after a floor contact, and a walker pressed on the guard skimmed down the
+            // first flight up to 0.32 m over the ramp and landed hard at its foot. Outside a hop an
+            // upward speed is a collision kick (0.7 m/s off the first landing onto the flight
+            // head), so the snap ignores it. It still needs a floor within STEP_DOWN.
+            if (grounded && !onFloor) snapDown()
             if (onFloor && velocity.y <= 0) hopping = false
-            if (hopping && velocity.y <= 0 && floorGap() > DROP) {
+            if (hopping && velocity.y <= 0 && overDrop()) {
                 capsule.start.copy(hopFrom.start)
                 capsule.end.copy(hopFrom.end)
                 velocity.set(0, 0, 0)
@@ -122,7 +149,11 @@ export function createMover(world) {
                 onFloor = true
                 continue
             }
-            if (grounded && !onFloor && floorGap() > DROP) {
+            // The guard reverts a move that takes the middle of the foot from over a floor to over
+            // a deep drop, whatever the contact says. On the lip of the telescope deck the edge
+            // contact still read as a floor while the foot hung over the 5.8 m stairwell, and the
+            // edge then pushed the walker off.
+            if (grounded && (!onFloor || overFloor) && overDrop()) {
                 capsule.start.copy(before.start)
                 capsule.end.copy(before.end)
                 velocity.set(0, 0, 0)
@@ -130,6 +161,7 @@ export function createMover(world) {
             }
         }
         if (capsule.start.y < world.spawn.y - LOST) place(world.spawn)
+        progress.subVectors(capsule.start, stepFrom).setY(0).divideScalar(Math.max(dt, 1e-6))
     }
 
     // The top of a low ledge ahead along dir, or null. Rays drop from over the highest hop onto
@@ -201,6 +233,7 @@ export function createMover(world) {
         tryHop,
         position,
         velocity,
+        progress,
         get onFloor() {
             return onFloor
         },

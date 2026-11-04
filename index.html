@@ -29,25 +29,24 @@
     <meta name="twitter:card" content="summary" />
     <title>Jovian Lim</title>
     <!--
-      The gate: the campfire corner of the aerie at night. Kinako, the cat-fox of the aerie,
-      naps by the fire while the aerie loads, wakes, runs laps round the fire, and sits down when
-      the way in opens. The gate lives here, not in the app bundle, so it paints before the JS
-      arrives and costs nothing against the shell budgets.
-      - Every layer is a toon render of the real aerie, the campfire kit and Kinako, from one
-        Blender pass (scripts/gate-fireside.py). That script writes the files in
-        public/gate/fireside/ and the CSS block between the fireside markers below.
-      - The layers stack back to front: the sky, the far islets and the city bokeh, the scene,
-        the glow pool, the pawprint ring, Kinako on the far side of the lap, the fire pit, the
-        fire, Kinako on the near side, and the leaves in the updraft.
-      - The first paint needs no JS and no file: a soft copy of the picture, the sleeping
-        Kinako, the embers and the count are data URLs and text. The sharp layers load after
-        the shell bundle (src/main.js calls load()).
-      - The load share drives the pawprint ring, the fire stages, the glow pool, the updraft and
-        the count. The ga-dawn animations creep from the first paint, then
-        src/components/gate-meter.js plays the share on the same elements.
-      - Every motion here is a transform or an opacity, so the compositor keeps it smooth while
-        the main thread builds the scene. Colours are hex, and the fonts are named here, because
-        the token CSS loads with the bundle and does not hold up the first paint.
+      The gate: a paper lantern on an autumn branch under the night sky, with Kinako asleep on
+      the branch. It lives here, not in the app bundle, so it paints before the JS arrives and
+      costs nothing against the shell budgets. The lantern, the branch and the leaves are frames
+      from lab/gate-lantern.html, and Kinako's frames come from lab/gate-kinako.html, drawn with
+      the aerie's own toon material, ink and lens, so they match the aerie.
+      - The first paint shows the whole picture at once: a small soft copy of it (.ga-first,
+        from scripts/gate-kinako.py) sits under the sharp layers. The script at the end of the
+        body fades the sharp layers in once their files decode, so no layer pops in alone.
+      - The lamp lights, autumn spreads along the branch and Kinako warms in the lamp light as
+        the load grows: the ga-dawn animations creep from the first paint, then
+        src/components/gate-meter.js plays the load share on the same layers.
+      - When the load is done, Name.vue walks Kinako down onto the way in (.ga-walker). When
+        the visitor goes in, Kinako trots on ahead, the lamp light washes the view into the
+        aerie, and Name.vue hides the art. The nav lantern brings it back.
+      Every motion here, the meter and the walk too, is a transform or an opacity, so the
+      compositor keeps it smooth while the main thread builds the scene. Colours are hex, and
+      the fonts are named here, because the token CSS loads with the bundle and does not hold
+      up the first paint.
     -->
     <style>
       :root {
@@ -63,18 +62,13 @@
           radial-gradient(120% 60% at 50% 108%, #3a2a5a 0, #23234a 30%, transparent 62%),
           radial-gradient(80% 50% at 82% 8%, #10244a, transparent 70%),
           linear-gradient(#020812, #071330 45%, #141a3c 78%, #2a2148);
-        /* The square picture covers the screen with the fire at --fire-y. A phone keeps the lap
-           inside the width, and the night shows above the picture if it falls short. */
-        --fire-y: 57vh;
-        --W: min(max(100vh, 100vw), calc(86vw / var(--lap)));
       }
       #gate-art.is-open {
         opacity: 0;
         transition: opacity 1s 0.9s;
       }
       #gate-art > *,
-      .ga-box > *,
-      .ga-world > * {
+      .ga-art > * {
         position: absolute;
       }
       .ga-star {
@@ -113,281 +107,275 @@
       .ga-islets {
         animation: ga-bob 9s ease-in-out infinite alternate;
       }
-      /* Two boxes share the square: the far box holds the haze and the city bokeh, the world box
-         the picture. A pointer moves them by different amounts, so the scene reads as deep. */
-      .ga-view,
-      .ga-far-view {
-        inset: 0;
-        transition: transform 0.6s ease-out;
+      /* The frames keep a 1024 by 784 shape. The lantern hook sits at 50% 21.5%, the middle of the
+         paper at 50% 55.9%. */
+      .ga-art {
+        left: 50%;
+        top: 56%;
+        width: min(38rem, 120vw, 58vh);
+        aspect-ratio: 1024 / 784;
+        transform: translate(-50%, -50%);
+        perspective: 40rem;
       }
-      /* A touch screen has no pointer to lean with, so the layers drift slowly instead. */
-      @media (pointer: coarse) {
-        .ga-view {
-          animation: ga-sway 14s ease-in-out infinite alternate;
-        }
-        .ga-far-view {
-          animation: ga-sway-far 14s ease-in-out infinite alternate;
-        }
-      }
-      @keyframes ga-sway {
-        from { transform: translateX(-1.2vw); }
-        to { transform: translateX(1.2vw); }
-      }
-      @keyframes ga-sway-far {
-        from { transform: translateX(-0.4vw); }
-        to { transform: translateX(0.4vw); }
-      }
-      .ga-box {
+      .ga-img,
+      .ga-layer,
+      .ga-first {
         position: absolute;
-        left: calc(50vw - var(--fx) * var(--W));
-        top: max(calc(var(--fire-y) - var(--fy) * var(--W)), calc(100vh - var(--W)));
-        width: var(--W);
-        height: var(--W);
-        container-type: size;
-      }
-      .ga-box > i,
-      .ga-world > i {
+        inset: 0;
         background: center / 100% 100% no-repeat;
       }
-      .ga-first,
-      .ga-scene {
-        inset: 0;
-      }
-      .ga-scene,
-      .ga-pit {
-        opacity: 0;
-        transition: opacity 0.6s;
-      }
-      #gate-art.is-sharp .ga-scene,
-      #gate-art.is-sharp .ga-pit {
-        opacity: 1;
+      /* The soft first paint copy of the unlit art. It hides once the sharp layers are in. */
+      .ga-first {
+        background-image: url(data:image/webp;base64,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);
       }
       #gate-art.is-sharp .ga-first {
         opacity: 0;
-        transition: opacity 0s 0.7s;
+        transition: opacity 0s 0.6s;
       }
-      /* The far city: flat bokeh discs low over the horizon, under a violet haze. */
-      .ga-haze {
-        left: -10%;
-        right: -10%;
-        top: calc(var(--hz) * 100% - 16%);
-        height: 26%;
-        background: #3b2758;
-        opacity: 0.65;
-        filter: blur(5cqw);
-      }
-      /* The discs lie out of focus, as the far city does in the site's own campfire shot. */
-      .ga-bokeh {
-        left: 0;
-        top: calc(var(--hz) * 100%);
-        width: 1px;
-        height: 1px;
-        border-radius: 50%;
-        filter: blur(0.35cqw);
-      }
-      /* The pawprint ring round the lap. Each print fades in as the share passes its place. */
-      .ga-paws {
-        inset: 0;
-      }
-      .ga-paw {
-        position: absolute;
-        width: 2.4cqw;
-        aspect-ratio: 1;
-        background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffd27a'%3E%3Cellipse cx='12' cy='15.5' rx='5.6' ry='4.6'/%3E%3Cellipse cx='5.2' cy='9.6' rx='2.1' ry='2.7' transform='rotate(-20 5.2 9.6)'/%3E%3Cellipse cx='9.6' cy='5.9' rx='2.2' ry='2.9'/%3E%3Cellipse cx='14.4' cy='5.9' rx='2.2' ry='2.9'/%3E%3Cellipse cx='18.8' cy='9.6' rx='2.1' ry='2.7' transform='rotate(20 18.8 9.6)'/%3E%3C/svg%3E");
+      /* The sharp layers fade in over the soft copy when their files decode: the unlit set at
+         once (is-sharp), then the lit lamp (is-lamp) and the autumn branch (is-autumn) each on
+         its own. On a slow line a lit layer can arrive with the meter well along, so it fades in
+         slowly and the lamp warms up instead of jumping. The script at the end of the body sets
+         the flags. */
+      .ga-sharp,
+      .ga-lamp,
+      .ga-autumn-in {
         opacity: 0;
+        transition: opacity 0.5s;
       }
-      /* The fire: four stages of flicker frames. The meter crossfades the stages with the share,
-         and each stage steps its row of frames on the compositor. */
-      .ga-fire > div {
+      .ga-lamp,
+      .ga-autumn-in {
+        transition-duration: 1.2s;
+      }
+      #gate-art.is-sharp .ga-sharp,
+      #gate-art.is-lamp .ga-lamp,
+      #gate-art.is-autumn .ga-autumn-in {
+        opacity: 1;
+      }
+      /* Kinako sleeps on the branch, left of the hook. The frame box and its place come from
+         scripts/gate-kinako.py (KINAKO_BOX). Frame 0 of the nap sheet is the moonlit nap, and
+         frame 1 the same nap in the lamp light, which the meter fades in with the lamp. */
+      .ga-kinako {
+        left: -6%;
+        top: -22.85%;
+        width: 47.7%;
+        aspect-ratio: 440 / 298;
+      }
+      #gate-art.is-open .ga-kinako {
+        opacity: 0;
+        transition: opacity 1.2s 0.5s;
+      }
+      /* A slow breath. It only stretches the curl up from the paws, so the frame stays crisp. */
+      .ga-k-breath {
         position: absolute;
         inset: 0;
-        overflow: hidden;
-      }
-      .ga-strip {
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 400%;
-        background: 0 0 / 100% 100% no-repeat;
-        animation: ga-flick 0.6s steps(4) infinite;
-      }
-      .ga-fire-1 .ga-strip {
-        animation-duration: 0.56s;
-      }
-      .ga-fire-2 .ga-strip {
-        animation-duration: 0.52s;
-      }
-      .ga-fire-3 .ga-strip {
-        animation-duration: 0.48s;
-      }
-      /* Kinako. Each sprite box puts Kinako's paws on its anchor point, so a box that moves or
-         scales keeps the paws on the lawn. The box size is in units of the picture width. */
-      .ga-k {
-        position: absolute;
-        left: calc(var(--kw) * -50cqw);
-        top: calc(var(--kh) * -86cqw);
-        width: calc(var(--kw) * 100cqw);
-        height: calc(var(--kh) * 100cqw);
-        transform-origin: 50% 86%;
-      }
-      .ga-at-nap,
-      .ga-at-sit {
-        width: 0;
-        height: 0;
-      }
-      .ga-k > i,
-      .ga-k-win {
-        position: absolute;
-        inset: 0;
-        background: center / 100% 100% no-repeat;
-      }
-      .ga-k-win {
-        overflow: hidden;
-      }
-      .ga-k-row {
-        position: absolute;
-        inset: 0 auto 0 0;
-        height: 100%;
-        background: 0 0 / 100% 100% no-repeat;
-      }
-      .ga-k-nap .ga-k-row {
-        width: 400%;
-      }
-      .ga-k-run .ga-k-row {
-        width: 800%;
-        animation: ga-gait 0.52s steps(8) infinite;
-      }
-      .ga-k-sit .ga-k-row {
-        width: 300%;
-        animation: ga-sit-idle 7s infinite;
-      }
-      /* A slow breath while Kinako naps. It stretches the loaf up from the paws. */
-      .ga-k-still {
+        transform-origin: 66% 96%;
         animation: ga-breath 3.2s ease-in-out infinite alternate;
       }
-      .ga-k-nap .ga-k-win,
-      .ga-k-sit,
-      .ga-lap {
-        opacity: 0;
-      }
-      #gate-art.is-waking .ga-k-nap .ga-k-win {
-        opacity: 1;
-      }
-      #gate-art.is-waking .ga-k-still,
-      #gate-art.is-running .ga-k-nap,
-      #gate-art.is-sat .ga-k-nap {
-        opacity: 0;
-      }
-      #gate-art.is-running .ga-lap {
-        opacity: 1;
-      }
-      #gate-art.is-sat .ga-lap {
-        opacity: 0;
-        transition: opacity 0.25s;
-      }
-      #gate-art.is-sat .ga-k-sit {
-        opacity: 1;
-        transition: opacity 0.25s;
-      }
-      /* The lap: a square box squashed into the screen ellipse turns an arm round its middle.
-         The sprite at the end of the arm turns back and unsquashes, so it stays upright, and it
-         scales with its depth on the lawn. Two copies run the same lap: the near copy lies over
-         the fire, the far copy under the fire pit, and each shows on its own half. */
-      .ga-lap {
-        aspect-ratio: 1;
-      }
-      .ga-spin {
+      .ga-k-frame {
         position: absolute;
         inset: 0;
+        background: 0 0 / 200% 100% no-repeat;
       }
-      .ga-arm {
-        position: absolute;
-        left: 100%;
-        top: 50%;
-      }
-      .ga-unspin,
-      .ga-unsquash,
-      .ga-depth {
-        position: absolute;
-        left: 0;
-        top: 0;
-      }
-      #gate-art.is-running .ga-spin {
-        animation: ga-spin var(--lap-s) linear var(--lap-delay) infinite;
-      }
-      #gate-art.is-running .ga-unspin {
-        animation: ga-unspin var(--lap-s) linear var(--lap-delay) infinite;
-      }
-      #gate-art.is-running .ga-near .ga-depth {
-        animation: ga-lap-depth var(--lap-s) linear var(--lap-delay) infinite, ga-near var(--lap-s) linear var(--lap-delay) infinite;
-      }
-      #gate-art.is-running .ga-far .ga-depth {
-        animation: ga-lap-depth var(--lap-s) linear var(--lap-delay) infinite, ga-far var(--lap-s) linear var(--lap-delay) infinite;
-      }
-      .ga-far .ga-k {
-        transform: scaleX(-1);
-      }
-      /* The updraft: leaves drift down, catch the rising air over the fire and spiral up with
-         the sparks. The meter turns on more of them as the fire grows. */
-      .ga-rise {
-        left: calc(var(--fx) * 100%);
-        top: calc(var(--fy) * 100% - 4%);
-      }
-      .ga-rise > div {
-        position: absolute;
+      .ga-k-lit {
+        background-position: 100% 0;
         opacity: 0;
-      }
-      .ga-leaf,
-      .ga-spark {
-        position: absolute;
-        left: 0;
-        top: 0;
-        animation: ga-swirl var(--t) linear var(--d) infinite;
-      }
-      .ga-leaf {
-        width: 1.6cqw;
-        height: 1.6cqw;
-        margin: -0.8cqw;
-        background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23e8860e' d='M10 1C15 5 17 10 10 19C3 10 5 5 10 1Z'/%3E%3C/svg%3E");
-      }
-      .ga-leaf.b {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23d6540c' d='M10 1C15 5 17 10 10 19C3 10 5 5 10 1Z'/%3E%3C/svg%3E");
-      }
-      .ga-leaf.c {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23f0b020' d='M10 1C15 5 17 10 10 19C3 10 5 5 10 1Z'/%3E%3C/svg%3E");
-      }
-      .ga-spark {
-        width: 0.35cqw;
-        height: 0.35cqw;
-        border-radius: 50%;
-        background: #ffc46a;
-        animation-name: ga-spark;
-      }
-      .ga-bloom {
-        left: calc(var(--fx) * 100%);
-        top: calc(var(--fy) * 100% - 3%);
-        width: 30%;
-        aspect-ratio: 1;
-        border-radius: 50%;
-        opacity: 0;
-        transform: translate(-50%, -50%);
-        background: radial-gradient(closest-side, #ffd28a, #ffb04dcc 35%, #ff8a3a55 60%, transparent);
-      }
-      /* On the way in the view pushes into the fire glow, and the 3D aerie fades in behind. */
-      .ga-world {
-        transform-origin: calc(var(--fx) * 100%) calc(var(--fy) * 100% - 3%);
-      }
-      #gate-art.is-open .ga-world {
-        transform: scale(2.6);
-        transition: transform 1.8s cubic-bezier(0.55, 0, 0.75, 0.2);
-      }
-      #gate-art.is-open .ga-bloom {
-        animation: ga-bloom 1.6s cubic-bezier(0.35, 0, 0.6, 1) forwards;
+        animation: ga-dawn-lit 24s linear forwards;
       }
       /* The night grows darker at the top and the bottom, so the title and the way in read. */
       .ga-scrim {
         inset: 0;
-        background: linear-gradient(#020812b3, transparent 26% 72%, #020812c8);
+        background: linear-gradient(#020812cc, transparent 32% 64%, #020812dd);
         pointer-events: none;
+      }
+      /* Kinako's walk in. Name.vue sizes the box to the nap box, then moves it with one
+         transform and steps the window along the frame row with another. The row loads only
+         when Name.vue asks for it (has-walk), after the aerie has downloaded. */
+      .ga-walker {
+        left: 0;
+        top: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .ga-w-window {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .ga-w-row {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1400%;
+        height: 100%;
+        background: 0 0 / 100% 100% no-repeat;
+      }
+      #gate-art.has-walk .ga-w-row {
+        background-image: url(/gate/kinako-walk.webp);
+      }
+      /* Each layer takes its file only once the script at the end of the body has loaded and
+         decoded it. A background image on a painted element loads at the first paint, even at
+         opacity 0, and on slow 3G these files then shared the line with the app bundle. */
+      #gate-art.is-sharp .ga-branch {
+        background-image: url(/gate/branch-s0.webp);
+      }
+      #gate-art.is-sharp .ga-paper {
+        background-image: url(/gate/lantern-s0.webp);
+      }
+      #gate-art.is-sharp .ga-k-frame {
+        background-image: url(/gate/kinako-nap.webp);
+      }
+      #gate-art.is-lamp .ga-lit {
+        background-image: url(/gate/lantern-s1.webp);
+      }
+      #gate-art.is-autumn .ga-autumn {
+        background-image: url(/gate/branch-s1.webp);
+      }
+      #gate-art.has-leaves .ga-leaf,
+      #gate-art.has-leaves .ga-drift {
+        background-image: url(/gate/sprites-s1.webp);
+      }
+      /* Autumn spreads along the branch from left to right as the load grows. A window with a
+         soft right edge slides right over the autumn branch, and the branch slides left inside
+         it by as much, so the branch holds still. At share p the window sits at
+         translateX((p - 1) * 100%) and the branch at translateX((1 - p) * 130%). Both are
+         transforms, so the compositor runs them. The window is 130% wide and its last 30%
+         is the soft edge. */
+      .ga-reveal {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 130%;
+        overflow: hidden;
+        -webkit-mask: linear-gradient(90deg, #000 76.92%, transparent);
+        mask: linear-gradient(90deg, #000 76.92%, transparent);
+        transform: translateX(-100%);
+        animation: ga-dawn-reveal 24s linear forwards;
+      }
+      .ga-autumn {
+        right: auto;
+        width: 76.92%;
+        transform: translateX(130%);
+        animation: ga-dawn-autumn 24s linear forwards;
+      }
+      /* Name.vue swings .ga-nudge on a hover or a tap. At rest the lantern and the branch hold
+         still: a turned layer is resampled on every frame, and that softens the ribs and the
+         paper grain. The idle life comes from the glow, the sky and the drifting leaves. */
+      .ga-nudge,
+      .ga-lantern {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 21.5%;
+      }
+      /* The lantern layers are a tight crop at a finer scale than the branch, so the lantern,
+         the sharp middle of the picture, keeps its ribs crisp. scripts/gate-matte.py prints
+         this box. */
+      .ga-paper {
+        inset: auto;
+        left: 37.38%;
+        top: 20.51%;
+        width: 25.23%;
+        height: 74.08%;
+      }
+      .ga-lit {
+        opacity: 0;
+        animation: ga-dawn-lit 24s linear forwards;
+      }
+      .ga-glow {
+        left: 50%;
+        top: 55.9%;
+        width: 78%;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        animation: ga-dawn-lit 24s linear forwards;
+      }
+      .ga-glow::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, #ffb04d55, #ff8a3a1f 45%, transparent);
+        animation: ga-flicker 3.1s ease-in-out infinite;
+      }
+      .ga-flare,
+      .ga-bloom {
+        left: 50%;
+        top: 55.9%;
+        width: 52%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        opacity: 0;
+        transform: translate(-50%, -50%);
+        will-change: transform, opacity;
+      }
+      .ga-flare {
+        background: radial-gradient(closest-side, #ffe2a088, #ffb04d33 45%, transparent);
+      }
+      .ga-bloom {
+        background: radial-gradient(closest-side, #ffd28a, #ffb04dcc 35%, #ff8a3a55 60%, transparent);
+      }
+      .is-open .ga-bloom {
+        animation: ga-bloom 1.5s cubic-bezier(0.35, 0, 0.6, 1) forwards;
+      }
+      .ga-leaf {
+        left: var(--x);
+        top: var(--y);
+        width: 6.5%;
+        aspect-ratio: 1;
+        background: calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        opacity: 0;
+      }
+      /* Once the lamp is lit, a leaf now and then lets go of the branch and drifts down. */
+      .ga-drift {
+        left: var(--x);
+        top: var(--y);
+        width: 6.5%;
+        aspect-ratio: 1;
+        background: calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        opacity: 0;
+      }
+      .is-lit .ga-drift {
+        animation: ga-drift var(--t) linear var(--d) infinite;
+      }
+      .is-open .ga-drift {
+        display: none;
+      }
+      .is-open .ga-leaf {
+        animation: ga-fall 3.6s cubic-bezier(0.4, 0, 0.7, 1) var(--d) both;
+      }
+      .is-open .ga-fades {
+        opacity: 0;
+        transition: opacity 1.2s 0.5s;
+      }
+      /* The dawn: before the bundle arrives, the lamp warms to share 0.16 on its own, slower
+         and slower. gate-meter.js reads these keyframes and goes on from the value they show,
+         so they stay linear pieces, one set per layer at the same shares. */
+      @keyframes ga-dawn-lit {
+        0% { opacity: 0; }
+        8% { opacity: 0.05; }
+        20% { opacity: 0.09; }
+        40% { opacity: 0.12; }
+        70% { opacity: 0.15; }
+        100% { opacity: 0.16; }
+      }
+      @keyframes ga-dawn-reveal {
+        0% { transform: translateX(-100%); }
+        8% { transform: translateX(-95%); }
+        20% { transform: translateX(-91%); }
+        40% { transform: translateX(-88%); }
+        70% { transform: translateX(-85%); }
+        100% { transform: translateX(-84%); }
+      }
+      @keyframes ga-dawn-autumn {
+        0% { transform: translateX(130%); }
+        8% { transform: translateX(123.5%); }
+        20% { transform: translateX(118.3%); }
+        40% { transform: translateX(114.4%); }
+        70% { transform: translateX(110.5%); }
+        100% { transform: translateX(109.2%); }
+      }
+      @keyframes ga-breath {
+        to { transform: scaleY(1.025); }
       }
       @keyframes ga-twinkle {
         50% { opacity: 0.25; }
@@ -398,152 +386,53 @@
       @keyframes ga-bob {
         to { transform: translateY(-6px); }
       }
-      @keyframes ga-breath {
-        to { transform: scaleY(1.025); }
+      @keyframes ga-flicker {
+        30% { opacity: 0.84; transform: scale(0.985); }
+        55% { opacity: 1; }
+        80% { opacity: 0.9; transform: scale(1.012); }
       }
-      @keyframes ga-flick {
-        to { transform: translateX(-100%); }
-      }
-      @keyframes ga-gait {
-        to { transform: translateX(-100%); }
-      }
-      @keyframes ga-sit-idle {
-        0%, 100% { transform: translateX(0); animation-timing-function: step-end; }
-        40% { transform: translateX(-33.333%); animation-timing-function: step-end; }
-        42% { transform: translateX(0); animation-timing-function: step-end; }
-        68% { transform: translateX(-66.667%); animation-timing-function: step-end; }
-        78% { transform: translateX(0); animation-timing-function: step-end; }
-      }
-      @keyframes ga-swirl {
-        0% { opacity: 0; transform: translate(calc(var(--sx) * 1cqw), -30cqw) rotate(0deg); }
-        8% { opacity: 1; }
-        42% { transform: translate(calc(var(--sx) * 0.25cqw), -3cqw) rotate(220deg); }
-        58% { transform: translate(calc(var(--sx) * -0.15cqw), -9cqw) rotate(360deg); }
-        78% { opacity: 1; transform: translate(calc(var(--sx) * 0.2cqw), -20cqw) rotate(520deg); }
-        100% { opacity: 0; transform: translate(calc(var(--sx) * -0.1cqw), -36cqw) rotate(700deg); }
-      }
-      @keyframes ga-spark {
-        0% { opacity: 0; transform: translate(0, 0); }
-        10% { opacity: 1; }
-        50% { transform: translate(calc(var(--sx) * 0.12cqw), -12cqw); }
-        100% { opacity: 0; transform: translate(calc(var(--sx) * -0.08cqw), -26cqw); }
+      @keyframes ga-drift {
+        0%, 62% { opacity: 0; transform: translate(0, 0) rotate(var(--r)) rotateX(0deg); }
+        66%, 92% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-1.5rem, 60vh) rotate(calc(var(--r) + 200deg)) rotateX(480deg); }
       }
       @keyframes ga-bloom {
         0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
         35% { opacity: 1; }
-        100% { opacity: 1; transform: translate(-50%, -50%) scale(7); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(9); }
       }
-      /* Generated by scripts/gate-fireside.py. Do not edit by hand. */
-      /* fireside:begin */
-      .ga-glow { left: 8.438%; top: 46.969%; width: 74.688%; height: 41.219%; }
-      .ga-pit { left: 37.906%; top: 55.594%; width: 23.563%; height: 12.188%; }
-      .ga-fire { left: 39.045%; top: 40.557%; width: 21.91%; height: 24.698%; }
-      .ga-k-nap { --kw: 0.2118; --kh: 0.1541; }
-      .ga-k-wake { --kw: 0.2118; --kh: 0.1541; }
-      .ga-k-run { --kw: 0.2191; --kh: 0.1593; }
-      .ga-k-sit { --kw: 0.2191; --kh: 0.1593; }
-      #gate-art { --hz: 0.4944; }
-      .ga-bokeh { box-shadow: 12.86cqw -2.76cqw 0 0.84cqw #aac8ff2a, 92.82cqw -6.40cqw 0 0.42cqw #ffc4784f, 62.19cqw -3.86cqw 0 0.76cqw #ffaa5a30, 13.80cqw -0.30cqw 0 0.90cqw #aac8ff3b, 81.67cqw -2.33cqw 0 1.18cqw #ffc4783d, 48.36cqw -4.00cqw 0 0.83cqw #ffc4782e, 80.22cqw 0.37cqw 0 0.42cqw #ffe2aa30, 8.31cqw 0.62cqw 0 0.69cqw #ffaa5a2a, 67.34cqw -5.28cqw 0 1.11cqw #ffe2aa25, 20.08cqw -4.06cqw 0 0.72cqw #ffc4784d, 69.74cqw -4.12cqw 0 0.32cqw #ffaa5a51, 45.97cqw -1.13cqw 0 0.35cqw #ffc47825, 84.59cqw -2.00cqw 0 0.58cqw #ffe2aa27, 17.27cqw -6.79cqw 0 1.06cqw #ffaa5a39, 12.72cqw -0.72cqw 0 0.48cqw #ffe2aa3f, 89.58cqw -6.77cqw 0 1.02cqw #ffc4782c, 9.29cqw -6.85cqw 0 0.56cqw #ffe2aa3a, 85.29cqw -5.15cqw 0 0.58cqw #aac8ff2f, 97.83cqw 1.00cqw 0 0.61cqw #ffe2aa32, 74.65cqw -6.66cqw 0 0.36cqw #ffaa5a36, 24.51cqw 0.18cqw 0 0.97cqw #ffaa5a42, 69.23cqw -0.36cqw 0 1.13cqw #aac8ff2a, 62.61cqw -5.78cqw 0 0.70cqw #ffaa5a4c, 75.92cqw -6.70cqw 0 0.62cqw #ffe2aa2b, 99.88cqw -5.78cqw 0 0.52cqw #ffe2aa26, 87.04cqw -1.59cqw 0 0.44cqw #ffaa5a3a, 7.87cqw -1.81cqw 0 0.51cqw #ffc47828, 55.53cqw -1.59cqw 0 0.59cqw #ffc47841, 35.21cqw -5.89cqw 0 0.58cqw #ffe2aa4d, 11.57cqw -6.27cqw 0 0.81cqw #ffaa5a4f, 90.73cqw -1.05cqw 0 0.36cqw #aac8ff43, 14.39cqw -3.05cqw 0 0.34cqw #ffe2aa48, 71.86cqw -0.16cqw 0 0.98cqw #aac8ff47, 24.92cqw -5.83cqw 0 0.65cqw #ffaa5a3a, 28.58cqw -1.85cqw 0 0.84cqw #ffc47840, 35.73cqw -0.76cqw 0 0.56cqw #ffc47848, 41.51cqw -2.30cqw 0 0.91cqw #ffe2aa2f, 97.94cqw -6.18cqw 0 0.59cqw #aac8ff3c, 2.87cqw -5.68cqw 0 1.02cqw #ffe2aa40, 90.18cqw -0.58cqw 0 0.57cqw #ffe2aa41; }
-      #gate-art { --fx: 0.5; --fy: 0.6187; --lap: 0.3745; --lap-s: 5.0s; --lap-delay: -0.583s; }
-      .ga-lap { left: 31.204%; top: 44.379%; width: 37.448%; transform: scaleY(0.4639); }
-      .ga-unsquash { transform: scaleY(2.1558); }
-      .ga-at-nap { left: 37.4%; top: 69.558%; }
-      .ga-at-sit { left: 49.929%; top: 71.789%; }
-      @keyframes ga-lap-depth { 0.0% { transform: scale(1.0); } 8.333% { transform: scale(0.9826); } 16.667% { transform: scale(0.934); } 25.0% { transform: scale(0.8702); } 33.333% { transform: scale(0.813); } 41.667% { transform: scale(0.7652); } 50.0% { transform: scale(0.7427); } 58.333% { transform: scale(0.758); } 66.667% { transform: scale(0.798); } 75.0% { transform: scale(0.8564); } 83.333% { transform: scale(0.9182); } 91.667% { transform: scale(0.9788); } 100.0% { transform: scale(1.0); } }
-      @keyframes ga-spin { from { transform: rotate(90.0deg); } to { transform: rotate(450.0deg); } }
-      @keyframes ga-unspin { from { transform: rotate(-90.0deg); } to { transform: rotate(-450.0deg); } }
-      @keyframes ga-near { 0% { opacity: 1; animation-timing-function: step-end; } 25.0% { opacity: 0; animation-timing-function: step-end; } 75.0% { opacity: 1; } 100% { opacity: 1; } }
-      @keyframes ga-far { 0% { opacity: 0; animation-timing-function: step-end; } 25.0% { opacity: 1; animation-timing-function: step-end; } 75.0% { opacity: 0; } 100% { opacity: 0; } }
-      .ga-paw:nth-child(1) { left: 37.091%; top: 70.296%; transform: translate(-50%, -50%) scale(0.963) scaleY(0.603) rotate(-157.3deg); }
-      .ga-paw:nth-child(2) { left: 34.69%; top: 67.183%; transform: translate(-50%, -50%) scale(0.939) scaleY(0.603) rotate(-144.5deg); }
-      .ga-paw:nth-child(3) { left: 31.466%; top: 66.247%; transform: translate(-50%, -50%) scale(0.908) scaleY(0.603) rotate(-125.0deg); }
-      .ga-paw:nth-child(4) { left: 32.025%; top: 63.468%; transform: translate(-50%, -50%) scale(0.877) scaleY(0.603) rotate(-96.4deg); }
-      .ga-paw:nth-child(5) { left: 30.886%; top: 60.965%; transform: translate(-50%, -50%) scale(0.847) scaleY(0.603) rotate(-65.4deg); }
-      .ga-paw:nth-child(6) { left: 33.784%; top: 59.752%; transform: translate(-50%, -50%) scale(0.819) scaleY(0.603) rotate(-42.3deg); }
-      .ga-paw:nth-child(7) { left: 35.647%; top: 56.581%; transform: translate(-50%, -50%) scale(0.794) scaleY(0.603) rotate(-27.3deg); }
-      .ga-paw:nth-child(8) { left: 39.961%; top: 56.585%; transform: translate(-50%, -50%) scale(0.77) scaleY(0.603) rotate(-16.8deg); }
-      .ga-paw:nth-child(9) { left: 44.023%; top: 54.052%; transform: translate(-50%, -50%) scale(0.756) scaleY(0.603) rotate(-8.6deg); }
-      .ga-paw:nth-child(10) { left: 48.968%; top: 55.23%; transform: translate(-50%, -50%) scale(0.745) scaleY(0.603) rotate(-1.4deg); }
-      .ga-paw:nth-child(11) { left: 53.9%; top: 53.812%; transform: translate(-50%, -50%) scale(0.749) scaleY(0.603) rotate(5.6deg); }
-      .ga-paw:nth-child(12) { left: 58.245%; top: 56.143%; transform: translate(-50%, -50%) scale(0.756) scaleY(0.603) rotate(13.3deg); }
-      .ga-paw:nth-child(13) { left: 62.766%; top: 55.911%; transform: translate(-50%, -50%) scale(0.774) scaleY(0.603) rotate(22.7deg); }
-      .ga-paw:nth-child(14) { left: 65.167%; top: 59.024%; transform: translate(-50%, -50%) scale(0.794) scaleY(0.603) rotate(35.5deg); }
-      .ga-paw:nth-child(15) { left: 68.392%; top: 59.961%; transform: translate(-50%, -50%) scale(0.821) scaleY(0.603) rotate(55.0deg); }
-      .ga-paw:nth-child(16) { left: 67.832%; top: 62.739%; transform: translate(-50%, -50%) scale(0.851) scaleY(0.603) rotate(83.6deg); }
-      .ga-paw:nth-child(17) { left: 68.971%; top: 65.243%; transform: translate(-50%, -50%) scale(0.881) scaleY(0.603) rotate(114.6deg); }
-      .ga-paw:nth-child(18) { left: 66.073%; top: 66.455%; transform: translate(-50%, -50%) scale(0.912) scaleY(0.603) rotate(137.7deg); }
-      .ga-paw:nth-child(19) { left: 64.21%; top: 69.627%; transform: translate(-50%, -50%) scale(0.942) scaleY(0.603) rotate(152.7deg); }
-      .ga-paw:nth-child(20) { left: 59.896%; top: 69.622%; transform: translate(-50%, -50%) scale(0.973) scaleY(0.603) rotate(163.2deg); }
-      .ga-paw:nth-child(21) { left: 55.834%; top: 72.155%; transform: translate(-50%, -50%) scale(0.987) scaleY(0.603) rotate(171.4deg); }
-      .ga-paw:nth-child(22) { left: 50.889%; top: 70.978%; transform: translate(-50%, -50%) scale(0.998) scaleY(0.603) rotate(178.6deg); }
-      .ga-paw:nth-child(23) { left: 45.957%; top: 72.396%; transform: translate(-50%, -50%) scale(0.993) scaleY(0.603) rotate(-174.4deg); }
-      .ga-paw:nth-child(24) { left: 41.612%; top: 70.064%; transform: translate(-50%, -50%) scale(0.984) scaleY(0.603) rotate(-166.7deg); }
-      @keyframes ga-dawn-lit { 0% { opacity: 0.0; } 8% { opacity: 0.05; } 20% { opacity: 0.09; } 40% { opacity: 0.12; } 70% { opacity: 0.15; } 100% { opacity: 0.16; } }
-      #gate-art .ga-glow { opacity: 0; animation: ga-dawn-lit 24s linear forwards; }
-      #gate-art .ga-fire-0 { opacity: 1.0; }
-      @keyframes ga-dawn-ga-fire-1 { 0% { opacity: 0.0; } 8% { opacity: 0.15; } 20% { opacity: 0.27; } 40% { opacity: 0.36; } 70% { opacity: 0.45; } 100% { opacity: 0.48; } }
-      #gate-art .ga-fire-1 { opacity: 0.0; animation: ga-dawn-ga-fire-1 24s linear forwards; }
-      @keyframes ga-dawn-ga-paw-nth-child-1 { 0% { opacity: 0.0; } 6.667% { opacity: 1.0; } 8% { opacity: 1.0; } 20% { opacity: 1.0; } 40% { opacity: 1.0; } 70% { opacity: 1.0; } 100% { opacity: 1.0; } }
-      #gate-art .ga-paw:nth-child(1) { opacity: 0.0; animation: ga-dawn-ga-paw-nth-child-1 24s linear forwards; }
-      @keyframes ga-dawn-ga-paw-nth-child-2 { 0% { opacity: 0.0; } 6.667% { opacity: 0.0001; } 8% { opacity: 0.2; } 18.0% { opacity: 1.0; } 20% { opacity: 1.0; } 40% { opacity: 1.0; } 70% { opacity: 1.0; } 100% { opacity: 1.0; } }
-      #gate-art .ga-paw:nth-child(2) { opacity: 0.0; animation: ga-dawn-ga-paw-nth-child-2 24s linear forwards; }
-      @keyframes ga-dawn-ga-paw-nth-child-3 { 0% { opacity: 0.0; } 8% { opacity: 0.0; } 18.0% { opacity: 0.0; } 20% { opacity: 0.16; } 40% { opacity: 0.88; } 45.0% { opacity: 1.0; } 70% { opacity: 1.0; } 100% { opacity: 1.0; } }
-      #gate-art .ga-paw:nth-child(3) { opacity: 0.0; animation: ga-dawn-ga-paw-nth-child-3 24s linear forwards; }
-      @keyframes ga-dawn-ga-paw-nth-child-4 { 0% { opacity: 0.0; } 8% { opacity: 0.0; } 20% { opacity: 0.0; } 40% { opacity: 0.0; } 45.0% { opacity: 0.0; } 70% { opacity: 0.6; } 100% { opacity: 0.84; } }
-      #gate-art .ga-paw:nth-child(4) { opacity: 0.0; animation: ga-dawn-ga-paw-nth-child-4 24s linear forwards; }
-      @keyframes ga-dawn-ga-rise-0 { 0% { opacity: 0.0; } 8% { opacity: 0.15; } 20% { opacity: 0.27; } 40% { opacity: 0.36; } 70% { opacity: 0.45; } 100% { opacity: 0.48; } }
-      #gate-art .ga-rise-0 { opacity: 0.0; animation: ga-dawn-ga-rise-0 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-1 { 0% { opacity: 1.0; animation-timing-function: step-end; } 1.6% { opacity: 0.0; animation-timing-function: step-end; } 26.667% { opacity: 1.0; animation-timing-function: step-end; } 40% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(1) { opacity: 1.0; animation: ga-dawn-ga-ones-i-nth-child-1 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-2 { 0% { opacity: 0.0; animation-timing-function: step-end; } 1.6% { opacity: 1.0; animation-timing-function: step-end; } 3.2% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(2) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-2 24s linear forwards; }
-      @keyframes ga-dawn-ga-tens-i-nth-child-2 { 0% { opacity: 0.0; animation-timing-function: step-end; } 26.667% { opacity: 1.0; animation-timing-function: step-end; } 100% { opacity: 1.0; } }
-      #gate-art .ga-tens i:nth-child(2) { opacity: 0.0; animation: ga-dawn-ga-tens-i-nth-child-2 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-3 { 0% { opacity: 0.0; animation-timing-function: step-end; } 3.2% { opacity: 1.0; animation-timing-function: step-end; } 4.8% { opacity: 0.0; animation-timing-function: step-end; } 40% { opacity: 1.0; animation-timing-function: step-end; } 50.0% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(3) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-3 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-4 { 0% { opacity: 0.0; animation-timing-function: step-end; } 4.8% { opacity: 1.0; animation-timing-function: step-end; } 6.4% { opacity: 0.0; animation-timing-function: step-end; } 50.0% { opacity: 1.0; animation-timing-function: step-end; } 60.0% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(4) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-4 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-5 { 0% { opacity: 0.0; animation-timing-function: step-end; } 6.4% { opacity: 1.0; animation-timing-function: step-end; } 8% { opacity: 0.0; animation-timing-function: step-end; } 60.0% { opacity: 1.0; animation-timing-function: step-end; } 70% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(5) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-5 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-6 { 0% { opacity: 0.0; animation-timing-function: step-end; } 8% { opacity: 1.0; animation-timing-function: step-end; } 11.0% { opacity: 0.0; animation-timing-function: step-end; } 70% { opacity: 1.0; animation-timing-function: step-end; } 100% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(6) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-6 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-7 { 0% { opacity: 0.0; animation-timing-function: step-end; } 11.0% { opacity: 1.0; animation-timing-function: step-end; } 14.0% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 1.0; animation-timing-function: step-end; } 100% { opacity: 1.0; } }
-      #gate-art .ga-ones i:nth-child(7) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-7 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-8 { 0% { opacity: 0.0; animation-timing-function: step-end; } 14.0% { opacity: 1.0; animation-timing-function: step-end; } 17.0% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(8) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-8 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-9 { 0% { opacity: 0.0; animation-timing-function: step-end; } 17.0% { opacity: 1.0; animation-timing-function: step-end; } 20% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(9) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-9 24s linear forwards; }
-      @keyframes ga-dawn-ga-ones-i-nth-child-10 { 0% { opacity: 0.0; animation-timing-function: step-end; } 20% { opacity: 1.0; animation-timing-function: step-end; } 26.667% { opacity: 0.0; animation-timing-function: step-end; } 100% { opacity: 0.0; } }
-      #gate-art .ga-ones i:nth-child(10) { opacity: 0.0; animation: ga-dawn-ga-ones-i-nth-child-10 24s linear forwards; }
-      .ga-first { background-image: url(data:image/webp;base64,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); }
-      .ga-k-nap .ga-k-still { background-image: url(data:image/webp;base64,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); }
-      .ga-fire-0 .ga-strip { background-image: url(data:image/webp;base64,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); }
-      /* fireside:end */
+      @keyframes ga-fall {
+        0% { opacity: 1; transform: translate(0, 0) rotate(var(--r)) rotateX(0deg); }
+        40% { transform: translate(1.6rem, 22vh) rotate(calc(var(--r) + 80deg)) rotateX(200deg); }
+        85% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-1.2rem, 70vh) rotate(calc(var(--r) + 200deg)) rotateX(520deg); }
+      }
       @media (max-aspect-ratio: 1/1) {
-        #gate-art {
-          --fire-y: 58vh;
-        }
         .ga-moon {
           right: 10%;
           top: 9%;
           width: 2.4rem;
           height: 2.4rem;
         }
+        .ga-art {
+          top: 52%;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
-        #gate-art *,
+        #gate-art * {
+          animation: none !important;
+        }
         #gate-art *::before {
           animation: none !important;
         }
-        #gate-art .ga-title,
-        #gate-art .ga-world {
+        #gate-art .ga-title {
           transition: none !important;
         }
         #gate-art.is-open {
           transition: opacity 0.6s;
         }
       }
-      /* The gate dialog from Name.vue: the way in, over the art. */
+      /* The gate dialog from Name.vue: a title screen lit from below by the lantern. */
       .gate {
         position: fixed;
         inset: 0;
@@ -554,28 +443,20 @@
         justify-content: space-between;
         padding: clamp(2.5rem, 9vh, 5.5rem) 1.5rem clamp(2rem, 7vh, 4rem);
         text-align: center;
-        pointer-events: none;
       }
       .gate > * {
         position: relative;
       }
-      /* A load error is a sentence, so it wraps. */
-      .gate-error {
-        max-width: 22rem;
-        margin: 0;
-        font-family: var(--font-label);
-        font-size: 0.7rem;
-        line-height: 1.2rem;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        color: #f2a27a;
+      /* Name.vue places this over the lantern. A hover or a tap swings it. */
+      .gate > .gate-lantern {
+        position: absolute;
+        border-radius: 45%;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
       }
-      .gate-foot {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1.1rem;
-        pointer-events: auto;
+      .gate-lantern:focus-visible {
+        outline: 2px solid #fcc96a;
+        outline-offset: 4px;
       }
       /* The title paints with the art, before the bundle (.ga-title). The dialog in Name.vue
          keeps its own copy for screen readers, unseen, so its layout and its name stay. */
@@ -596,8 +477,7 @@
       }
       /* Every line in the gate has a set height, so a font that arrives late changes no layout. */
       .gate-eyebrow,
-      .gate-role,
-      .ga-count {
+      .gate-role {
         display: block;
         font-family: var(--font-label);
         font-size: 0.72rem;
@@ -619,7 +499,7 @@
         padding: 0 0.15em 0.1em;
         color: #c9a46a;
       }
-      /* The lit name lies over the unlit one, and the gate meter fades it in with the fire. Each
+      /* The lit name lies over the unlit one, and the gate meter fades it in with the lamp. Each
          is one flat colour (docs/design-system.md). */
       #gate-name {
         margin: 0;
@@ -633,7 +513,6 @@
         margin: 0;
         color: #f2d9a6;
         opacity: 0;
-        animation: ga-dawn-lit 24s linear forwards;
       }
       .gate-role {
         margin-top: 0.9rem;
@@ -649,49 +528,76 @@
         margin: 1rem auto 0;
         background: #e8c08966;
       }
-      /* The count under the title: the words and the share share one line. Each digit place
-         stacks its ten digits, and the meter shows one at a time with an opacity step, so the
-         count never rests between two numbers. The digits draw in the label face, which keeps
-         one shape from the first paint on. */
-      .ga-count {
+      .gate-foot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.1rem;
+      }
+      /* The count and the lit line share one cell, so the swap at ready moves nothing. */
+      .gate-readout {
         display: grid;
         justify-items: center;
-        margin-top: 0.85rem;
+        align-items: center;
+        max-width: 22rem;
+        height: 1.6rem;
+        line-height: 1.6rem;
+        font-family: var(--font-label);
+        font-size: 0.7rem;
         letter-spacing: 0.28em;
+        text-transform: uppercase;
         color: #beb2a1;
       }
-      .ga-count > span {
+      .gate-readout > span {
         grid-area: 1 / 1;
         white-space: nowrap;
         transition: opacity 0.4s;
       }
-      .ga-num {
-        display: inline-flex;
-        margin-left: 0.6em;
-        font-weight: 500;
+      .gate-readout > .is-off {
+        opacity: 0;
+      }
+      /* A load error is a sentence, so it wraps. */
+      .gate-readout.has-error {
+        height: auto;
+        line-height: 1.2rem;
+      }
+      .gate-readout.has-error > span {
+        white-space: normal;
+      }
+      /* Kinako trots along the top of the way in and sits on it, in front of the lit line, so
+         the line gives way once Kinako sets off. */
+      .gate.is-ready.has-kinako .gate-readout {
+        opacity: 0;
+        transition: opacity 0.4s 0.9s;
+      }
+      .gate-readout b {
+        margin-left: 0.5rem;
+        font: italic 400 1.5rem/1 var(--font-display);
         letter-spacing: 0;
+        vertical-align: -0.2rem;
         color: #ffd27a;
       }
-      .ga-num > span {
-        display: inline-grid;
-        width: 0.62em;
+      /* The count is a drum of the numbers 0 to 100 behind a window one number high. The gate
+         meter rolls the drum with a transform, so the count runs on while the main thread is
+         busy. */
+      .gate-count {
+        display: inline-block;
+        width: 1.7em;
+        height: 1em;
+        padding-right: 0.08em;
+        overflow: hidden;
+        text-align: right;
+        vertical-align: top;
+        -webkit-mask: linear-gradient(transparent, #000 16% 84%, transparent);
+        mask: linear-gradient(transparent, #000 16% 84%, transparent);
       }
-      .ga-num i {
-        grid-area: 1 / 1;
-        font-style: normal;
-        opacity: 0;
+      .gate-drum {
+        display: block;
       }
-      .ga-said,
-      #gate-art.is-lit .ga-saying {
-        opacity: 0;
-      }
-      #gate-art.is-lit .ga-said {
-        opacity: 1;
-      }
-      @media (min-aspect-ratio: 1/1) {
-        #gate-art.is-lit .ga-title {
-          transform: translateY(-1rem) scale(0.84);
-        }
+      .gate-count i {
+        display: block;
+        height: 1em;
+        font-style: inherit;
       }
       /* The way in is a pane of night glass in a brass ring with two 12px chamfers
          (docs/design-system.md, The frame). The ring is a mask: the outer shape minus an inset
@@ -765,7 +671,7 @@
         text-transform: uppercase;
         color: #918473;
       }
-      /* The way in fades in once the fire is lit. */
+      /* The way in shows with the lit line, at once. */
       .gate.is-ready .gate-enter,
       .gate.is-ready .gate-hint {
         animation: gate-in 0.5s backwards;
@@ -775,6 +681,11 @@
       }
       @keyframes gate-nudge {
         50% { transform: translateY(3px); }
+      }
+      @media (min-aspect-ratio: 1/1) {
+        #gate-art.is-lit .ga-title {
+          transform: translateY(-1.5rem) scale(0.78);
+        }
       }
       @media (pointer: coarse) {
         .gate-hint {
@@ -813,98 +724,73 @@
         </g>
         <g fill="#ffb54d"><circle cx="122" cy="298" r="1.6" /><circle cx="880" cy="248" r="1.3" /><circle cx="716" cy="328" r="1" /></g>
       </svg>
-      <div class="ga-far-view">
-        <div class="ga-box">
-          <i class="ga-haze"></i>
-          <i class="ga-bokeh"></i>
+      <div class="ga-art">
+        <i class="ga-first ga-fades"></i>
+        <i class="ga-glow ga-fades"></i>
+        <div class="ga-layer ga-fades">
+          <i class="ga-img ga-branch ga-sharp"></i>
+          <div class="ga-reveal ga-autumn-in"><i class="ga-img ga-autumn"></i></div>
         </div>
-      </div>
-      <div class="ga-view">
-        <div class="ga-box ga-world">
-          <i class="ga-first"></i>
-          <i class="ga-scene" data-img="scene"></i>
-          <i class="ga-glow" data-img="glow"></i>
-          <div class="ga-paws"><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i><i class="ga-paw"></i></div>
-          <div class="ga-lap ga-far"><div class="ga-spin"><div class="ga-arm"><div class="ga-unspin"><div class="ga-unsquash"><div class="ga-depth"><div class="ga-k ga-k-run"><div class="ga-k-win"><i class="ga-k-row" data-img="k-run"></i></div></div></div></div></div></div></div></div>
-          <i class="ga-pit" data-img="pit"></i>
-          <div class="ga-fire">
-            <div class="ga-fire-0"><i class="ga-strip"></i></div>
-            <div class="ga-fire-1"><i class="ga-strip" data-img="fire-1"></i></div>
-            <div class="ga-fire-2"><i class="ga-strip" data-img="fire-2"></i></div>
-            <div class="ga-fire-3"><i class="ga-strip" data-img="fire-3"></i></div>
+        <div class="ga-nudge ga-fades">
+          <div class="ga-lantern">
+            <i class="ga-img ga-paper ga-sharp"></i>
+            <div class="ga-layer ga-lamp"><i class="ga-img ga-paper ga-lit"></i></div>
           </div>
-          <div class="ga-lap ga-near"><div class="ga-spin"><div class="ga-arm"><div class="ga-unspin"><div class="ga-unsquash"><div class="ga-depth"><div class="ga-k ga-k-run"><div class="ga-k-win"><i class="ga-k-row" data-img="k-run"></i></div></div></div></div></div></div></div></div>
-          <div class="ga-at-nap"><div class="ga-k ga-k-nap"><i class="ga-k-still"></i><div class="ga-k-win"><i class="ga-k-row" data-img="k-wake"></i></div></div></div>
-          <div class="ga-at-sit"><div class="ga-k ga-k-sit"><div class="ga-k-win"><i class="ga-k-row" data-img="k-sit"></i></div></div></div>
-          <div class="ga-rise">
-            <div class="ga-rise-0">
-              <i class="ga-leaf" style="--sx: -9; --t: 7.2s; --d: -1.1s"></i>
-              <i class="ga-leaf b" style="--sx: 11; --t: 8.4s; --d: -5.3s"></i>
-              <i class="ga-spark" style="--sx: 3; --t: 2.6s; --d: -0.4s"></i>
-              <i class="ga-spark" style="--sx: -4; --t: 3.1s; --d: -1.9s"></i>
-            </div>
-            <div class="ga-rise-1">
-              <i class="ga-leaf c" style="--sx: 13; --t: 6.6s; --d: -2.7s"></i>
-              <i class="ga-leaf" style="--sx: -12; --t: 7.8s; --d: -6.1s"></i>
-              <i class="ga-spark" style="--sx: -2; --t: 2.4s; --d: -1.2s"></i>
-              <i class="ga-spark" style="--sx: 5; --t: 2.9s; --d: -2.2s"></i>
-            </div>
-            <div class="ga-rise-2">
-              <i class="ga-leaf b" style="--sx: -14; --t: 6.2s; --d: -0.6s"></i>
-              <i class="ga-leaf c" style="--sx: 8; --t: 7.1s; --d: -3.8s"></i>
-              <i class="ga-leaf" style="--sx: -6; --t: 5.8s; --d: -4.6s"></i>
-              <i class="ga-spark" style="--sx: 4; --t: 2.2s; --d: -0.9s"></i>
-              <i class="ga-spark" style="--sx: -5; --t: 2.7s; --d: -1.6s"></i>
-            </div>
-          </div>
-          <i class="ga-bloom"></i>
         </div>
+        <div class="ga-kinako ga-sharp">
+          <div class="ga-k-breath">
+            <i class="ga-k-frame"></i>
+            <i class="ga-k-frame ga-k-lit"></i>
+          </div>
+        </div>
+        <i class="ga-drift" style="--x:17.9%;--y:11.9%;--s:2;--r:40deg;--t:13s;--d:-4s"></i>
+        <i class="ga-drift" style="--x:71.2%;--y:22.2%;--s:3;--r:-110deg;--t:17s;--d:-12s"></i>
+        <i class="ga-flare"></i>
+        <i class="ga-bloom"></i>
+        <i class="ga-leaf" style="--x:3.5%;--y:22.9%;--s:0;--r:143deg;--d:0.84s"></i>
+        <i class="ga-leaf" style="--x:10.3%;--y:23.4%;--s:1;--r:-59deg;--d:0.71s"></i>
+        <i class="ga-leaf" style="--x:17.9%;--y:11.9%;--s:2;--r:135deg;--d:0.20s"></i>
+        <i class="ga-leaf" style="--x:31.0%;--y:8.1%;--s:3;--r:-70deg;--d:0.93s"></i>
+        <i class="ga-leaf" style="--x:35.1%;--y:10.8%;--s:0;--r:-180deg;--d:0.22s"></i>
+        <i class="ga-leaf" style="--x:56.1%;--y:9.4%;--s:1;--r:-37deg;--d:0.12s"></i>
+        <i class="ga-leaf" style="--x:67.5%;--y:23.2%;--s:2;--r:69deg;--d:0.91s"></i>
+        <i class="ga-leaf" style="--x:71.2%;--y:22.2%;--s:3;--r:-118deg;--d:0.29s"></i>
+        <i class="ga-leaf" style="--x:85.2%;--y:10.3%;--s:0;--r:161deg;--d:0.73s"></i>
+        <i class="ga-leaf" style="--x:89.7%;--y:13.1%;--s:1;--r:-117deg;--d:0.21s"></i>
       </div>
       <i class="ga-scrim"></i>
-      <div class="gate-title ga-title">
+      <div class="gate-title ga-title ga-fades">
         <span class="ga-heading">
           <span class="gate-eyebrow">Lim Zhe Hong</span>
           <span class="gate-name">Jovian</span>
           <span class="gate-name is-lit">Jovian</span>
         </span>
         <span class="gate-role">software engineer &middot; singapore</span>
-        <span class="ga-count"><span class="ga-saying">kindling the fire<b class="ga-num"><span class="ga-hund"><i>1</i></span><span class="ga-tens"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i></span><span class="ga-ones"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i></span>%</b></span><span class="ga-said">the fire is lit</span></span>
       </div>
+      <div class="ga-walker"><div class="ga-w-window"><i class="ga-w-row"></i></div></div>
     </div>
     <!-- The gate shows on a first visit to the home page. On any other page the art waits,
-         hidden and not downloaded, for the nav campfire, and Name.vue calls load() then. The
-         first paint already shows the whole picture, soft, so the sharp files wait for the
-         shell bundle: src/main.js calls load() first thing. The sets load one after the other,
-         so the scene gets the line first, then Kinako's run and the first flames, then the
-         glow pool, the bigger flames and the sit. Each
-         file sets its own elements once it has decoded, so no layer decodes on the main thread
-         when it first shows. A bundle that never runs still gets the sharp art after LATE_MS.
-         A phone takes the smaller files. -->
+         hidden and not downloaded, for the nav lantern, and Name.vue calls load() then. Each
+         set of layers fades in once all its files have decoded, so the picture sharpens in
+         one step and no layer decodes on the main thread when the lamp first lights.
+         The first paint already shows the whole picture, soft, so the sharp files wait for
+         the shell bundle: src/main.js calls load() first thing. On a live slow 3G line the
+         files shared the line with the bundle from the start, and the gate text came at
+         11.8 s. The sets load one after the other, so the unlit set gets the line first. A
+         bundle that never runs still gets the sharp art after LATE_MS. -->
     <script>
       const art = document.getElementById('gate-art')
       let loading = null
-      // Resolves once the art carries a flag, such as has-run once Kinako's run has decoded.
-      art.when = (flag) =>
-        new Promise((resolve) => {
-          if (art.classList.contains(flag)) return resolve()
-          const watch = new MutationObserver(() => art.classList.contains(flag) && (watch.disconnect(), resolve()))
-          watch.observe(art, { attributes: true, attributeFilter: ['class'] })
-        })
       art.load = () => {
-        const size = matchMedia('(max-width: 700px)').matches ? 'p' : 'd'
         const set = (names, flag) =>
-          Promise.all(
-            names.map((name) => {
-              const image = new Image()
-              image.src = '/gate/fireside/' + name + '-' + size + '.webp'
-              return image.decode().then(() => {
-                art.querySelectorAll('[data-img="' + name + '"]').forEach((el) => (el.style.backgroundImage = 'url(' + image.src + ')'))
-              })
-            })
-          ).then(() => art.classList.add(flag), () => art.classList.add(flag))
-        loading ??= set(['scene', 'pit'], 'is-sharp')
-          .then(() => set(['k-wake', 'k-run', 'fire-1'], 'has-run'))
-          .then(() => set(['glow', 'fire-2', 'fire-3', 'k-sit'], 'has-sit'))
+          Promise.all(names.map((name) => {
+            const image = new Image()
+            image.src = '/gate/' + name + '.webp'
+            return image.decode()
+          })).then(() => art.classList.add(flag), () => art.classList.add(flag))
+        loading ??= set(['branch-s0', 'lantern-s0', 'kinako-nap'], 'is-sharp')
+          .then(() => set(['lantern-s1'], 'is-lamp'))
+          .then(() => Promise.all([set(['branch-s1'], 'is-autumn'), set(['sprites-s1'], 'has-leaves')]))
         return loading
       }
       const LATE_MS = 12000

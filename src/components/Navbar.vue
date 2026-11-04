@@ -31,8 +31,8 @@ const go = async (index) => {
 
 const onHover = (event) => scramble(event.currentTarget.querySelector('.word'))
 
-// The campfire brings back the greeting, for one more look at Kinako by the fire. Off the home
-// page it goes home first.
+// The lantern brings back the greeting, for one more look at the lamp. Off the home page it goes
+// home first.
 const greet = async () => {
     if (!onHome.value) await router.push('/')
     entered.value = false
@@ -57,11 +57,10 @@ const greet = async () => {
                 </button>
             </li>
             <li>
-                <button type="button" class="nav-item" aria-label="Back to the campfire" title="Back to the campfire" @click="greet">
+                <button type="button" class="nav-item" aria-label="Back to the lantern" title="Back to the lantern" @click="greet">
                     <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 2.5c3.6 3.4 5 6.4 3.6 9.6-.5 1.2-1.6 2.1-3.6 2.4-2-.3-3.1-1.2-3.6-2.4C7 8.9 8.4 5.9 12 2.5Z" />
-                        <path d="M12 8.6c1.4 1.5 1.8 2.8 1.1 4.1" />
-                        <path d="M4.5 21.5l15-4M19.5 21.5l-15-4" />
+                        <path d="M12 1.5v2.8M9.2 4.3h5.6M12 19.7v2.8" />
+                        <path d="M9 5.6C5.2 8 5.2 16 9 18.4h6c3.8-2.4 3.8-10.4 0-12.8Z" />
                     </svg>
                 </button>
             </li>
@@ -142,7 +141,7 @@ const greet = async () => {
     align-items: center;
     gap: 0.45rem;
     height: 100%;
-    /* Tight enough for the five words and the campfire on a 360px phone, and 48px tall. */
+    /* Tight enough for the five words and the lantern on a 360px phone, and 48px tall. */
     padding: 1.05rem 0.1rem;
     color: var(--color-text-muted);
     font-family: var(--font-label);

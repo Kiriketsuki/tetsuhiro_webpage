@@ -175,7 +175,7 @@
       .ga-k-frame {
         position: absolute;
         inset: 0;
-        background: url(/gate/kinako-nap.webp) 0 0 / 200% 100% no-repeat;
+        background: 0 0 / 200% 100% no-repeat;
       }
       .ga-k-lit {
         background-position: 100% 0;
@@ -213,8 +213,27 @@
       #gate-art.has-walk .ga-w-row {
         background-image: url(/gate/kinako-walk.webp);
       }
-      .ga-branch {
+      /* Each layer takes its file only once the script at the end of the body has loaded and
+         decoded it. A background image on a painted element loads at the first paint, even at
+         opacity 0, and on slow 3G these files then shared the line with the app bundle. */
+      #gate-art.is-sharp .ga-branch {
         background-image: url(/gate/branch-s0.webp);
+      }
+      #gate-art.is-sharp .ga-paper {
+        background-image: url(/gate/lantern-s0.webp);
+      }
+      #gate-art.is-sharp .ga-k-frame {
+        background-image: url(/gate/kinako-nap.webp);
+      }
+      #gate-art.is-lamp .ga-lit {
+        background-image: url(/gate/lantern-s1.webp);
+      }
+      #gate-art.is-autumn .ga-autumn {
+        background-image: url(/gate/branch-s1.webp);
+      }
+      #gate-art.has-leaves .ga-leaf,
+      #gate-art.has-leaves .ga-drift {
+        background-image: url(/gate/sprites-s1.webp);
       }
       /* Autumn spreads along the branch from left to right as the load grows. A window with a
          soft right edge slides right over the autumn branch, and the branch slides left inside
@@ -235,7 +254,6 @@
       .ga-autumn {
         right: auto;
         width: 76.92%;
-        background-image: url(/gate/branch-s1.webp);
         transform: translateX(130%);
         animation: ga-dawn-autumn 24s linear forwards;
       }
@@ -257,10 +275,8 @@
         top: 20.51%;
         width: 25.23%;
         height: 74.08%;
-        background-image: url(/gate/lantern-s0.webp);
       }
       .ga-lit {
-        background-image: url(/gate/lantern-s1.webp);
         opacity: 0;
         animation: ga-dawn-lit 24s linear forwards;
       }
@@ -306,7 +322,7 @@
         top: var(--y);
         width: 6.5%;
         aspect-ratio: 1;
-        background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        background: calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
         opacity: 0;
       }
       /* Once the lamp is lit, a leaf now and then lets go of the branch and drifts down. */
@@ -315,7 +331,7 @@
         top: var(--y);
         width: 6.5%;
         aspect-ratio: 1;
-        background: url(/gate/sprites-s1.webp) calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
+        background: calc(var(--s) * 33.333%) 0 / 400% 100% no-repeat;
         opacity: 0;
       }
       .is-lit .ga-drift {
@@ -756,24 +772,29 @@
     <!-- The gate shows on a first visit to the home page. On any other page the art waits,
          hidden and not downloaded, for the nav lantern, and Name.vue calls load() then. Each
          set of layers fades in once all its files have decoded, so the picture sharpens in
-         one step and no layer decodes on the main thread when the lamp first lights. -->
+         one step and no layer decodes on the main thread when the lamp first lights.
+         The first paint already shows the whole picture, soft, so the sharp files wait for
+         the shell bundle: src/main.js calls load() first thing. On a live slow 3G line the
+         files shared the line with the bundle from the start, and the gate text came at
+         11.8 s. The sets load one after the other, so the unlit set gets the line first. A
+         bundle that never runs still gets the sharp art after LATE_MS. -->
     <script>
       const art = document.getElementById('gate-art')
+      let loading = null
       art.load = () => {
         const set = (names, flag) =>
           Promise.all(names.map((name) => {
             const image = new Image()
-            // The art shows soft until then, so the app bundle goes first on a slow line.
-            image.fetchPriority = 'low'
             image.src = '/gate/' + name + '.webp'
             return image.decode()
           })).then(() => art.classList.add(flag), () => art.classList.add(flag))
-        set(['branch-s0', 'lantern-s0', 'kinako-nap'], 'is-sharp')
-        set(['lantern-s1'], 'is-lamp')
-        set(['branch-s1'], 'is-autumn')
-        set(['sprites-s1'], 'has-leaves')
+        loading ??= set(['branch-s0', 'lantern-s0', 'kinako-nap'], 'is-sharp')
+          .then(() => set(['lantern-s1'], 'is-lamp'))
+          .then(() => Promise.all([set(['branch-s1'], 'is-autumn'), set(['sprites-s1'], 'has-leaves')]))
+        return loading
       }
-      if (location.pathname === '/') art.load()
+      const LATE_MS = 12000
+      if (location.pathname === '/') setTimeout(art.load, LATE_MS)
       else art.hidden = true
     </script>
 

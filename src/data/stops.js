@@ -132,16 +132,22 @@ export const stops = {
         shift: [0.12, 0],
         tall: [0, 0.18],
     },
-    // Chapter 01 of the story: the sky-taxi lands on the pad. The camera stands east of the
-    // pad and looks west along the whole walkway: the pad in front, then the ramp, the deck,
-    // the bridge, the path and the house. A portrait phone keeps the tall view of `pad`.
+    // Chapter 01 of the story, the hero shot: the whole aerie in the air above the city. The
+    // camera stands about 44 m out to the south-east and looks about 15 degrees down, so the
+    // house and its glass stair tower, the lawn, the stream with its bridge, the pad and the
+    // waterfall off the south rim all show, with the rock below and the city behind. The aerie
+    // fills about three fifths of the frame height, between the two hero words. The shot east of
+    // the pad, along the walkway, cropped the tower, the pad and the trees on a wide screen.
+    // The lens focuses on the bridge, half way into the aerie.
     arrival: {
         camera: null,
         anchor: 'Anchor_Pad',
-        focus: 'Anchor_Pad',
-        fallback: { position: [37, 13.5, 5.2], target: [2, 2.2, 1.5], fov: 42 },
+        focus: [5, 1, 5],
+        fallback: { position: [28.8, 10.4, 33.1], target: [1.5, -1, 0.5], fov: 50 },
         shift: [0, 0],
-        tallView: { position: [21, 13, 3.5], target: [6, -0.8, 2], fov: 62 },
+        // A portrait phone stands further back and higher on the same line, so the whole aerie
+        // fits the narrow width between the name at the top and the name at the foot.
+        tallView: { position: [33.5, 13.2, 38.6], target: [1.5, -2, 0.5], fov: 62 },
         tall: [0, 0],
     },
     // Chapter 05, the closing shot: the fire on the north rim, with the city far below and

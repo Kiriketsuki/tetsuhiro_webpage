@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { createWalkCurve, tableIndex } from './walk-curve.js'
-import { plannedPath } from './path-plan.js'
+import { plannedPath, GUIDE_CLEAR } from './path-plan.js'
+import { walks } from '../../data/walks.js'
 
 export { createClearance } from './clearance.js'
 export { warmPlans } from './path-plan.js'
@@ -39,13 +40,24 @@ const DOOR_ZONE = { near: 2.5, far: 9 }
 // up to 140 degrees a second at the end of the leg from the pad to the workshop.
 const TURN_METRES = [6, 9, 13, 18, 26, 38]
 const TURN_RATE = 1.05
+// Where the path bends, the camera slows so that its sideways acceleration at cruise speed
+// stays under BEND.lateral m/s2: a bend of radius r allows sqrt(lateral * r) m/s. The bend
+// counts over BEND.span metres each way. Every slow-down (bends, doors and walks) then changes
+// the cruise speed by at most BEND.brake m/s2 along the path, in a pass each way, so the camera
+// brakes before a bend and speeds up after it with no surge. On a phone the flights into the
+// telescope view bend hard round the house corner: the camera took that bend at 12 to 17 m/s
+// and reached up to 298 m/s2.
+const BEND = { lateral: 60, span: 1, brake: 40 }
 // Samples of that pace for each spline segment.
 const PACE_SAMPLES = 64
 // A move takes MOVE_TIME.base seconds plus one second for each MOVE_TIME.speed metres of pace,
 // held between MOVE_TIME.min and MOVE_TIME.max. So a long move runs faster, but never rushes,
 // and a short move never crawls. A move whose view turns a long way (TURN_METRES), or that
 // passes a doorway (DOOR_SLOW), may take up to MOVE_TIME.turn seconds.
-const MOVE_TIME = { base: 1.2, speed: 12, min: 1.8, max: 3.6, turn: 4.4 }
+// A move along a story walk (walkFlight) takes its time from its pace with the walk's
+// slow-down, up to MOVE_TIME.walk seconds, and MOVE_TIME.door seconds more through a doorway.
+// The owner found a 6 s walk too long. A cap under 5 s only sped the camera up on the walkway.
+const MOVE_TIME = { base: 1.2, speed: 12, min: 1.8, max: 3.6, turn: 4.4, walk: 5, door: 1 }
 // The speed curve: the camera speeds up over the first RAMP.in of the move, cruises, and
 // slows over the last RAMP.out. The slow-down is the longer one, so the camera settles.
 const RAMP = { in: 0.35, out: 0.4 }
@@ -90,8 +102,8 @@ function blendView(a, b, w) {
 // planner when a clearance field is in, and are the two ends without one. The view turns
 // evenly along the distance flown, from the start view to the end view, and the look distance
 // blends in the same way. Returns the camera and look control points, ends included.
-function flight(from, to, field) {
-    const cams = field ? plannedPath(field, from.position, to.position) : [from.position.clone(), to.position.clone()]
+function flight(from, to, field, least) {
+    const cams = field ? plannedPath(field, from.position, to.position, least) : [from.position.clone(), to.position.clone()]
     const views = [from, to].map((end) => end.look.clone().sub(end.position))
     const [near, far] = views.map((view) => view.length())
     const [start, end] = views.map((view) => view.normalize())
@@ -116,6 +128,44 @@ function flight(from, to, field) {
         return cam.clone().addScaledVector(view, THREE.MathUtils.lerp(near, far, w))
     })
     return { cams, looks }
+}
+
+// The guide frames of the story walk of `leg`, `<from>><to>` (src/data/walks.js), each as
+// { position, look, slow }, or null. A move the other way plays its walk backward. The board
+// view sits behind the workshop door, so a move to or from it takes the walk of the workshop,
+// and the walk then hands over to the doorway frames. Without the walk, the camera met the door
+// axis from the hero shot at 28 m/s and turned onto it at 206 m/s2.
+function walkFrames(leg) {
+    const [from, to] = leg?.split('>').map((id) => (id === 'board' ? 'workshop' : id)) ?? []
+    const frames = walks[`${from}>${to}`] ?? walks[`${to}>${from}`]?.slice().reverse()
+    return (
+        frames?.map(({ position, look, slow = 1 }) => {
+            const point = new THREE.Vector3(...position)
+            return { position: point, look: aim(point, new THREE.Vector3(...look)), slow }
+        }) ?? null
+    )
+}
+
+// A flight along the guide frames of a story walk: one planned flight from frame to frame,
+// each with the frame's own view at its ends. The planner keeps GUIDE_CLEAR from every surface,
+// so the camera flies low along the walkway and still clears the lamps and the bridge rails.
+// Returns the camera and look control points, ends included, and the slow-down at each point.
+// The two ends take the slow-down of the frame next to them.
+function walkFlight(start, end, frames, field) {
+    const keys = [{ ...start, slow: frames[0].slow }, ...frames, { ...end, slow: frames.at(-1).slow }]
+    const cams = [start.position.clone()]
+    const looks = [start.look.clone()]
+    const slows = [keys[0].slow]
+    for (let i = 1; i < keys.length; i += 1) {
+        const part = flight(keys[i - 1], keys[i], field, GUIDE_CLEAR)
+        const span = part.cams.length - 1
+        for (let j = 1; j <= span; j += 1) {
+            cams.push(part.cams[j])
+            looks.push(part.looks[j])
+            slows.push(THREE.MathUtils.lerp(keys[i - 1].slow, keys[i].slow, j / span))
+        }
+    }
+    return { cams, looks, slows }
 }
 
 // The doorway frames of a move through a door, in the order of the move. door.side is 'in' or
@@ -151,7 +201,7 @@ function doorFrames(door, position, shot) {
 // views that face apart passes close to the camera, and the view flips in one frame: the move
 // out of the board view, which faces the wall, to the doorway behind it did that.
 const MAX_TURN = 1.4
-function splitTurns(cams, looks) {
+function splitTurns(cams, looks, slows = null) {
     for (let i = 0; i < cams.length - 1; i += 1) {
         const from = looks[i].clone().sub(cams[i]).normalize()
         const to = looks[i + 1].clone().sub(cams[i + 1]).normalize()
@@ -167,6 +217,7 @@ function splitTurns(cams, looks) {
         const middle = cams[i].clone().lerp(cams[i + 1], 0.5)
         cams.splice(i + 1, 0, middle)
         looks.splice(i + 1, 0, middle.clone().addScaledVector(from.applyAxisAngle(axis.normalize(), angle / 2), LOOK_DISTANCE))
+        slows?.splice(i + 1, 0, (slows[i] + slows[i + 1]) / 2)
         i -= 1
     }
 }
@@ -174,9 +225,11 @@ function splitTurns(cams, looks) {
 // Builds a move from the camera as it is now to `shot`. field is the clearance field
 // (clearance.js), or null until it is built. duration is in seconds, or null for a duration
 // from the path length. midway is true for a move that takes over from another one. door, if
-// given, sends the move through a doorway (doorFrames). The two paths have the same number of
-// points and the same knots, so the rig runs both on one spline parameter.
-export function createMove({ position, target, shot, duration = null, field = null, midway = false, door = null }) {
+// given, sends the move through a doorway (doorFrames). leg, `<from>><to>`, names the stops of
+// the move. A move from rest on a leg with a story walk follows the walk (walkFlight). A move
+// that takes over starts off the walk, so it flies one planned flight to its shot. The two paths have
+// the same number of points and the same knots, so the rig runs both on one spline parameter.
+export function createMove({ position, target, shot, duration = null, field = null, midway = false, door = null, leg = null }) {
     // A move that takes over starts its look path at the look point in use, at its distance.
     // The rig keeps the speed of that point, and a jump to LOOK_DISTANCE halved the turn rate
     // in one frame.
@@ -184,26 +237,28 @@ export function createMove({ position, target, shot, duration = null, field = nu
     const end = { position: shot.position.clone(), look: aim(shot.position, shot.target) }
     let cams = null
     let looks = null
+    // The walk slow-down at each control point, or null for a move without a walk.
+    let slows = null
     const frames = door ? doorFrames(door, position, shot) : []
-    if (!frames.length) ({ cams, looks } = flight(start, end, field))
+    const walk = midway ? null : walkFrames(leg)
+    const fly = (from, to) => (walk ? walkFlight(from, to, walk, field) : { ...flight(from, to, field), slows: null })
+    if (!frames.length) ({ cams, looks, slows } = fly(start, end))
     else if (door.side === 'in') {
         // A flight to the first doorway frame, then through the door to the shot.
-        ;({ cams, looks } = flight(start, frames[0], field))
-        frames.slice(1).forEach((frame) => {
+        ;({ cams, looks, slows } = fly(start, frames[0]))
+        ;[...frames.slice(1), end].forEach((frame) => {
             cams.push(frame.position)
             looks.push(frame.look)
+            slows?.push(slows.at(-1))
         })
-        cams.push(end.position)
-        looks.push(end.look)
     } else {
         // Through the door from the shot inside, then a flight to the end shot.
-        cams = [start.position, ...frames.map((frame) => frame.position)]
-        looks = [start.look, ...frames.map((frame) => frame.look)]
-        const out = flight(frames.at(-1), end, field)
-        cams.push(...out.cams.slice(1))
-        looks.push(...out.looks.slice(1))
+        const out = fly(frames.at(-1), end)
+        cams = [start.position, ...frames.map((frame) => frame.position), ...out.cams.slice(1)]
+        looks = [start.look, ...frames.map((frame) => frame.look), ...out.looks.slice(1)]
+        slows = out.slows && [...frames.map(() => out.slows[0]), ...out.slows]
     }
-    if (door) splitTurns(cams, looks)
+    if (door) splitTurns(cams, looks, slows)
     const camPath = createWalkCurve(cams)
     const lookPath = createWalkCurve(looks, camPath.gaps)
     // The camera metres and the view turn in radians of each pace sample along the shared
@@ -219,6 +274,11 @@ export function createMove({ position, target, shot, duration = null, field = nu
     const view = looks[0].clone().sub(cam)
     const nextCam = new THREE.Vector3()
     const nextView = new THREE.Vector3()
+    // The distance flown and the bend of the path in radians, both running totals.
+    const flown = new Float32Array(count + 1)
+    const bent = new Float32Array(count + 1)
+    const stepNow = new THREE.Vector3()
+    const stepBefore = new THREE.Vector3()
     let plainPace = 0
     for (let k = 1; k <= count; k += 1) {
         const p = k / PACE_SAMPLES
@@ -227,28 +287,93 @@ export function createMove({ position, target, shot, duration = null, field = nu
         metres[k] = nextCam.distanceTo(cam)
         turns[k] = nextView.angleTo(view)
         plainPace += Math.hypot(metres[k], TURN_METRES[0] * turns[k])
+        stepNow.subVectors(nextCam, cam)
+        flown[k] = flown[k - 1] + metres[k]
+        bent[k] = bent[k - 1] + (k > 1 && metres[k] > 0 && stepBefore.lengthSq() > 0 ? stepNow.angleTo(stepBefore) : 0)
+        stepBefore.copy(stepNow)
         if (door) slow[k] = 1 + (DOOR_SLOW - 1) * (1 - THREE.MathUtils.smoothstep(nextCam.distanceTo(door.porch), DOOR_ZONE.near, DOOR_ZONE.far))
+        // A walk eases from the slow-down of one control point to the next, flat at each point,
+        // so the speed changes with no step in acceleration. Near a door the larger one holds.
+        if (slows) {
+            const i = Math.min(segments - 1, Math.floor(p))
+            slow[k] = Math.max(slow[k], THREE.MathUtils.lerp(slows[i], slows[i + 1], THREE.MathUtils.smootherstep(p - i, 0, 1)))
+        }
         cam.copy(nextCam)
         view.copy(nextView)
     }
+    const plainTime = duration ?? THREE.MathUtils.clamp(MOVE_TIME.base + plainPace / MOVE_TIME.speed, MOVE_TIME.min, MOVE_TIME.max)
+    // The slow-down of the doors and the walk alone, before the bends.
+    const base = slow.slice()
+    // Shapes slow for a cruise speed in metres a second: the slow-down for each bend, then a pass
+    // forward and a pass back that cap the change of speed squared over each step at
+    // 2 * BEND.brake * metres. The speed at a sample is cruise / slow.
+    const shape = (cruise) => {
+        slow.set(base)
+        for (let k = 0, low = 0, high = 0; k <= count; k += 1) {
+            while (flown[k] - flown[low] > BEND.span) low += 1
+            while (high < count && flown[high + 1] - flown[k] <= BEND.span) high += 1
+            const span = flown[high] - flown[low]
+            if (span > 0) slow[k] = Math.max(slow[k], cruise * Math.sqrt((bent[high] - bent[low]) / span / BEND.lateral))
+        }
+        const capSpeed = (k, from, gap) => {
+            const reach = Math.sqrt((cruise / slow[from]) ** 2 + 2 * BEND.brake * gap)
+            if (cruise / slow[k] > reach) slow[k] = cruise / reach
+        }
+        for (let k = 1; k <= count; k += 1) capSpeed(k, k - 1, metres[k])
+        for (let k = count - 1; k >= 0; k -= 1) capSpeed(k, k + 1, metres[k + 1])
+    }
+    // One motion: the pace per metre sets the speed. In the second half of the path the camera
+    // never speeds up again once it has slowed, and in the first half it never slows before it
+    // has sped up, so a bend, a view turn or a doorway late in a move reads as the start of the
+    // landing and not as a second move. The welcome to Skills flight slowed to 20 m/s where its
+    // view swung round to the terrace, sped up to 22 m/s, and the owner saw two motions. A walk
+    // keeps its own pace along the walkway, so it skips this: its time is capped, and the rule
+    // made the walkway surge to 55 m/s.
+    const middle = Math.round(tableIndex(flown, 0.5))
+    const oneMotion = (steps) => {
+        const per = (k) => (metres[k] > 0 ? steps[k] / metres[k] : 0)
+        for (let k = middle + 1; k <= count; k += 1) if (per(k) < per(k - 1)) steps[k] = per(k - 1) * metres[k]
+        for (let k = middle - 1; k >= 1; k -= 1) if (per(k) < per(k + 1)) steps[k] = per(k + 1) * metres[k]
+    }
     // The running pace for one turn weight. The weight rises until the fastest turn of the
     // view, at cruise speed, stays under TURN_RATE. The move time comes from the plain pace:
-    // the first weight, with no door slow-down. A heavier weight and the slow-down stretch it in
+    // the first weight, with no slow-down. A heavier weight and the slow-down stretch it in
     // step with the pace, up to MOVE_TIME.turn, so the camera keeps its speed in the open and
-    // slows only where the view turns or the doorway is close.
-    const plainTime = duration ?? THREE.MathUtils.clamp(MOVE_TIME.base + plainPace / MOVE_TIME.speed, MOVE_TIME.min, MOVE_TIME.max)
+    // slows only where the view turns, the path bends or the doorway is close.
+    const paceMove = () => {
+        let pace = null
+        let time = 0
+        for (const weight of TURN_METRES) {
+            pace = new Float32Array(count + 1)
+            let share = 0
+            const steps = new Float32Array(count + 1)
+            for (let k = 1; k <= count; k += 1) steps[k] = Math.hypot(metres[k], weight * turns[k]) * slow[k]
+            if (!slows) oneMotion(steps)
+            for (let k = 1; k <= count; k += 1) {
+                pace[k] = pace[k - 1] + steps[k]
+                if (steps[k] > 0) share = Math.max(share, turns[k] / steps[k])
+            }
+            // A walk takes its time from the whole pace, slow-down included, so the camera keeps
+            // the walkway pace and does not rush the walk to fit MOVE_TIME.max.
+            const stretched = slows ? MOVE_TIME.base + pace[count] / MOVE_TIME.speed : plainTime * Math.sqrt(pace[count] / plainPace)
+            time = duration ?? Math.max(plainTime, Math.min(slows ? MOVE_TIME.walk + (door ? MOVE_TIME.door : 0) : MOVE_TIME.turn, stretched))
+            if ((share * CRUISE * pace[count]) / time <= TURN_RATE) break
+        }
+        return { pace, time }
+    }
+    // A move that a time cap or a set duration holds short cruises faster than the plain
+    // estimate, so its bends are shaped again at the speed it reaches, at most twice more. With
+    // the estimate alone, the move from the board to the telescope on a phone still took a
+    // 1.5 m bend at 15 m/s.
+    let cruise = (CRUISE * plainPace) / plainTime
     let pace = null
     let time = 0
-    for (const weight of TURN_METRES) {
-        pace = new Float32Array(count + 1)
-        let share = 0
-        for (let k = 1; k <= count; k += 1) {
-            const step = Math.hypot(metres[k], weight * turns[k]) * slow[k]
-            pace[k] = pace[k - 1] + step
-            if (step > 0) share = Math.max(share, turns[k] / step)
-        }
-        time = duration ?? Math.max(plainTime, Math.min(MOVE_TIME.turn, plainTime * Math.sqrt(pace[count] / plainPace)))
-        if ((share * CRUISE * pace[count]) / time <= TURN_RATE) break
+    for (let round = 0; round < 3; round += 1) {
+        shape(cruise)
+        ;({ pace, time } = paceMove())
+        const reached = (CRUISE * pace[count]) / time
+        if (reached <= cruise * 1.05) break
+        cruise = reached
     }
     // The spline parameter at share s of the pace, for both paths.
     const parameterAt = (s) => tableIndex(pace, s) / PACE_SAMPLES

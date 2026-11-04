@@ -197,8 +197,9 @@ function resample(points, spacing) {
 }
 
 // Relaxes a polyline as an elastic band: each inside point moves toward the middle of its
-// neighbours, and out of any surface it is closer to than it needs. The ends stay put.
-function relax(field, ends, points) {
+// neighbours, and out of any surface it is closer to than `least` and the ends allow. The ends
+// stay put.
+function relax(field, ends, points, least) {
     let band = points.map((p) => p.clone())
     const push = new THREE.Vector3()
     const pull = new THREE.Vector3()
@@ -206,7 +207,7 @@ function relax(field, ends, points) {
         band = band.map((p, i) => {
             if (i === 0 || i === band.length - 1) return p
             pull.addVectors(band[i - 1], band[i + 1]).multiplyScalar(0.5).sub(p)
-            const short = needAt(ends, p) - field.at(p)
+            const short = needAt(ends, p, least) - field.at(p)
             if (short > 0) field.gradient(p, push).normalize().multiplyScalar(short)
             else push.set(0, 0, 0)
             return p.clone().addScaledVector(pull, PULL).addScaledVector(push, PUSH)
@@ -216,29 +217,34 @@ function relax(field, ends, points) {
     return band
 }
 
-// The control points of a smooth path from a to b, the two ends included.
-export function planPath(field, a, b) {
+// The control points of a smooth path from a to b, the two ends included. least is the
+// clearance the path keeps where it can. A guide frame of a story walk (src/data/walks.js)
+// flies low over the walkway on purpose, so its segments ask for PASS only: at CLEAR the band
+// lifted the walk 4 m above the deck and the camera lost the walk.
+export function planPath(field, a, b, least = CLEAR) {
     const ends = { a, b, from: Math.max(0, field.at(a)), to: Math.max(0, field.at(b)) }
     // An end inside a surface cell, such as the eyepiece in the telescope, has no free way to
     // it, and the search would visit the whole grid before it gave up.
-    if (Math.min(ends.from, ends.to) < BURIED || clearSegment(field, ends, a, b)) return [a.clone(), b.clone()]
+    if (Math.min(ends.from, ends.to) < BURIED || clearSegment(field, ends, a, b, least)) return [a.clone(), b.clone()]
     const way = search(field, ends, a, b)
     if (!way) return [a.clone(), b.clone()]
     const rough = shortcut(field, ends, [a.clone(), ...way, b.clone()])
-    const band = relax(field, ends, resample(rough, SPACING))
+    const band = relax(field, ends, resample(rough, SPACING), least)
     const keep = Math.max(1, Math.round(CONTROL / SPACING))
     // The start always stays. A short band, such as a move between two stops in the About room,
     // otherwise kept only its end, and a path of one point broke the walk spline.
     return band.filter((_, i) => i === 0 || i === band.length - 1 || (i % keep === 0 && band.length - 1 - i >= keep / 2))
 }
 
-const keyOf = (a, b) => [a, b].map((p) => p.toArray().map((v) => v.toFixed(2)).join(',')).join('|')
+const keyOf = (a, b, least) => [a, b].map((p) => p.toArray().map((v) => v.toFixed(2)).join(',')).join('|') + `|${least}`
 
 // The plan from a to b, from the plans made ahead (warmPlans) or made now. A plan takes up
-// to 30 ms on a desktop and 120 ms on a slow phone, so a move from rest reads it ahead.
-export function plannedPath(field, a, b) {
-    const key = keyOf(a, b)
-    if (!field.plans.has(key)) field.plans.set(key, planPath(field, a, b))
+// to 30 ms on a desktop and 120 ms on a slow phone, so a move from rest reads it ahead. A
+// guide segment asks for less clearance (planPath) and plans with least set to GUIDE_CLEAR.
+export const GUIDE_CLEAR = PASS
+export function plannedPath(field, a, b, least = CLEAR) {
+    const key = keyOf(a, b, least)
+    if (!field.plans.has(key)) field.plans.set(key, planPath(field, a, b, least))
     return field.plans.get(key).map((p) => p.clone())
 }
 

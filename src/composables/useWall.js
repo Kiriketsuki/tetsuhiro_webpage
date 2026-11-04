@@ -5,6 +5,9 @@ import { ref } from 'vue'
 // wall over the list page, marks and focuses pins, and follows `picked` when a tap on the
 // scene lands on a pin, a group label or the list post-it.
 const shown = ref(false)
+// True while the camera moves to or from the wall. The Projects page and the Home words wait
+// for the move to end, so the owner sees the move first and the words after it.
+const settling = ref(false)
 const picked = ref(null)
 // The pin under the mouse, for its tag. Touch has no hover: a first tap names a pin instead.
 const hovered = ref(null)
@@ -25,5 +28,5 @@ export function useWall() {
     const peek = () => controls?.peek()
     const screenOf = (id) => controls?.screenOf(id) ?? null
 
-    return { shown, picked, hovered, connect, highlight, focus, unfocus, filter, screenOf, peek }
+    return { shown, settling, picked, hovered, connect, highlight, focus, unfocus, filter, screenOf, peek }
 }

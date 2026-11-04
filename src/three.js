@@ -71,23 +71,32 @@ function eyepiece(toSky, back) {
 // The workshop board: the camera flies to the board, the room light dims, and the wall lamp
 // warms up (scene-manager.js enterWall). Leaving plays it in reverse, on to `back`. Before
 // the wall has built, the camera goes to the workshop and moves on to the board once it can.
+// `settling` stays true until the move ends, so the Projects page and the Home words show
+// after the move and not during it.
+let boards = 0
 function board(toWall, back) {
     if (toWall === inWall) return
     inWall = toWall
     wall.shown.value = toWall && wallBuilt
+    const move = ++boards
+    wall.settling.value = true
+    const settled = (finished) =>
+        Promise.resolve(finished).then(() => {
+            if (move === boards) wall.settling.value = false
+        })
     if (!toWall) {
-        manager.enterWall(false, back)
+        settled(manager.enterWall(false, back))
         return
     }
     if (wallBuilt) {
-        manager.enterWall(true)
+        settled(manager.enterWall(true))
         return
     }
     manager.goTo('workshop')
     manager.wall.built().then((ok) => {
-        if (!ok || !inWall) return
+        if (!ok || !inWall) return settled()
         wall.shown.value = true
-        manager.enterWall(true)
+        return settled(manager.enterWall(true))
     })
 }
 
@@ -103,6 +112,8 @@ function leaveViewNow() {
     inSky = false
     inWall = false
     wall.shown.value = false
+    boards += 1
+    wall.settling.value = false
 }
 
 // The bedroom, the About room (/about). Its part of the scene (scene/aerie/room.js) loads as its

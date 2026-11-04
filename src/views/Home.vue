@@ -55,6 +55,7 @@ import ExplorePad from '../components/ExplorePad.vue'
 import { useWaypoints, sections, takeLanding } from '../composables/useWaypoints.js'
 import { useExplore } from '../composables/useExplore.js'
 import { useWalk } from '../composables/useWalk.js'
+import { useWall } from '../composables/useWall.js'
 import { useScramble } from '../composables/useScramble.js'
 import { useProps } from '../composables/useProps.js'
 
@@ -77,8 +78,10 @@ const { scramble } = useScramble()
 const { exploring, looking } = useExplore()
 const { available: canWalk, walking, visiting, start: startWalk, resume: resumeWalk } = useWalk()
 // The look-around and the walk hide the words and leave the aerie on its own. A zone card on
-// the walk brings its section back. The words also wait while the iris of the telescope move runs.
-const wordsHidden = computed(() => exploring.value || looking.value || (walking.value && visiting.value === null))
+// the walk brings its section back. The words also wait while the iris of the telescope move runs,
+// and while the camera comes back from the Projects wall.
+const { settling } = useWall()
+const wordsHidden = computed(() => exploring.value || looking.value || settling.value || (walking.value && visiting.value === null))
 // The gate only shows on the first visit. Coming back from /projects skips it.
 const showGate = ref(!entered.value)
 
@@ -141,6 +144,9 @@ onMounted(async () => {
     window.scrollTo({ top: start ? document.querySelector(`.${sections[start]}`).offsetTop : 0, behavior: 'instant' })
     setActive(start)
     showSection(start)
+    // Back from the wall or the sky, the words wait for the camera, and the watch on wordsHidden
+    // fades them in when it rests.
+    if (wordsHidden.value) gsap.set('#home', { autoAlpha: 0 })
     if (entered.value) decodeTitle(0.2)
 
     trigger = ScrollTrigger.create({

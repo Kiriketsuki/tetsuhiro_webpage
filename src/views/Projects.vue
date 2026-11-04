@@ -1,5 +1,5 @@
 <template>
-    <main v-if="onWall">
+    <main v-if="onWall" class="wall-page" :class="{ settling: wall.settling.value }">
         <!-- Escape closes the case folder or the list first, then leaves the wall. -->
         <ExplorePad :to="id || listOpen ? null : AERIE" back="" :inert="Boolean(id)">
             <template #top>
@@ -272,6 +272,17 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* The page waits while the camera flies in and the wall lamp warms, then fades in. */
+.wall-page {
+    transition: opacity 0.6s ease, visibility 0s;
+}
+
+.wall-page.settling {
+    visibility: hidden;
+    opacity: 0;
+    transition: none;
+}
+
 .wall-head {
     display: flex;
     max-width: 34rem;

@@ -55,7 +55,7 @@
     "Lookout": true,
     "Upper_Terrace": true
   },
-  "reach_cells": 9754,
+  "reach_cells": 9639,
   "rooms_closed": {
     "inside_workshop": true,
     "inside_lounge": true,
@@ -137,6 +137,6 @@
   },
   "raw_bytes": 118468,
   "compress": {
-    "bytes": 28380
+    "bytes": 28404
   }
 }

@@ -202,7 +202,7 @@ Any input wakes Kinako, and the walk starts at once. The idle habits run on the 
 - **Asleep by the fire.** In the story views, Kinako sleeps curled by the campfire. The scene chunk loads `walker.glb` after the island is on screen and shows the sleep mesh. It adds one draw call and no new shader.
 - **Waking.** "Explore on foot" and "wander the aerie" both start the walk at the fire. The camera moves down to Kinako, Kinako wakes and stretches, and the walk starts. This replaces the start at `Zone_Pad` from the Welcome button.
 - **Exit.** When the walk ends, Kinako trots back to the fire and curls up again while the camera returns to the story.
-- **Greeter.** The owner wants Kinako to be the site mascot in the greeter loading screen. The orchestrator owns that work (3 November 2026). It does not change this spec.
+- **Greeter.** Kinako is the mascot of the gate (4 November 2026, the owner's pick: "lantern nap + walk us in"). Kinako naps on the lantern branch while the aerie loads and warms with the lamp. Once the load is done, Kinako wakes, hops down onto the way in and sits on it. On enter, Kinako trots on ahead. The gate shows pre-rendered frames from `lab/gate-kinako.html` (`scripts/gate-kinako.py`), so the shell loads no three.js and no model. It does not change this spec.
 
 ### Collision and the walkable area
 
@@ -309,7 +309,7 @@ Each step ships on its own, as the plan requires.
 
 ## Open items
 
-- The greeter mascot: the orchestrator places it with the owner.
+- The greeter mascot: built in the gate (see Greeter above). Re-render its frames after any change to `walker.glb`.
 - The sleeping Kinako by the fire in the story views. The walk shows Kinako asleep at the spawn until the first move, but the story views draw no Kinako. That needs glue in the scene chunk, which has 1.1 kB of its budget left.
 - The hop also fires when Kinako walks into a hop top from outside, not only when it pushes against a ledge. The lookout bench seat is a slab with open space under it, so a walker from the deck passed under it and never pushed against it.
 - The `arrival` and `campfire` shots, and the focus values, are tuned in the lab during S1.

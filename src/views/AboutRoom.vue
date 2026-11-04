@@ -1,5 +1,5 @@
 <template>
-    <main class="about-room" :class="{ waiting: !arrived }">
+    <main class="about-room" :class="{ waiting: !walkedIn }">
         <!-- Under the controls: a drag sways the view a little, and it settles back on release. -->
         <div
             v-if="live"
@@ -84,7 +84,7 @@ const AERIE = homeAt('about')
 const router = useRouter()
 const room = useRoom()
 // The page waits for the camera to walk in through the balcony door.
-const arrived = useArrival()
+const walkedIn = useArrival()
 const { loadError } = useWaypoints()
 const live = computed(() => room.shown.value)
 const failed = computed(() => Boolean(loadError.value))

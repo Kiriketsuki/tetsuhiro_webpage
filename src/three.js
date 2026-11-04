@@ -284,8 +284,13 @@ function extras() {
         share += EXTRAS[part]
         progress.value = Math.max(progress.value, share)
     }
-    // The About room chunk loads too. Its props join the scene on its first show, as before.
-    const roomChunk = import('./scene/aerie/room.js').catch(() => {})
+    // The About room chunk loads too, and the room starts to load its kit, so the new bedroom
+    // shows through its windows before the first visit.
+    const roomChunk = import('./scene/aerie/room.js')
+        .then((module) => {
+            room ??= Promise.resolve(module.createRoom(manager, bedroomDoor))
+        })
+        .catch(() => {})
     const parts = Promise.all([manager.wall.built().then(step('wall')), manager.planned.then(step('planner')), roomChunk])
     return Promise.race([parts, new Promise((resolve) => setTimeout(resolve, EXTRAS_WAIT_MS))])
 }

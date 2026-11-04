@@ -12,16 +12,18 @@ import { createWalkerBody } from '../scene/explore/body.js'
 // the poses are the poses of the 3D Kinako.
 //
 // Query options:
-//   pose=sleep|wake|walk|stand|sit|empty
+//   pose=sleep|wake|walk|air|stand|sit|empty
 //                               sleep: the curled sleep mesh. wake: seconds t into the wake
 //                               from the curl. walk: seconds t into a walk at speed m/s.
+//                               air: the hop pose, rising for vy=1 and falling for vy=-1.
 //                               stand, sit: the idle poses. empty: no Kinako.
 //   t=<seconds>                 the time into the pose.
 //   breath=<0..1>               the sleep breath, 0 out and 1 in.
 //   bg=0|1                      a dark or a light flat background, for the alpha matte that
 //                               scripts/gate-matte.py takes from the pair.
 //   yaw=<degrees>               Kinako's heading. 0 faces the camera.
-//   size=<pixels>               the square frame size.
+//   size=<pixels>               the square frame size. The view widens with it, so Kinako
+//                               keeps the same size in pixels.
 //   dist=<metres>               the camera distance. The camera looks down a little.
 //   up=<ratio>                  the camera height over its distance.
 //   warm=<0..1>                 how much the fire in front warms Kinako.
@@ -55,7 +57,9 @@ renderer.setSize(size, size)
 
 const scene = new THREE.Scene()
 scene.background = light ? new THREE.Color(0.18, 0.18, 0.18) : new THREE.Color(0, 0, 0)
-const camera = new THREE.PerspectiveCamera(22, 1, 0.1, 40)
+// A 22 degree view on a 768 pixel frame. A larger frame sees more at the same pixel scale.
+const fov = 2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(11)) * (size / 768)))
+const camera = new THREE.PerspectiveCamera(fov, 1, 0.1, 40)
 camera.position.set(0, up * dist, dist)
 camera.lookAt(0, 0.12, 0)
 
@@ -106,6 +110,15 @@ if (pose === 'sleep') {
     // A walk at speed metres a second. The heading follows the travel, so it stays at yaw.
     const speed = Number(params.get('speed') ?? 0.7)
     run(seconds, nudge.clone().setLength(speed))
+} else if (pose === 'air') {
+    // Off the ground, rising when vy is above 0 and falling when it is below. The body takes
+    // its hop pose from the vertical speed of the feet.
+    const vy = Number(params.get('vy') ?? 1)
+    for (let t = 0; t < 0.4; t += STEP) {
+        feet.y += vy * STEP
+        body.update(STEP, feet, nudge.clone().setLength(1), false, false)
+    }
+    body.group.position.set(0, 0, 0)
 } else if (pose === 'sit') {
     run(5 + seconds, still)
 } else {

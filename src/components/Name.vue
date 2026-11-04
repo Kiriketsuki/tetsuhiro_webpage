@@ -1,12 +1,5 @@
 <template>
-    <div
-        ref="gate"
-        class="gate"
-        :class="{ 'is-ready': full, 'has-kinako': walking }"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="gate-name"
-    >
+    <div ref="gate" class="gate" :class="{ 'is-ready': full }" role="dialog" aria-modal="true" aria-labelledby="gate-name">
         <header class="gate-title">
             <h1 id="gate-name">
                 <span class="gate-eyebrow">Lim Zhe Hong</span>
@@ -15,30 +8,11 @@
             <p class="gate-role">software engineer &middot; singapore</p>
         </header>
 
-        <button
-            v-if="lampBox"
-            type="button"
-            class="gate-lantern"
-            :style="lampBox"
-            aria-label="Swing the lantern"
-            @pointerenter="onHover"
-            @click="swing"
-        ></button>
-
         <div class="gate-foot">
-            <p class="gate-readout" :class="{ 'has-error': loadError }">
-                <!-- One live line carries the state for screen readers. The lines on screen share
-                     one cell and only fade, which a screen reader does not announce. -->
-                <span class="sr-only" aria-live="polite">{{ loadError || (full ? 'the lamps are lit' : 'lighting the lamps') }}</span>
-                <span v-if="loadError" aria-hidden="true">{{ loadError }}</span>
-                <template v-else>
-                    <span :class="{ 'is-off': full }" aria-hidden="true">
-                        lighting the lamps
-                        <b><span class="gate-count"><span ref="drum" class="gate-drum"><i v-for="n in 101" :key="n">{{ n - 1 }}</i></span></span>%</b>
-                    </span>
-                    <span :class="{ 'is-off': !full }" aria-hidden="true">the lamps are lit</span>
-                </template>
-            </p>
+            <!-- One live line carries the state for screen readers. The count on screen lives in
+                 index.html and only fades, which a screen reader does not announce. -->
+            <p class="sr-only" aria-live="polite">{{ loadError || (full ? 'the fire is lit' : 'kindling the fire') }}</p>
+            <p v-if="loadError" class="gate-error">{{ loadError }}</p>
 
             <button
                 ref="enter"
@@ -63,22 +37,19 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import gsap from 'gsap'
 import { useWaypoints } from '../composables/useWaypoints.js'
 import { createGateMeter } from './gate-meter.js'
-import { createKinakoWalk } from './gate-kinako.js'
+import { createFiresideKinako } from './gate-kinako.js'
 
 const emit = defineEmits(['lifted'])
 const { ready, progress, entered, loadError, reducedMotion } = useWaypoints()
 
-// The lantern art lives in index.html, so it paints before this bundle loads. Its styles sit
+// The fireside art lives in index.html, so it paints before this bundle loads. Its styles sit
 // there too. On a visit that starts on another page it waits there, hidden.
 const art = document.getElementById('gate-art')
 
 const gate = ref(null)
 const enter = ref(null)
-const drum = ref(null)
-// True once the meter shows the load done. The lamp is lit and the way in opens.
+// True once the meter shows the load done. The fire is at full blaze and the way in opens.
 const full = ref(false)
-// True once Kinako sets off on the walk in.
-const walking = ref(false)
 
 // The share of the meter that the fonts and the next pages take. The scene, the wall and
 // the camera planner take the rest (src/three.js).
@@ -94,7 +65,7 @@ const DOWNLOADED = 0.37
 const VISIT_WAIT_MS = 8000
 let visitShare = 0
 let visitLoaded = null
-const kinako = createKinakoWalk(art)
+const kinako = createFiresideKinako(art)
 const preloadVisit = () => {
     const loads = [
         ...[...document.fonts].map((face) => face.load()),
@@ -104,9 +75,6 @@ const preloadVisit = () => {
         // The logos on the skill sky cards, which otherwise load when the first card opens.
         import('../data/skill-icons.js'),
     ].map((load) => load.catch(() => {}))
-    // Kinako's walk in loads with the next pages, but the way in does not wait for it. It is a
-    // greeting, and on slow 3G it held the way in by about 1.5 s.
-    kinako.load()
     let left = loads.length
     loads.forEach((load) =>
         load.then(() => {
@@ -117,20 +85,31 @@ const preloadVisit = () => {
     return Promise.race([Promise.all(loads), new Promise((resolve) => setTimeout(resolve, VISIT_WAIT_MS))])
 }
 
-// Each layer's look at share p. Every one is linear in p, so the meter plays one curve on all
-// of them. The drum holds 101 numbers, so share p shows the number 100p in the window.
+// Each element's look at share p. scripts/gate-fireside-pack.py writes the dawn keyframes that
+// play the same functions before this bundle loads, so the meter takes over with no jump.
+const clamp = (v) => Math.min(1, Math.max(0, v))
+// The whole number the count shows at share p.
+const count = (p) => Math.min(100, Math.floor(p * 100 + 1e-6))
+// The fire stages: each peaks at its own share and hands over to the next.
+const STAGES = 4
+// The pawprints of the ring and the groups of leaves in the updraft.
+const PAWS = 24
+const RISE = 3
 let meter = null
 const tracks = () => {
     const pick = (selector) => art?.querySelector(selector) ?? null
+    const all = (selector) => [...(art?.querySelectorAll(selector) ?? [])]
     return [
-        { el: pick('.ga-paper.ga-lit'), frame: (p) => ({ opacity: p }) },
         { el: pick('.ga-glow'), frame: (p) => ({ opacity: p }) },
-        { el: pick('.ga-reveal'), frame: (p) => ({ transform: `translateX(${(p - 1) * 100}%)` }) },
-        { el: pick('.ga-autumn'), frame: (p) => ({ transform: `translateX(${(1 - p) * 130}%)` }) },
-        { el: pick('.ga-k-lit'), frame: (p) => ({ opacity: p }) },
         { el: pick('.ga-title .is-lit'), frame: (p) => ({ opacity: p }) },
-        // The count shows whole numbers only, so it never shows two halves mid-roll.
-        { el: drum.value, frame: (p) => ({ transform: `translateY(${(-100 * 100 * p) / 101}%)` }), steps: 100 },
+        ...Array.from({ length: STAGES }, (_, s) => ({ el: pick(`.ga-fire-${s}`), frame: (p) => ({ opacity: clamp(1 - Math.abs(p - s / (STAGES - 1)) * (STAGES - 1)) }) })),
+        ...all('.ga-paw').map((el, i) => ({ el, frame: (p) => ({ opacity: clamp(p * PAWS - i) }) })),
+        ...Array.from({ length: RISE }, (_, g) => ({ el: pick(`.ga-rise-${g}`), frame: (p) => ({ opacity: clamp(p * RISE - g) }) })),
+        // The count shows one whole number at a time. Each digit place shows one digit with an
+        // opacity step, so it never rests between two numbers.
+        ...all('.ga-ones i').map((el, d) => ({ el, steps: 100, frame: (p) => ({ opacity: count(p) % 10 === d ? 1 : 0 }) })),
+        ...all('.ga-tens i').map((el, d) => ({ el, steps: 100, frame: (p) => ({ opacity: count(p) >= 10 && Math.floor(count(p) / 10) % 10 === d ? 1 : 0 }) })),
+        { el: pick('.ga-hund i'), steps: 100, frame: (p) => ({ opacity: count(p) === 100 ? 1 : 0 }) },
     ]
 }
 
@@ -151,42 +130,8 @@ watch(progress, (value) => {
     plan()
 })
 
-// The time the art takes to leave: the lamp bloom, then the fade in index.html.
+// The time the art takes to leave: the push into the fire glow, then the fade in index.html.
 const LEAVE_MS = { motion: 2000, still: 700 }
-
-// The hit area sits over the lantern in the art. The frames hang the lantern from 21% of the
-// art height down to the tassel near 93%, across the middle quarter of the width.
-const lampBox = ref(null)
-const place = () => {
-    const box = art?.querySelector('.ga-art')?.getBoundingClientRect()
-    if (!box?.width) return
-    lampBox.value = {
-        left: `${box.left + box.width * 0.37}px`,
-        top: `${box.top + box.height * 0.22}px`,
-        width: `${box.width * 0.26}px`,
-        height: `${box.height * 0.7}px`,
-    }
-}
-
-// A hover or a tap gives the lantern a push that dies away, and the flame flares. A push from
-// the left swings it right. Reduced motion keeps the flare, which does not move.
-let swinging = null
-const swing = (event) => {
-    if (!art || entered.value) return
-    art.querySelector('.ga-flare').animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.25 }, { opacity: 0 }], { duration: 1600, easing: 'ease-out' })
-    if (reducedMotion.value || swinging?.playState === 'running') return
-    const box = event.currentTarget.getBoundingClientRect()
-    // A positive turn swings the body left, about the hook. A key press has no clientX.
-    const side = event.clientX && event.clientX < box.left + box.width / 2 ? -1 : 1
-    const turn = (deg) => ({ transform: `rotate(${side * deg}deg)` })
-    swinging = art.querySelector('.ga-nudge').animate([turn(0), turn(7), turn(-4.5), turn(2.6), turn(-1.2), turn(0.4), turn(0)], {
-        duration: 3200,
-        easing: 'ease-out',
-    })
-}
-const onHover = (event) => {
-    if (event.pointerType === 'mouse') swing(event)
-}
 
 // Resolves after the next two frames and an idle moment. A font that arrives last makes the
 // scene draw its labels again and upload them in the next frame, a long task on a slow phone.
@@ -212,8 +157,8 @@ watch(ready, async (value) => {
     full.value = true
 })
 
-// The button takes focus as soon as it works, so Enter goes straight in. Once full the lantern
-// stays lit until the visitor goes in, and a leaf now and then drifts down (is-lit).
+// The button takes focus as soon as it works, so Enter goes straight in. Kinako finishes its
+// lap and sits by the fire. After a failed load Kinako naps on, so the error stays the news.
 watch(full, async (value) => {
     if (!value) return
     clearTimeout(planTimer)
@@ -221,27 +166,42 @@ watch(full, async (value) => {
     art?.classList.add('is-lit')
     await nextTick()
     enter.value?.focus({ preventScroll: true })
-    // Kinako wakes and walks down onto the way in. The button already works. After a failed load
-    // Kinako sleeps on, so the error stays in view.
-    if (!entered.value && enter.value && !loadError.value) kinako.walkIn(enter.value, reducedMotion.value, () => (walking.value = true))
+    if (!entered.value && !loadError.value) kinako.sit(reducedMotion.value)
 })
 
-// A second greeting, from the nav lantern, finds the art hidden and fades it back in.
+// The pointer moves the near layers more than the far ones, so the picture reads as deep. Each
+// move eases in through a transform transition, which the compositor runs.
+const DEPTH = { near: [14, 9], far: [5, 3] }
+let tilt = 0
+const lean = (event) => {
+    if (tilt || !art) return
+    tilt = requestAnimationFrame(() => {
+        tilt = 0
+        const x = event.clientX / window.innerWidth - 0.5
+        const y = event.clientY / window.innerHeight - 0.5
+        const near = art.querySelector('.ga-view')
+        const far = art.querySelector('.ga-far-view')
+        if (near) near.style.transform = `translate(${-x * DEPTH.near[0]}px, ${-y * DEPTH.near[1]}px)`
+        if (far) far.style.transform = `translate(${-x * DEPTH.far[0]}px, ${-y * DEPTH.far[1]}px)`
+    })
+}
+const finePointer = () => window.matchMedia('(pointer: fine)').matches
+
+// A second greeting, from the nav campfire, finds the art hidden and fades it back in, with
+// Kinako sat by a full fire.
 onMounted(() => {
     if (!art) return
     if (art.hidden || art.classList.contains('is-open')) {
         art.classList.remove('is-open', 'is-lit')
         art.hidden = false
         // A visit that started on another page has not loaded the art files yet.
-        if (!art.classList.contains('is-sharp')) art.load?.()
+        art.load?.()
         kinako.reset()
         art.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reducedMotion.value ? 0 : 700 })
     }
-    place()
-    window.addEventListener('resize', place)
-    window.addEventListener('resize', onResize)
+    if (finePointer() && !reducedMotion.value) window.addEventListener('pointermove', lean, { passive: true })
     // The meter goes on from the dawn in index.html. A second greeting shows it full at once.
-    meter = createGateMeter(tracks(), art?.querySelector('.ga-paper.ga-lit'))
+    meter = createGateMeter(tracks(), art.querySelector('.ga-glow'))
     if (ready.value) {
         meter.finish({ instant: true })
         full.value = true
@@ -250,28 +210,23 @@ onMounted(() => {
     meter.update(progress.value * (1 - VISIT_SHARE))
     // A plan covers 90 seconds. A load with no news for that long still creeps on.
     refresh = setInterval(plan, PLAN_MS.max)
+    // The shell has started: Kinako wakes as soon as its frames are in.
+    kinako.start(reducedMotion.value)
 })
 
-// A resize moves the button, so a Kinako that sits on it moves along.
-const onResize = () => {
-    if (enter.value) kinako.settle(enter.value)
-}
-
 onBeforeUnmount(() => {
-    window.removeEventListener('resize', place)
-    window.removeEventListener('resize', onResize)
+    window.removeEventListener('pointermove', lean)
+    cancelAnimationFrame(tilt)
     clearTimeout(planTimer)
     clearInterval(refresh)
     meter?.stop()
 })
 
-// The camera starts moving as the lamp light washes over the view, not after it.
+// The camera starts moving as the view pushes into the fire glow, not after it.
 const lift = () => {
     if (!full.value || entered.value) return
     entered.value = true
     art?.classList.add('is-open')
-    // Kinako trots on ahead into the light.
-    kinako.walkOut(reducedMotion.value)
     gsap.to(gate.value, { autoAlpha: 0, duration: reducedMotion.value ? 0.3 : 0.8, ease: 'power2.in' })
     setTimeout(
         () => {

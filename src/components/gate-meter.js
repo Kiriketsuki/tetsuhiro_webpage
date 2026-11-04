@@ -1,12 +1,12 @@
-// The gate meter: the load share the lantern shows. Name.vue feeds it the real share, and it
+// The gate meter: the load share the fireside gate shows. Name.vue feeds it the real share, and it
 // drives the art with Web Animations on transform and opacity only. The compositor runs those,
 // so the meter keeps moving while the main thread downloads, parses, builds or compiles.
 //
 // Each plan replaces the running animations with one long animation that starts at the value
 // and the speed shown now. The value follows a goal like a critically damped spring, so a new
 // share changes the speed and never the value. The goal never falls below the real share, and
-// while work is pending it creeps on past it, toward CAP and no further, so the lamp keeps
-// brightening through a long download or compile. The goal carries over from plan to plan:
+// while work is pending it creeps on past it, toward CAP and no further, so the fire keeps
+// growing through a long download or compile. The goal carries over from plan to plan:
 // a plan that started the creep again from the value made a meter that planned often crawl.
 // The value never moves backwards. Only finish() takes it to 1.
 

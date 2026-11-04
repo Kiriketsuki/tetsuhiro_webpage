@@ -73,9 +73,49 @@ const stripShaderComments = () => ({
     },
 })
 
+// The shell CSS must not hold up the first paint. The gate in index.html carries its own styles
+// and covers the page until the app mounts, so on a slow line it used to wait for nothing: the
+// first paint came only after the shell CSS, about 2 s after the HTML on slow 3G. This plugin
+// turns the stylesheet links of index.html into preloads that switch to stylesheets once they
+// arrive. A preload keeps the high fetch priority of a stylesheet. src/main.js mounts the app
+// only after every such sheet applies, so no view measures itself unstyled. 404.html keeps its
+// plain links, because it has no gate to show.
+const deferShellCss = () => ({
+    name: 'defer-shell-css',
+    apply: 'build',
+    transformIndexHtml: {
+        order: 'post',
+        handler: (html, { filename }) =>
+            filename.replaceAll('\\', '/').endsWith('/index.html')
+                ? html.replace(/<link rel="stylesheet" crossorigin href="([^"]+)">/g, `<link rel="preload" as="style" crossorigin href="$1" data-shell-css onload="this.onload=null;this.rel='stylesheet'">`)
+                : html,
+    },
+})
+
+// The gate title paints in the first paint, in the two faces its words use. This plugin
+// preloads those two font files in index.html, so they arrive early and the words change face
+// once, soon. The gate sets every line height, so the swap moves nothing.
+const GATE_FONTS = ['instrument-serif-latin-400-normal', 'jetbrains-mono-latin-400-normal']
+const preloadGateFonts = () => ({
+    name: 'preload-gate-fonts',
+    apply: 'build',
+    transformIndexHtml: {
+        order: 'post',
+        handler: (html, { filename, bundle }) => {
+            if (!filename.replaceAll('\\', '/').endsWith('/index.html') || !bundle) return html
+            const files = Object.keys(bundle).filter((name) => GATE_FONTS.some((font) => name.includes(font)) && name.endsWith('.woff2'))
+            if (files.length !== GATE_FONTS.length) throw new Error(`preload-gate-fonts found ${files.length} of ${GATE_FONTS.length} gate fonts.`)
+            return {
+                html,
+                tags: files.map((file) => ({ tag: 'link', attrs: { rel: 'preload', as: 'font', type: 'font/woff2', href: `/${file}`, crossorigin: true }, injectTo: 'head' })),
+            }
+        },
+    },
+})
+
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [vue(), tailwindcss(), stripShaderComments()],
+    plugins: [vue(), tailwindcss(), stripShaderComments(), deferShellCss(), preloadGateFonts()],
     // The look worker is its own bundle, so it needs the shader comment strip of its own.
     worker: { plugins: () => [stripShaderComments()] },
     build: {

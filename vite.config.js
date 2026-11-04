@@ -8,6 +8,9 @@ const page = (file) => fileURLToPath(new URL(file, import.meta.url))
 // Splits the vendors out of the entry, so a site change does not bust their
 // cache. three only loads with the scene, from the Home route.
 const manualChunks = (id) => {
+    // The walk's Capsule stays with the walk in its lazy explore chunk. In the three chunk it
+    // would count toward the scene budget.
+    if (id.includes('node_modules/three/examples/jsm/math/Capsule.js')) return undefined
     if (id.includes('node_modules/three/')) return 'three'
     if (id.includes('node_modules/gsap/')) return 'gsap'
     if (/node_modules\/(@vue|vue|vue-router)\//.test(id)) return 'vue'

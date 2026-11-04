@@ -3,6 +3,8 @@ import gsap from 'gsap'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { useExplore } from './composables/useExplore.js'
 import { useWall } from './composables/useWall.js'
+import { useWalk } from './composables/useWalk.js'
+import { useProps } from './composables/useProps.js'
 import { createSceneManager } from './scene/scene-manager.js'
 import { stopForRoute } from './data/stops.js'
 import { bedroomDoor } from './data/route.js'
@@ -13,7 +15,7 @@ import { waypoints } from './data/waypoints.js'
 // route changes, so a route change is a camera move. The scene itself lives behind
 // createSceneManager, which knows nothing about Vue.
 
-const { active, ready, reducedMotion, progress, entered, loadError, jumping } = useWaypoints()
+const { active, ready, reducedMotion, progress, entered, loadError, jumping, goTo: goToSection } = useWaypoints()
 const canvas = document.getElementById('webgl')
 history.scrollRestoration = 'manual'
 
@@ -122,6 +124,12 @@ function bedroom(on, other, cut = false) {
     room.then((r) => r.show(on, { cut })).catch((error) => console.error('The About room did not load.', error))
 }
 
+// Explore on foot. The walk and its glue load as their own chunk on the first walk
+// (scene/explore/explore.js). While Kinako walks, a section change moves no camera, and a route
+// change ends the walk.
+const walk = useWalk()
+let session = null
+
 // No WebGL, or the scene failed to build. The canvas shows a CSS night sky instead, and
 // the gate still opens, so the pages stay usable.
 function fallBack(error) {
@@ -171,6 +179,12 @@ function boot() {
         .then(() => {
             progress.value = 1
             ready.value = true
+            walk.connect({
+                start: (from) =>
+                    (session ??= import('./scene/explore/explore.js').then((m) => m.createExplore(manager, { walk, active, goToSection, currentStop })))
+                        .then((e) => e.start(from))
+                        .catch((error) => console.error('The walk did not load.', error)),
+            })
         })
         .catch((error) => {
             console.error('aerie.glb failed to load', error)
@@ -191,7 +205,7 @@ function boot() {
     })
     // During a jump the camera waits for the target section, then takes one move there.
     watch(active, (index) => {
-        if (route !== 'Home') return
+        if (route !== 'Home' || (walk.walking.value && walk.visiting.value === null)) return
         if (jumping.value !== null && index !== jumping.value) return
         jumping.value = null
         manager.goTo(currentStop())
@@ -242,6 +256,11 @@ function boot() {
         document.documentElement.addEventListener('mouseleave', () => manager.clearPointer())
     }
 
+    // The props that open a page from the scene sit in their own chunk, after the aerie.
+    manager.ready
+        .then(({ root }) => import('./scene/aerie/props.js').then((m) => (useProps().controls.value = m.createProps(manager, root, () => reducedMotion.value))))
+        .catch((error) => console.error('The scene props did not load.', error))
+
     // Handy in the console while tuning shots. Not in the build.
     if (import.meta.env.DEV) window.__scene = manager
 }
@@ -274,6 +293,7 @@ export function pause() {
 // opens at the route's room instead of flying there.
 export function setRoute(name, { cut = false } = {}) {
     if (name === route && !cut) return
+    if (walk.walking.value) walk.end()
     const previous = route
     route = name
     manager?.setAmbientFps(ambientFps())

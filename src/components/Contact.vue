@@ -30,6 +30,9 @@
                 That is the end of the walk. Stay by the fire for a while: the city down there
                 keeps its lights on all night.
             </p>
+            <button v-if="canWalk && !walking" type="button" class="action self-start" @click="startWalk('contact')">
+                wander the aerie
+            </button>
             <p class="font-label text-[0.65rem] leading-relaxed tracking-wider text-text-faint">
                 <span class="block">v{{ version }}</span>
             </p>
@@ -39,9 +42,11 @@
 
 <script setup>
 import { sideOf } from '../composables/useWaypoints.js'
+import { useWalk } from '../composables/useWalk.js'
 import versionFile from '../../VERSION?raw'
 
 const version = versionFile.trim()
+const { available: canWalk, walking, start: startWalk } = useWalk()
 
 // As of October 2025. No Discord any more.
 const links = [

@@ -15,12 +15,11 @@ import { CAMPFIRE_BOUNCE, SURFACE } from './aerie/toon-material.js'
 import { softenGeometry } from './aerie/soft-normals.js'
 import { createLeafCards } from './aerie/leaf-cards.js'
 import { createStars } from './aerie/stars.js'
-import { createWaterfall } from './aerie/waterfall.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
+import { WATER_COLORS } from './aerie/water.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
-import { createHoverFocus, HOVER_FOCUS } from './aerie/hover-focus.js'
 import { GRADE } from './aerie/grade-pass.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
@@ -128,6 +127,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     const loaders = createLoaders()
     // The rAF timestamp of the last frame, or null before the first frame of a run.
     let frameAt = null
+    // The walk on foot (scene/explore) steps the walker before the rig places the camera. It
+    // returns true while the walker or its camera moves, so the frame draws and counts as a move.
+    let walker = null
     let seconds = 0
     let ambient = 0
     let ambientFps = AMBIENT_FPS
@@ -139,7 +141,19 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The pointer in uv, or null without one. The lens pulls focus toward what it rests on.
     let cursor = null
     const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), on: 0, movedAt: 0, last: performance.now(), shown: -1 }
-    const hoverFocus = createHoverFocus(renderer)
+    // The hover focus loads in its own chunk, and only with the lens, so a phone never fetches
+    // it. Until it arrives, the lens keeps the stop's focus only.
+    let hoverFocus = { update: () => ({ focus: rig.focus, weight: 0, busy: false }), dispose: () => {}, clear: 0 }
+    let hoverGone = false
+    if (lookSet.has('lens')) {
+        import('./aerie/hover-focus.js')
+            .then(({ createHoverFocus, HOVER_FOCUS }) => {
+                if (hoverGone) return
+                hoverFocus = createHoverFocus(renderer)
+                Object.defineProperty(hoverFocus, 'clear', { get: () => HOVER_FOCUS.clear })
+            })
+            .catch(() => {})
+    }
     let lookControl = null
     let submits = []
 
@@ -183,8 +197,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // rig.moving does not report, so the governor also counts the frames drawn just after one.
     let steeredAt = -Infinity
 
-    // The lens follows the stop's focus point, and adds the depth under the resting cursor
-    // (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
+    // The lens keeps the stop's focus point sharp, and adds a second sharp slab at the depth
+    // under the resting cursor (hover-focus.js). It fades out during a move between stops, so the flight stays clear, and
     // the hover focus comes back after the move. Reduced motion keeps the stop's focus only. The
     // cursor patch and the vignette centre ease after the pointer, so they drift and never jump.
     // --aerie-lens tells the focus ring in the shell how strong the lens is, so the ring fades
@@ -210,13 +224,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const on = !!cursor && dof === 1 && !state.reduced
         // Reduced motion draws single frames, so a long step snaps the pull out in one frame.
         const hover = hoverFocus.update({ on, cursor, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
-        uniforms.uHoverFocus.value = hover.focus
+        uniforms.uFocus2.value = hover.focus
         uniforms.uHover.value = hover.weight
-        uniforms.uHoverCap.value = HOVER_FOCUS.cap
         if (cursor) lensCursor.uv.lerp(cursor, k)
         lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)
-        uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, HOVER_FOCUS.clear, hover.weight)
+        uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, hoverFocus.clear, hover.weight)
         uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.on, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.on)
         uniforms.uVignette.value = (lookSet.has('split') ? 0.27 : 0.22) + 0.04 * dof
         const shown = Math.round(dof * 20) / 20
@@ -441,11 +454,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         frameAt = time
         seconds += delta
         ambient += delta
+        const walking = walker?.(delta) ?? false
         rig.update(delta)
         const effects = advanceEffects(delta)
         // The wall has nothing that twinkles, so its frames draw only when something moves.
         const tickAmbient = !state.reduced && view !== 'wall' && ambientFps > 0 && ambient >= 1 / ambientFps
-        if (!rig.moving && !effects && !state.dirty && !tickAmbient) return
+        if (!rig.moving && !effects && !state.dirty && !tickAmbient && !walking) return
         if (tickAmbient) {
             parts.city?.update(seconds)
             parts.glow?.update(seconds)
@@ -456,7 +470,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             parts.leaves?.update(seconds)
             ambient = 0
         }
-        const moving = rig.moving || performance.now() - steeredAt < STEER_MS
+        const moving = rig.moving || walking || performance.now() - steeredAt < STEER_MS
         if (pendingTier !== null && !rig.moving) {
             buildPipeline(pendingTier)
             pendingTier = null
@@ -558,6 +572,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // campfire leaves the lawn bare and the rest of the aerie as it is.
     const campfireBuild = import('./aerie/campfire.js').then(async (module) => ({ module, kit: await module.loadCampfireKit(loaders.gltf) }))
     campfireBuild.catch(() => {})
+    // The waterfall loads in its own chunk too, so the scene chunk keeps room under its budget.
+    // A failed waterfall leaves the stream mouth without its fall.
+    const waterfallModule = import('./aerie/waterfall.js')
+    waterfallModule.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -686,8 +704,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const base = anchor(root, 'Anchor_Waterfall_Base')
             // The ribbon starts on the stream mouth that applyAerieLook found. The two anchors
             // only build a fallback mouth when the water mesh gave none.
-            if (look.waterMouth || (top && base)) {
-                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base })
+            const { createWaterfall } = await waterfallModule.catch(() => ({}))
+            if (createWaterfall && (look.waterMouth || (top && base))) {
+                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base, colors: WATER_COLORS })
                 scene.add(parts.waterfall.group)
             }
 
@@ -706,7 +725,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             rig.setShots(shots)
             resizeSprites()
             // Compile every program before the reveal, so the first moves and the first look
-            // through the telescope do not stall.
+            // through the telescope do not stall. The city river arrives in its own chunk.
+            await parts.city.ready
             await compiled(scene, camera)
             reached('compiled')
             await compiled(parts.constellation.scene, parts.constellation.camera)
@@ -777,6 +797,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             update()
         },
         settle,
+        // fn(delta) steps the walk on each frame of the loop, or null ends it.
+        setWalker: (fn) => (walker = fn),
         pause: () => {
             state.wanted = false
             update()
@@ -1005,6 +1027,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             carpetBuild.dispose()
             Object.values(parts).forEach((part) => part?.dispose?.())
             pipeline?.dispose()
+            hoverGone = true
             hoverFocus.dispose()
             disposeLoaders(loaders)
             renderer.dispose()

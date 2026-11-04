@@ -1,0 +1,114 @@
+/* The walk's overlay (overlay.js). Glass and brass, flat fills only (docs/design-system.md). */
+
+.walk-ui {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+}
+
+.walk-ui[hidden] {
+    display: none;
+}
+
+.walk-ui button {
+    pointer-events: auto;
+}
+
+.walk-leave {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.5rem;
+    text-shadow: 1px 1px 0 var(--color-bg-base);
+}
+
+.walk-prompt {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(5rem, 14vh, 8rem);
+    transform: translateX(-50%);
+    padding: 0.6rem 1.1rem;
+    background: var(--color-glass);
+    color: var(--color-text-strong);
+    font-family: var(--font-label);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.walk-prompt[hidden] {
+    display: none;
+}
+
+.walk-prompt kbd {
+    display: inline-block;
+    min-width: 1.4rem;
+    margin-right: 0.35rem;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--color-brass-soft);
+    color: var(--color-brass);
+    font-family: inherit;
+    text-align: center;
+}
+
+/* The hint sits at the top, clear of the nav strip at the bottom. */
+.walk-hint {
+    position: fixed;
+    left: 50%;
+    top: clamp(4.5rem, 9vh, 5.5rem);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    color: var(--color-sand);
+    font-family: var(--font-label);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 0 var(--color-bg-base);
+    transition: opacity 0.8s;
+}
+
+.walk-hint-gone {
+    opacity: 0;
+}
+
+/* The ring sits on the thumb. Its centre is the point where the thumb landed. */
+.walk-stick {
+    position: fixed;
+    top: -2.75rem;
+    left: -2.75rem;
+    width: 5.5rem;
+    height: 5.5rem;
+    border: 1px solid var(--color-brass-soft);
+    border-radius: 50%;
+    background: var(--color-glass);
+}
+
+.walk-stick[hidden] {
+    display: none;
+}
+
+.walk-knob {
+    position: absolute;
+    top: calc(50% - 1rem);
+    left: calc(50% - 1rem);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--color-brass);
+}
+
+/* The page does not scroll or zoom under the walk's touch controls. */
+html.walking,
+html.walking body {
+    overscroll-behavior: none;
+    touch-action: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .walk-hint {
+        transition: none;
+    }
+}

@@ -349,3 +349,42 @@ the second pass.
   holds the walkway speed. The phone hero stands further out, so the descent is faster there.
 - The gate lift from `overview` to `arrival` is now a short dolly in, since both shots look at
   the whole aerie from the south-east.
+
+## Fifth pass: one motion, and the words after the move (4 November 2026)
+
+The owner, after #58: "the corkboard to start off unlit in the main scene", "the ui already appears
+on the way back, and same on the way in. it should transition first then show the ui", "welcome to
+skills isnt one smooth motion", and "reverse from skills also starts moving before the aperture
+animation is done".
+
+1. **Unlit board.** The room copy of the board in the aerie takes 0.35 of its lamp-lit colour
+   (`ROOM_UNLIT` in `wall.js`), so the board reads dark in the workshop and the wall lamp lights it
+   on the way into Projects. The dark point of the lamp switch rises by the same factor, from 0.042
+   to 0.12 (reduced motion 0.1 to 0.25), so the room and the wall still match at the swap. At the
+   board stop the screen luma is 0.30 (0.42 with the lit board), it dims to 0.10, and the lit wall
+   settles at 0.23. The largest step in one frame is 1.6 percent on the way in and 1.8 percent on
+   the way out.
+2. **Words after the move.** `enterWall` returns a promise that resolves when the board move ends.
+   `useWall().settling` stays true until then. The Projects page waits for it and fades in over
+   0.6 s. The Home words wait for it on the way back, and also for the iris on the way back from the
+   sky. At 1440x900 the Projects page shows 2.8 s after the click, once the lamp is steady, and the
+   Home words show once the camera rests at the workshop.
+3. **One motion.** The pace per metre sets the speed. In the second half of a path the camera never
+   speeds up again once it has slowed, and in the first half it never slows before it has sped up.
+   Welcome to Skills slowed to 20 m/s where its view swung to the terrace, then sped up to 22 m/s.
+   A walk skips the rule, since its time is capped and the rule made its walkway surge. The bend
+   window narrows from 1.5 m to 1 m, so a short kink counts in full.
+4. **The iris first.** On the way out of the sky the camera waits at the eyepiece until the iris is
+   open, then pulls back in 2.6 s. The exit takes 4.3 s: the iris shuts by 0.7 s, opens by 1.9 s,
+   and the camera rests on the terrace at 4.3 s, with a peak of 3.9 m/s and 38 deg/s.
+
+| Worst case, all 30 moves | Fourth pass desktop | Fifth pass desktop | Fourth pass phone | Fifth pass phone |
+|---|---|---|---|---|
+| Moves with one speed peak | 25 | 28 | 24 | 26 |
+| Peak acceleration | 82 m/s2 | 77 m/s2 | 132 m/s2 | 117 m/s2 |
+| Peak turn | 56 deg/s | 59 deg/s | 59 deg/s | 60 deg/s |
+| Mesh crossings | 0 | 0 | 0 | 0 |
+
+The moves with more than one peak are the walk moves (on the phone) and the moves between the hero
+and the board, which slow at the door. Real key 4 from the welcome, at desktop and at phone with 4x
+CPU throttle: one move, 1 speed peak on screen, no stall, no console error.

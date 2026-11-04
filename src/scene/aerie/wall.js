@@ -33,8 +33,13 @@ const LIST_AT = { at: [0.665, -0.075], tilt: 5 }
 const SLOTS = { small: 2, wide: 3 }
 const SHARP_AT = 1.15
 const SHARP_WAIT = 150
-// The room copy has no lights of its own. Its paper takes this dim lamp-lit colour.
-const ROOM_TINT = new THREE.Color(0.8, 0.72, 0.62)
+// The room copy has no lights of its own. Its paper takes this colour: the lamp-lit paper
+// (0.8, 0.72, 0.62) times ROOM_UNLIT, the board with its lamp off in the dark workshop. The owner
+// wants the board unlit in the aerie, so the lamp that warms on the way into Projects lights a
+// dark board. The dark point of the lamp switch (light-switch.js TIMING) rises by the same
+// factor, so the room copy still matches the wall under its fill light at the swap.
+export const ROOM_UNLIT = 0.35
+const ROOM_TINT = new THREE.Color(0.8, 0.72, 0.62).multiplyScalar(ROOM_UNLIT)
 // The lit lip of the room copy's lamp while the lamp is off: the brass of the bar in shade.
 const LIP_OFF = new THREE.Color(0x5a4024)
 const deg = THREE.MathUtils.degToRad

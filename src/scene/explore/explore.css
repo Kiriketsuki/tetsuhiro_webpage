@@ -41,6 +41,18 @@
     display: none;
 }
 
+/* On a touch screen the touch pad holds the lower left, so the prompt moves to the right of it,
+   level with its middle, and never reaches across it. */
+@media (pointer: coarse) {
+    .walk-prompt {
+        left: auto;
+        right: max(1.5rem, env(safe-area-inset-right));
+        bottom: calc(clamp(5rem, 14vh, 8rem) + env(safe-area-inset-bottom) + 2.2rem);
+        max-width: calc(100vw - 7rem - max(1.5rem, env(safe-area-inset-left)) - 3rem);
+        transform: none;
+    }
+}
+
 .walk-prompt kbd {
     display: inline-block;
     min-width: 1.4rem;

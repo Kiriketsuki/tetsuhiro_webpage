@@ -5,7 +5,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
-// A soft ring around the pointer that marks the spot the lens clears (grade-pass.js). The
+// A soft ring around the pointer that marks the lens's second focal point (grade-pass.js). The
 // native cursor stays. The ring shows only with a mouse, only over the open scene, and it
 // fades with the lens through --aerie-lens, so it is gone during a flight between stops. It
 // follows with a short lag and tightens when the pointer rests, like an autofocus bracket.

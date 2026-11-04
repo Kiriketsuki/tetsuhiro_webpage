@@ -17,8 +17,16 @@ const SOUTH_WEST = -Math.PI / 4
 const LOOKOUT = { yaw: 0, pitch: THREE.MathUtils.degToRad(12), distance: 4.5 }
 // The look point sits this high over the feet, about the middle of the kit.
 const LIFT = 0.22
+// The camera keeps this far in front of a wall or room block between it and Kinako, and comes
+// no closer to Kinako than NEAR. It pulls in at once and eases back out.
+const CLEAR = { gap: 0.35, near: 1.2, out: 0.6 }
+// A camera squeezed closer than `tight` for `wait` seconds swings to the nearest 45 degree step
+// with at least `open` metres clear, as on the stair tower or behind the house.
+const SWING = { tight: 2.5, wait: 0.5, open: 5 }
 
-export function createFollow() {
+// reach(look, dir, distance): how far the camera may stand from the look point along dir, from
+// a ray against the collision proxy. It keeps the camera out of the house and the rooms.
+export function createFollow({ reach = null } = {}) {
     const shot = { position: new THREE.Vector3(), target: new THREE.Vector3(), focus: new THREE.Vector3(), fov: 35, shift: [0, 0], tall: [0, 0], zoom: 1, tallZoom: 1 }
     const look = new THREE.Vector3()
     const goal = new THREE.Vector3()
@@ -26,12 +34,38 @@ export function createFollow() {
     const want = { ...view }
     let dragging = false
     let lookout = false
+    const dir = new THREE.Vector3()
+    const probe = new THREE.Vector3()
+    let held = DISTANCE.start
+    let squeezed = 0
 
-    const place = () => {
-        const flat = Math.cos(view.pitch) * view.distance
+    const clearAt = (yaw) => {
+        probe.set(Math.sin(yaw) * Math.cos(view.pitch), Math.sin(view.pitch), Math.cos(yaw) * Math.cos(view.pitch))
+        return reach(look, probe, view.distance)
+    }
+
+    // Swings the camera once it has stayed squeezed for a moment, unless a drag holds it.
+    const swing = (dt) => {
+        if (!reach || dragging || lookout) return
+        squeezed = held < SWING.tight ? squeezed + dt : 0
+        if (squeezed < SWING.wait) return
+        squeezed = 0
+        const base = Math.round(want.yaw / STEP) * STEP
+        for (const k of [1, -1, 2, -2, 3, -3, 4]) {
+            if (clearAt(base + k * STEP) >= Math.min(SWING.open, view.distance)) {
+                want.yaw = base + k * STEP
+                return
+            }
+        }
+    }
+
+    const place = (dt = 0) => {
+        dir.set(Math.sin(view.yaw) * Math.cos(view.pitch), Math.sin(view.pitch), Math.cos(view.yaw) * Math.cos(view.pitch))
+        const free = reach ? Math.max(CLEAR.near, Math.min(view.distance, reach(look, dir, view.distance) - CLEAR.gap)) : view.distance
+        held = free < held || dt === 0 ? free : held + (free - held) * (1 - Math.exp(-dt / CLEAR.out))
         shot.target.copy(look)
         shot.focus.copy(look)
-        shot.position.set(look.x + Math.sin(view.yaw) * flat, look.y + Math.sin(view.pitch) * view.distance, look.z + Math.cos(view.yaw) * flat)
+        shot.position.copy(look).addScaledVector(dir, held)
     }
 
     const snap = (feet) => {
@@ -53,8 +87,9 @@ export function createFollow() {
             if (Math.abs(want[key] - view[key]) > 1e-4) busy = true
             else view[key] = want[key]
         }
-        place()
-        return busy
+        place(reduced ? 0 : dt)
+        swing(dt)
+        return busy || Math.abs(held - view.distance) > 1e-3
     }
 
     const leaveLookout = () => {

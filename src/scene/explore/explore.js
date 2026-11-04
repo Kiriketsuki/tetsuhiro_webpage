@@ -5,6 +5,7 @@ import { createWalkerBody } from './body.js'
 import { createFollow } from './follow.js'
 import { createControls } from './controls.js'
 import { createOverlay } from './overlay.js'
+import { createCutaway } from './cutaway.js'
 
 // Explore on foot: one walk session over the scene manager (docs/island-story-and-explore-spec.md,
 // part 2). src/three.js loads this chunk on the first walk and hands in `story`: the useWalk
@@ -42,10 +43,20 @@ export function createExplore(manager, story) {
     let world = null
     let mover = null
     let body = null
+    let cutaway = null
     let mode = 'off'
     let zone = null
     let lastAt = null
-    const follow = createFollow()
+    // The camera stays on Kinako's side of any wall: a ray from Kinako toward the camera.
+    const ray = new THREE.Ray()
+    const reach = (from, dir, far) => {
+        if (!world) return far
+        ray.origin.copy(from)
+        ray.direction.copy(dir)
+        const hit = world.octree.rayIntersect(ray)
+        return hit && hit.distance < far ? hit.distance : far
+    }
+    const follow = createFollow({ reach })
     const wish = new THREE.Vector3()
     const forward = new THREE.Vector3()
     const right = new THREE.Vector3()
@@ -69,6 +80,7 @@ export function createExplore(manager, story) {
         world = await loadWorld(manager.loaders)
         mover = createMover(world)
         body = createWalkerBody(manager.parts.look.materials[0])
+        cutaway = createCutaway(manager)
         scene.add(body.group, body.shadow)
         body.group.visible = body.shadow.visible = false
         // The shadow disc is the walk's one new program. It compiles before the first walk frame.
@@ -105,6 +117,7 @@ export function createExplore(manager, story) {
         mode = 'visiting'
         controls.enable(false)
         overlay.show(false)
+        cutaway.enable(false)
         visit(action.section)
     }
 
@@ -142,6 +155,7 @@ export function createExplore(manager, story) {
         body.update(dt, feet, travel, mover.onFloor, reduced())
         const easing = follow.update(dt, feet, reduced())
         if (arrived) rig.jump('walk')
+        cutaway.update(feet, Math.min(1, moved / SPEED.walk))
         zone = moved < STOPPED && mover.onFloor ? zoneAt(feet) : null
         const label = zone ? ZONES[zone.id].label : null
         overlay.setPrompt(label)
@@ -179,6 +193,8 @@ export function createExplore(manager, story) {
         controls.enable(true)
         overlay.show(true)
         manager.setWalker(step)
+        // The walk programs compile during the move down to Kinako.
+        cutaway.enable(true).catch((error) => console.error('The cutaway did not compile.', error))
         manager.goTo('walk')
         wake()
     }
@@ -193,6 +209,7 @@ export function createExplore(manager, story) {
         overlay.setPrompt(null)
         overlay.show(false)
         manager.setWalker(null)
+        cutaway?.enable(false)
         if (body) body.group.visible = body.shadow.visible = false
     }
 

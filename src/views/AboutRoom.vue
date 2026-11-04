@@ -1,5 +1,5 @@
 <template>
-    <main class="about-room">
+    <main class="about-room" :class="{ waiting: !arrived }">
         <!-- Under the controls: a drag turns the view, a tap opens the lit thing under it. -->
         <div
             v-if="live"
@@ -92,6 +92,7 @@ import RoomNote from '../components/RoomNote.vue'
 import { facts, points, socials } from '../data/room.js'
 import { useRoom } from '../composables/useRoom.js'
 import { homeAt, useWaypoints } from '../composables/useWaypoints.js'
+import { useArrival } from '../composables/useTravel.js'
 
 // /about is the bedroom on the top floor. The camera walks in through the balcony door
 // (scene/aerie/room.js), the visitor looks round, and each lit thing opens one part of the
@@ -107,6 +108,8 @@ const FLIP = 190
 
 const router = useRouter()
 const room = useRoom()
+// The page waits for the camera to walk in through the balcony door.
+const arrived = useArrival()
 const { loadError } = useWaypoints()
 const live = computed(() => room.shown.value)
 const failed = computed(() => Boolean(loadError.value))
@@ -223,6 +226,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.about-room {
+    transition: opacity 0.6s ease;
+}
+
+/* The page waits while the camera moves into the view, then fades in (useArrival). */
+.waiting {
+    visibility: hidden;
+    opacity: 0;
+}
+
 /* Covers the scene, so a drag turns the view instead of scrolling the page. */
 .room-pad {
     position: fixed;

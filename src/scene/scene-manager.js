@@ -86,7 +86,9 @@ const SKY_FONTS = ['30px "JetBrains Mono"', 'italic 42px "Instrument Serif"']
 // optional function that returns the element that reads --aerie-lens. Without it, or while it
 // returns null, the value goes on the root element. wall: true when the first view is the
 // evidence wall, so `ready` waits for it.
-export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, start = 'overview', wall = false, hooks = {}, lensTarget = null }) {
+// onSettle(stop) hears where the camera rests: a stop id, or null while a move between stops, the
+// eyepiece or the board move runs. The 2D pages show their words only at rest.
+export function createSceneManager({ canvas, reducedMotion = false, lod = null, tier = null, onProgress = () => {}, onSettle = () => {}, start = 'overview', wall = false, hooks = {}, lensTarget = null }) {
     const small = isSmallScreen()
     const useLod = lod ?? aerieLod()
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' })
@@ -434,6 +436,17 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // Reduced motion draws single frames, apart from the lamp switch, which needs every frame.
     const running = () => state.ready && state.wanted && !state.hidden && !state.lost && (!state.reduced || Boolean(boardMove))
 
+    // The stop the camera rests at, or null while it travels. reportSettle tells onSettle of a
+    // change, once a frame and after each move asked for.
+    const settledNow = () => (rig.moveDuration > 0 || scope || boardMove ? null : rig.current)
+    let settledAt
+    const reportSettle = () => {
+        const at = settledNow()
+        if (at === settledAt) return
+        settledAt = at
+        onSettle(at)
+    }
+
     // One frame on the next animation frame, for reduced motion and single changes.
     let pending = false
     const requestRender = () => {
@@ -445,6 +458,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             rig.update(0)
             if (view === 'wall') parts.wall.update(0)
             render()
+            reportSettle()
         })
     }
 
@@ -460,6 +474,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const walking = walker?.(delta) ?? false
         rig.update(delta)
         const effects = advanceEffects(delta)
+        reportSettle()
         // The wall has nothing that twinkles, so its frames draw only when something moves.
         const tickAmbient = !state.reduced && view !== 'wall' && ambientFps > 0 && ambient >= 1 / ambientFps
         if (!rig.moving && !effects && !state.dirty && !tickAmbient && !walking) return
@@ -785,7 +800,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const time = rig.moveDuration
             fade = id === 'bedroom' && time > 0 && from !== 'bedroom' ? { t: 0, duration: time } : null
             pipeline.grade.uniforms.uFade.value = 0
+            reportSettle()
             requestRender()
+        },
+        // The stop the camera rests at now, or null while it travels.
+        get settled() {
+            return settledNow()
         },
         // 0 stops the ambient clock: frames then draw only for camera moves and requests.
         setAmbientFps: (fps) => {

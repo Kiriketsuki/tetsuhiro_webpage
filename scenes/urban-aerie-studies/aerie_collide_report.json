@@ -34,14 +34,15 @@
     "width": 0.71
   },
   "fence_quads": 179,
+  "water_fence_quads": 18,
   "slice_quads": 1311,
   "before_decimate": {
-    "floors": 6290,
+    "floors": 6310,
     "walls": 2194,
-    "solids": 1134
+    "solids": 1170
   },
   "after_decimate": {
-    "floors": 2578,
+    "floors": 2514,
     "walls": 2194
   },
   "triangles": 5920,
@@ -54,7 +55,7 @@
     "Lookout": true,
     "Upper_Terrace": true
   },
-  "reach_cells": 10121,
+  "reach_cells": 9487,
   "rooms_closed": {
     "inside_workshop": true,
     "inside_lounge": true,
@@ -72,7 +73,7 @@
     "Zone_Workshop": [
       -4.75,
       -1.15,
-      0.874,
+      0.931,
       0.9,
       0.9,
       1.0
@@ -96,7 +97,7 @@
     "Zone_Campfire": [
       1.75,
       8.5,
-      0.376,
+      0.377,
       1.8,
       1.8,
       1.0
@@ -134,8 +135,8 @@
       0.3
     ]
   },
-  "raw_bytes": 114076,
+  "raw_bytes": 114124,
   "compress": {
-    "bytes": 26972
+    "bytes": 27044
   }
 }

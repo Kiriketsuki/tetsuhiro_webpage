@@ -10,8 +10,8 @@
                         <span ref="first" class="hero-word" aria-hidden="true">Jovian</span>
                         <p class="hero-role">software engineer in singapore</p>
                         <p class="hero-chapter">01 / arrival &middot; 1&deg;17&prime;N 103&deg;51&prime;E</p>
-                        <button type="button" class="action hero-scene" @click="sceneOnly = true">
-                            just the aerie
+                        <button v-if="canWalk" type="button" class="action hero-scene" @click="startWalk('welcome')">
+                            explore on foot
                         </button>
                     </div>
                     <div class="flex flex-row-reverse">
@@ -32,8 +32,8 @@
                 <Contact />
             </section>
         </div>
-        <button v-if="sceneOnly" type="button" class="action view-back" @click="sceneOnly = false">
-            bring the words back
+        <button v-if="visiting !== null" type="button" class="action view-back" @click="resumeWalk">
+            back to walking
         </button>
         <ExplorePad v-if="exploring" />
     </div>
@@ -51,6 +51,7 @@ import Contact from '../components/Contact.vue'
 import ExplorePad from '../components/ExplorePad.vue'
 import { useWaypoints, sections, takeLanding } from '../composables/useWaypoints.js'
 import { useExplore } from '../composables/useExplore.js'
+import { useWalk } from '../composables/useWalk.js'
 import { useScramble } from '../composables/useScramble.js'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -65,11 +66,11 @@ const touch = window.matchMedia('(pointer: coarse)').matches
 
 const { active, reducedMotion, entered, setActive, goTo } = useWaypoints()
 const { scramble } = useScramble()
-const sceneOnly = ref(false)
 const { exploring, looking } = useExplore()
-// Both modes hide the words and leave the aerie on its own. The words also wait while the
-// iris of the telescope move runs.
-const wordsHidden = computed(() => sceneOnly.value || exploring.value || looking.value)
+const { available: canWalk, walking, visiting, start: startWalk, resume: resumeWalk } = useWalk()
+// The look-around and the walk hide the words and leave the aerie on its own. A zone card on
+// the walk brings its section back. The words also wait while the iris of the telescope move runs.
+const wordsHidden = computed(() => exploring.value || looking.value || (walking.value && visiting.value === null))
 // The gate only shows on the first visit. Coming back from /projects skips it.
 const showGate = ref(!entered.value)
 
@@ -95,7 +96,7 @@ const showSection = (index) => {
 }
 
 const onKey = (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return
+    if (e.ctrlKey || e.metaKey || e.altKey || walking.value) return
     if (e.target.closest('input, textarea, select')) return
     const number = Number(e.key)
     if (number >= 1 && number <= sections.length) goTo(number - 1)

@@ -29,21 +29,17 @@
     <meta name="twitter:card" content="summary" />
     <title>Jovian Lim</title>
     <!--
-      The gate: a paper lantern on an autumn branch under the night sky, with Kinako asleep on
-      the branch. It lives here, not in the app bundle, so it paints before the JS arrives and
+      The gate: a paper lantern on an autumn branch under the night sky. It lives here, not in the app bundle, so it paints before the JS arrives and
       costs nothing against the shell budgets. The lantern, the branch and the leaves are frames
-      from lab/gate-lantern.html, and Kinako's frames come from lab/gate-kinako.html, drawn with
-      the aerie's own toon material, ink and lens, so they match the aerie.
-      - The first paint shows the whole picture at once: a small soft copy of it (.ga-first,
-        from scripts/gate-kinako.py) sits under the sharp layers. The script at the end of the
+      from lab/gate-lantern.html, drawn with the aerie's own toon material, ink and lens, so they
+      match the aerie. Kinako stays out of the gate for now and walks only in the aerie.
+      - The first paint shows the whole picture at once: a small soft copy of it (.ga-first) sits under the sharp layers. The script at the end of the
         body fades the sharp layers in once their files decode, so no layer pops in alone.
-      - The lamp lights, autumn spreads along the branch and Kinako warms in the lamp light as
-        the load grows: the ga-dawn animations creep from the first paint, then
+      - The lamp lights and autumn spreads along the branch as the load grows: the ga-dawn animations creep from the first paint, then
         src/components/gate-meter.js plays the load share on the same layers.
-      - When the load is done, Name.vue walks Kinako down onto the way in (.ga-walker). When
-        the visitor goes in, Kinako trots on ahead, the lamp light washes the view into the
-        aerie, and Name.vue hides the art. The nav lantern brings it back.
-      Every motion here, the meter and the walk too, is a transform or an opacity, so the
+      - When the visitor goes in, the lamp light washes the view into the aerie, and Name.vue
+        hides the art. The nav lantern brings it back.
+      Every motion here, the meter too, is a transform or an opacity, so the
       compositor keeps it smooth while the main thread builds the scene. Colours are hex, and
       the fonts are named here, because the token CSS loads with the bundle and does not hold
       up the first paint.
@@ -126,7 +122,7 @@
       }
       /* The soft first paint copy of the unlit art. It hides once the sharp layers are in. */
       .ga-first {
-        background-image: url(data:image/webp;base64,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);
+        background-image: url(data:image/webp;base64,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);
       }
       #gate-art.is-sharp .ga-first {
         opacity: 0;
@@ -152,66 +148,11 @@
       #gate-art.is-autumn .ga-autumn-in {
         opacity: 1;
       }
-      /* Kinako sleeps on the branch, left of the hook. The frame box and its place come from
-         scripts/gate-kinako.py (KINAKO_BOX). Frame 0 of the nap sheet is the moonlit nap, and
-         frame 1 the same nap in the lamp light, which the meter fades in with the lamp. */
-      .ga-kinako {
-        left: -6%;
-        top: -22.85%;
-        width: 47.7%;
-        aspect-ratio: 440 / 298;
-      }
-      #gate-art.is-open .ga-kinako {
-        opacity: 0;
-        transition: opacity 1.2s 0.5s;
-      }
-      /* A slow breath. It only stretches the curl up from the paws, so the frame stays crisp. */
-      .ga-k-breath {
-        position: absolute;
-        inset: 0;
-        transform-origin: 66% 96%;
-        animation: ga-breath 3.2s ease-in-out infinite alternate;
-      }
-      .ga-k-frame {
-        position: absolute;
-        inset: 0;
-        background: 0 0 / 200% 100% no-repeat;
-      }
-      .ga-k-lit {
-        background-position: 100% 0;
-        opacity: 0;
-        animation: ga-dawn-lit 24s linear forwards;
-      }
       /* The night grows darker at the top and the bottom, so the title and the way in read. */
       .ga-scrim {
         inset: 0;
         background: linear-gradient(#020812cc, transparent 32% 64%, #020812dd);
         pointer-events: none;
-      }
-      /* Kinako's walk in. Name.vue sizes the box to the nap box, then moves it with one
-         transform and steps the window along the frame row with another. The row loads only
-         when Name.vue asks for it (has-walk), after the aerie has downloaded. */
-      .ga-walker {
-        left: 0;
-        top: 0;
-        opacity: 0;
-        pointer-events: none;
-      }
-      .ga-w-window {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-      }
-      .ga-w-row {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 1400%;
-        height: 100%;
-        background: 0 0 / 100% 100% no-repeat;
-      }
-      #gate-art.has-walk .ga-w-row {
-        background-image: url(/gate/kinako-walk.webp);
       }
       /* Each layer takes its file only once the script at the end of the body has loaded and
          decoded it. A background image on a painted element loads at the first paint, even at
@@ -221,9 +162,6 @@
       }
       #gate-art.is-sharp .ga-paper {
         background-image: url(/gate/lantern-s0.webp);
-      }
-      #gate-art.is-sharp .ga-k-frame {
-        background-image: url(/gate/kinako-nap.webp);
       }
       #gate-art.is-lamp .ga-lit {
         background-image: url(/gate/lantern-s1.webp);
@@ -235,27 +173,32 @@
       #gate-art.has-leaves .ga-drift {
         background-image: url(/gate/sprites-s1.webp);
       }
-      /* Autumn spreads along the branch from left to right as the load grows. A window with a
-         soft right edge slides right over the autumn branch, and the branch slides left inside
-         it by as much, so the branch holds still. At share p the window sits at
-         translateX((p - 1) * 100%) and the branch at translateX((1 - p) * 130%). Both are
-         transforms, so the compositor runs them. The window is 130% wide and its last 30%
-         is the soft edge. */
+      /* Autumn spreads along the branch from left to right as the load grows. Four copies of
+         the autumn branch lie over the green one, and none of them moves. Each copy has a fixed
+         mask with a soft right edge that reaches further than the last, and the last copy has
+         no mask. Name.vue fades the copies in one after the other, so the autumn front sweeps
+         right with a soft edge. A sliding window with the branch sliding back inside it drifted
+         apart in Firefox on a busy main thread and showed a second branch. Strips with hard
+         edges showed bands. */
       .ga-reveal {
         position: absolute;
-        inset: 0 auto 0 0;
-        width: 130%;
-        overflow: hidden;
-        -webkit-mask: linear-gradient(90deg, #000 76.92%, transparent);
-        mask: linear-gradient(90deg, #000 76.92%, transparent);
-        transform: translateX(-100%);
-        animation: ga-dawn-reveal 24s linear forwards;
+        inset: 0;
       }
       .ga-autumn {
-        right: auto;
-        width: 76.92%;
-        transform: translateX(130%);
+        opacity: 0;
+      }
+      .ga-autumn.a0 {
+        -webkit-mask: linear-gradient(90deg, #000 10%, transparent 45%);
+        mask: linear-gradient(90deg, #000 10%, transparent 45%);
         animation: ga-dawn-autumn 24s linear forwards;
+      }
+      .ga-autumn.a1 {
+        -webkit-mask: linear-gradient(90deg, #000 35%, transparent 70%);
+        mask: linear-gradient(90deg, #000 35%, transparent 70%);
+      }
+      .ga-autumn.a2 {
+        -webkit-mask: linear-gradient(90deg, #000 60%, transparent 95%);
+        mask: linear-gradient(90deg, #000 60%, transparent 95%);
       }
       /* Name.vue swings .ga-nudge on a hover or a tap. At rest the lantern and the branch hold
          still: a turned layer is resampled on every frame, and that softens the ribs and the
@@ -358,24 +301,15 @@
         70% { opacity: 0.15; }
         100% { opacity: 0.16; }
       }
-      @keyframes ga-dawn-reveal {
-        0% { transform: translateX(-100%); }
-        8% { transform: translateX(-95%); }
-        20% { transform: translateX(-91%); }
-        40% { transform: translateX(-88%); }
-        70% { transform: translateX(-85%); }
-        100% { transform: translateX(-84%); }
-      }
+      /* The first autumn copy at the dawn shares. It fades in over shares 0 to 0.3, and the
+         other copies start past the dawn. */
       @keyframes ga-dawn-autumn {
-        0% { transform: translateX(130%); }
-        8% { transform: translateX(123.5%); }
-        20% { transform: translateX(118.3%); }
-        40% { transform: translateX(114.4%); }
-        70% { transform: translateX(110.5%); }
-        100% { transform: translateX(109.2%); }
-      }
-      @keyframes ga-breath {
-        to { transform: scaleY(1.025); }
+        0% { opacity: 0; }
+        8% { opacity: 0.167; }
+        20% { opacity: 0.3; }
+        40% { opacity: 0.4; }
+        70% { opacity: 0.5; }
+        100% { opacity: 0.533; }
       }
       @keyframes ga-twinkle {
         50% { opacity: 0.25; }
@@ -564,12 +498,6 @@
       .gate-readout.has-error > span {
         white-space: normal;
       }
-      /* Kinako trots along the top of the way in and sits on it, in front of the lit line, so
-         the line gives way once Kinako sets off. */
-      .gate.is-ready.has-kinako .gate-readout {
-        opacity: 0;
-        transition: opacity 0.4s 0.9s;
-      }
       .gate-readout b {
         margin-left: 0.5rem;
         font: italic 400 1.5rem/1 var(--font-display);
@@ -579,11 +507,13 @@
       }
       /* The count is a drum of the numbers 0 to 100 behind a window one number high. The gate
          meter rolls the drum with a transform, so the count runs on while the main thread is
-         busy. */
+         busy. Each number sits in a row 1.5em high, so the italic digits of the next number
+         stay out of the window. With rows 1em high, Firefox showed a sliver of them. */
       .gate-count {
         display: inline-block;
         width: 1.7em;
-        height: 1em;
+        height: 1.5em;
+        margin-block: -0.25em;
         padding-right: 0.08em;
         overflow: hidden;
         text-align: right;
@@ -596,7 +526,8 @@
       }
       .gate-count i {
         display: block;
-        height: 1em;
+        height: 1.5em;
+        line-height: 1.5em;
         font-style: inherit;
       }
       /* The way in is a pane of night glass in a brass ring with two 12px chamfers
@@ -729,18 +660,12 @@
         <i class="ga-glow ga-fades"></i>
         <div class="ga-layer ga-fades">
           <i class="ga-img ga-branch ga-sharp"></i>
-          <div class="ga-reveal ga-autumn-in"><i class="ga-img ga-autumn"></i></div>
+          <div class="ga-reveal ga-autumn-in"><i class="ga-img ga-autumn a0"></i><i class="ga-img ga-autumn a1"></i><i class="ga-img ga-autumn a2"></i><i class="ga-img ga-autumn a3"></i></div>
         </div>
         <div class="ga-nudge ga-fades">
           <div class="ga-lantern">
             <i class="ga-img ga-paper ga-sharp"></i>
             <div class="ga-layer ga-lamp"><i class="ga-img ga-paper ga-lit"></i></div>
-          </div>
-        </div>
-        <div class="ga-kinako ga-sharp">
-          <div class="ga-k-breath">
-            <i class="ga-k-frame"></i>
-            <i class="ga-k-frame ga-k-lit"></i>
           </div>
         </div>
         <i class="ga-drift" style="--x:17.9%;--y:11.9%;--s:2;--r:40deg;--t:13s;--d:-4s"></i>
@@ -767,7 +692,6 @@
         </span>
         <span class="gate-role">software engineer &middot; singapore</span>
       </div>
-      <div class="ga-walker"><div class="ga-w-window"><i class="ga-w-row"></i></div></div>
     </div>
     <!-- The gate shows on a first visit to the home page. On any other page the art waits,
          hidden and not downloaded, for the nav lantern, and Name.vue calls load() then. Each
@@ -788,7 +712,7 @@
             image.src = '/gate/' + name + '.webp'
             return image.decode()
           })).then(() => art.classList.add(flag), () => art.classList.add(flag))
-        loading ??= set(['branch-s0', 'lantern-s0', 'kinako-nap'], 'is-sharp')
+        loading ??= set(['branch-s0', 'lantern-s0'], 'is-sharp')
           .then(() => set(['lantern-s1'], 'is-lamp'))
           .then(() => Promise.all([set(['branch-s1'], 'is-autumn'), set(['sprites-s1'], 'has-leaves')]))
         return loading

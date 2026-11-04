@@ -2,7 +2,7 @@
     <div
         ref="gate"
         class="gate"
-        :class="{ 'is-ready': full, 'has-kinako': walking }"
+        :class="{ 'is-ready': full }"
         role="dialog"
         aria-modal="true"
         aria-labelledby="gate-name"
@@ -63,7 +63,6 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import gsap from 'gsap'
 import { useWaypoints } from '../composables/useWaypoints.js'
 import { createGateMeter } from './gate-meter.js'
-import { createKinakoWalk } from './gate-kinako.js'
 
 const emit = defineEmits(['lifted'])
 const { ready, progress, entered, loadError, reducedMotion } = useWaypoints()
@@ -77,8 +76,6 @@ const enter = ref(null)
 const drum = ref(null)
 // True once the meter shows the load done. The lamp is lit and the way in opens.
 const full = ref(false)
-// True once Kinako sets off on the walk in.
-const walking = ref(false)
 
 // The share of the meter that the fonts and the next pages take. The scene, the wall and
 // the camera planner take the rest (src/three.js).
@@ -94,7 +91,6 @@ const DOWNLOADED = 0.37
 const VISIT_WAIT_MS = 8000
 let visitShare = 0
 let visitLoaded = null
-const kinako = createKinakoWalk(art)
 const preloadVisit = () => {
     const loads = [
         ...[...document.fonts].map((face) => face.load()),
@@ -104,9 +100,6 @@ const preloadVisit = () => {
         // The logos on the skill sky cards, which otherwise load when the first card opens.
         import('../data/skill-icons.js'),
     ].map((load) => load.catch(() => {}))
-    // Kinako's walk in loads with the next pages, but the way in does not wait for it. It is a
-    // greeting, and on slow 3G it held the way in by about 1.5 s.
-    kinako.load()
     let left = loads.length
     loads.forEach((load) =>
         load.then(() => {
@@ -117,17 +110,25 @@ const preloadVisit = () => {
     return Promise.race([Promise.all(loads), new Promise((resolve) => setTimeout(resolve, VISIT_WAIT_MS))])
 }
 
-// Each layer's look at share p. Every one is linear in p, so the meter plays one curve on all
-// of them. The drum holds 101 numbers, so share p shows the number 100p in the window.
+// The autumn copies in index.html (.ga-autumn): the share each one takes to fade in, and the
+// share between the starts of two copies. The four copies end at 3 * step + fade = 1.
+const AUTUMN = { fade: 0.3, step: 0.7 / 3 }
+
+// Each layer's look at share p. The meter samples each look at its keyframes, so a look may
+// bend, as the autumn copies do where they start and end. The drum holds 101 numbers, so
+// share p shows the number 100p in the window.
 let meter = null
 const tracks = () => {
     const pick = (selector) => art?.querySelector(selector) ?? null
     return [
         { el: pick('.ga-paper.ga-lit'), frame: (p) => ({ opacity: p }) },
         { el: pick('.ga-glow'), frame: (p) => ({ opacity: p }) },
-        { el: pick('.ga-reveal'), frame: (p) => ({ transform: `translateX(${(p - 1) * 100}%)` }) },
-        { el: pick('.ga-autumn'), frame: (p) => ({ transform: `translateX(${(1 - p) * 130}%)` }) },
-        { el: pick('.ga-k-lit'), frame: (p) => ({ opacity: p }) },
+        // The autumn copies in index.html. Each fades in over AUTUMN.fade of the share, the next
+        // one a step later, and the last one is full at share 1.
+        ...[...(art?.querySelectorAll('.ga-autumn') ?? [])].map((el, i) => ({
+            el,
+            frame: (p) => ({ opacity: Math.min(1, Math.max(0, (p - i * AUTUMN.step) / AUTUMN.fade)) }),
+        })),
         { el: pick('.ga-title .is-lit'), frame: (p) => ({ opacity: p }) },
         // The count shows whole numbers only, so it never shows two halves mid-roll.
         { el: drum.value, frame: (p) => ({ transform: `translateY(${(-100 * 100 * p) / 101}%)` }), steps: 100 },
@@ -221,9 +222,6 @@ watch(full, async (value) => {
     art?.classList.add('is-lit')
     await nextTick()
     enter.value?.focus({ preventScroll: true })
-    // Kinako wakes and walks down onto the way in. The button already works. After a failed load
-    // Kinako sleeps on, so the error stays in view.
-    if (!entered.value && enter.value && !loadError.value) kinako.walkIn(enter.value, reducedMotion.value, () => (walking.value = true))
 })
 
 // A second greeting, from the nav lantern, finds the art hidden and fades it back in.
@@ -234,12 +232,10 @@ onMounted(() => {
         art.hidden = false
         // A visit that started on another page has not loaded the art files yet.
         if (!art.classList.contains('is-sharp')) art.load?.()
-        kinako.reset()
         art.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reducedMotion.value ? 0 : 700 })
     }
     place()
     window.addEventListener('resize', place)
-    window.addEventListener('resize', onResize)
     // The meter goes on from the dawn in index.html. A second greeting shows it full at once.
     meter = createGateMeter(tracks(), art?.querySelector('.ga-paper.ga-lit'))
     if (ready.value) {
@@ -252,14 +248,8 @@ onMounted(() => {
     refresh = setInterval(plan, PLAN_MS.max)
 })
 
-// A resize moves the button, so a Kinako that sits on it moves along.
-const onResize = () => {
-    if (enter.value) kinako.settle(enter.value)
-}
-
 onBeforeUnmount(() => {
     window.removeEventListener('resize', place)
-    window.removeEventListener('resize', onResize)
     clearTimeout(planTimer)
     clearInterval(refresh)
     meter?.stop()
@@ -270,8 +260,6 @@ const lift = () => {
     if (!full.value || entered.value) return
     entered.value = true
     art?.classList.add('is-open')
-    // Kinako trots on ahead into the light.
-    kinako.walkOut(reducedMotion.value)
     gsap.to(gate.value, { autoAlpha: 0, duration: reducedMotion.value ? 0.3 : 0.8, ease: 'power2.in' })
     setTimeout(
         () => {

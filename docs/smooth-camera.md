@@ -272,11 +272,13 @@ the tower turns at 24 degrees/s, against 53 before.
 - A take-over on a slow phone plans for up to 26 ms in its first frame.
 - The back button from `/projects` still flies to the pad (corkboard work).
 
-## Fourth pass: the hero shot and the bridge walk (3 November 2026, late)
+## Fourth pass: the hero shot and the bridge walk (3 and 4 November 2026)
 
 The owner: "welcome to projects doesnt have a nice following from the heli pad over the bridge
 feel anymore. and we no longer have a hero shot where we see the building and island and river
-and water fall. and my CTA is a bit weird when the screen is so wide".
+and water fall. and my CTA is a bit weird when the screen is so wide". On 4 November the owner
+approved the hero framing, asked for a shorter walk, and asked for the phone telescope fix in
+the same PR.
 
 ### What changed
 
@@ -286,56 +288,64 @@ and water fall. and my CTA is a bit weird when the screen is so wide".
    behind. The old shot east of the pad cropped the tower, the pad and the trees on a wide
    screen. A portrait phone stands further back on the same line. The lens focuses on the
    bridge.
-2. **Hero words.** The chapter readout and "just the aerie" sit under "Lim", flush with its right
-   edge, and the role line sits under "Jovian". The column cap grows with the screen height
-   (`max(92rem, 170svh)`), as the aerie does, so "Lim" stays clear of the rock at 2560x1080.
+2. **Hero words.** The chapter readout and the action ("explore on foot" since the walker
+   landed) sit under "Lim", flush with its right edge, and the role line sits under "Jovian".
+   The column cap grows with the screen height (`max(92rem, 170svh)`), as the aerie does, so
+   "Lim" stays clear of the rock at 2560x1080.
 3. **Story walk.** `src/data/walks.js` holds guide frames for `arrival>workshop`: a camera point,
    a look point and a slow-down. The planner flies frame to frame and keeps 2 m from every
    surface (`GUIDE_CLEAR`). The camera comes down behind the pad, then tracks west about 3 m
-   above the walkway on its south side, past the bridge, to the workshop door. It runs at a third
-   of its cruise on the walkway. A move the other way plays the frames backward. A move that
-   takes over does not follow a walk.
+   above the walkway on its south side, past the bridge, to the workshop door. It runs 2.4
+   times under its cruise on the walkway. A move the other way plays the frames backward. A
+   move that takes over does not follow a walk.
 4. **Walk into the board.** A move between `arrival` and `board` takes the same walk, then the
    doorway frames. From the new hero it met the door axis at 28 m/s and peaked at 206 m/s2.
-5. **Walk time.** A walk move takes its time from its pace with the slow-down, up to 6 s.
-
-6. **Out of the star chart.** The owner found the move out of the sky too fast. #47 lands the
-   exit on the Skills section, so the long flight to the pad is gone. The exit itself now has
-   its own times (`SCOPE.out` in `scene-manager.js`): the iris closes in 0.7 s, not 0.5 s, and
-   opens in 1.1 s, not 0.8 s. The camera pulls back from the eyepiece in 2.8 s, not 1.9 s. The
-   way in keeps its times. At 1440x900 the exit takes 3.5 s, not 2.3 s. Peak speed falls from
-   5.3 to 3.6 m/s, peak acceleration from 16 to 7 m/s2 and peak turn from 49 to 33 deg/s.
+5. **Walk time.** A walk takes its time from its pace with the slow-down, up to 5 s, and 1 s
+   more through a doorway. The first version took 6 s, which the owner found too long. A cap
+   under 5 s only sped the camera up on the walkway.
+6. **Out of the star chart.** #47 lands the exit on the Skills section, so the long flight to
+   the pad is gone. The exit itself now has its own times (`SCOPE.out` in `scene-manager.js`):
+   the iris closes in 0.7 s, not 0.5 s, and opens in 1.1 s, not 0.8 s. The camera pulls back
+   from the eyepiece in 2.8 s, not 1.9 s. The way in keeps its times. At 1440x900 the exit takes
+   3.5 s, not 2.3 s. Peak speed falls from 5.3 to 3.6 m/s and peak turn from 49 to 33 deg/s.
+7. **Bends.** Every move now slows where its path bends, so the sideways acceleration at cruise
+   stays under 60 m/s2 (`BEND` in `camera-move.js`). A pass forward and a pass back then cap the
+   change of speed at 40 m/s2 along the path, so the camera brakes before a bend and speeds up
+   after it. A move that a time cap holds short is shaped again at the speed it reaches. On a
+   phone the flights into and out of the telescope view bend round the house corner at about
+   1.5 m radius. On master they took that bend at 11 to 17 m/s, up to 212 m/s2.
 
 ### Measurements
 
 The 30 moves between the six stops, stepped at 1/120 s. Mesh crossings use the same mesh set as
 the second pass.
 
-| Move | Desktop 1440x900 | Phone 390x844 |
-|---|---|---|
-| arrival>workshop | 6.0 s, 75 m/s2, 45 deg/s, 1 peak, 0 crossings | 6.0 s, 76 m/s2, 47 deg/s, 1 peak, 0 crossings |
-| workshop>arrival | 6.0 s, 72 m/s2, 47 deg/s, 1 peak, 0 crossings | 6.0 s, 77 m/s2, 49 deg/s, 1 peak, 0 crossings |
-| arrival>board | 6.0 s, 93 m/s2, 58 deg/s, 2 peaks, 0 crossings | 6.0 s, 107 m/s2, 51 deg/s, 2 peaks, 0 crossings |
-| board>arrival | 6.0 s, 91 m/s2, 58 deg/s, 2 peaks, 0 crossings | 6.0 s, 104 m/s2, 52 deg/s, 2 peaks, 0 crossings |
+| Worst case, all 30 moves | Master (third pass) | This branch, desktop 1440x900 | This branch, phone 390x844 |
+|---|---|---|---|
+| Mesh crossings | 0 | 0 | 0 |
+| Peak turn | 58 deg/s | 56 deg/s | 59 deg/s |
+| Peak acceleration | 136 m/s2 desktop, 212 m/s2 phone | 82 m/s2 | 132 m/s2 (telescope>campfire) |
+| Longest move | 4.4 s | 6 s (arrival and board, through the door) | 6 s |
 
-| Worst case, all 30 moves | Desktop | Phone |
+| Move | Desktop | Phone |
 |---|---|---|
-| Mesh crossings | 0 | 0 |
-| Peak turn | 59 deg/s | 58 deg/s |
-| Peak acceleration | 113 m/s2 (telescope>board) | 298 m/s2 (telescope>arrival) |
+| arrival>workshop | 5.0 s, 70 m/s2, 52 deg/s, 1 peak | 5.0 s, 82 m/s2, 48 deg/s, 2 peaks |
+| workshop>arrival | 5.0 s, 70 m/s2, 53 deg/s, 1 peak | 5.0 s, 84 m/s2, 48 deg/s, 2 peaks |
+| arrival>board | 6.0 s, 68 m/s2, 55 deg/s, 2 peaks | 6.0 s, 76 m/s2, 59 deg/s, 3 peaks |
+| board>arrival | 6.0 s, 78 m/s2, 55 deg/s, 3 peaks | 6.0 s, 76 m/s2, 59 deg/s, 2 peaks |
+| telescope>arrival | 3.7 s, 64 m/s2 | 3.9 s, 83 m/s2 |
+| arrival>telescope | 4.0 s, 48 m/s2 | 4.2 s, 71 m/s2 |
 
-- The walk speed along the walkway is 13 to 14 m/s at 1440x900. The walk from the pad to the
-  porch takes about 2 s of the 6 s move.
+- The walkway speed is about 19 m/s at 1440x900. The walk from the pad to the porch takes
+  about 1.5 s of the 5 s move.
 - The least clearance on the walk is 1.6 m, at the workshop shot itself.
-- Real wheel input at 1440x900, pad to workshop: 1 speed peak on screen, a peak turn of 45
-  deg/s, no rig step off the frame time, no stall, no console error.
+- Real wheel and touch input, pad to workshop, at desktop and at phone with 4x CPU throttle: no
+  rig step off the frame time, no stall, no console error, peak turn 52 and 48 deg/s. The
+  screen shows 1 speed peak on desktop and 2 on the phone.
 
 ### Left open
 
-- On a phone, flights into and out of the telescope view end with a hook round the house corner
-  at x -12.3. On master the same hook gives 140 to 212 m/s2 on five phone moves. The new hero is
-  further out, so `arrival>telescope` rises from 129 to 223 m/s2 and `telescope>arrival` from
-  192 to 298 m/s2. A planner fix for that hook is a separate change.
-- A walk move takes 6 s, against 4.4 s for the longest other move.
+- On a phone the walk shows 2 speed peaks: the camera brakes for the bend behind the pad, then
+  holds the walkway speed. The phone hero stands further out, so the descent is faster there.
 - The gate lift from `overview` to `arrival` is now a short dolly in, since both shots look at
   the whole aerie from the south-east.

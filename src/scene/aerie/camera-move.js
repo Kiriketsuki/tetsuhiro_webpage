@@ -40,6 +40,14 @@ const DOOR_ZONE = { near: 2.5, far: 9 }
 // up to 140 degrees a second at the end of the leg from the pad to the workshop.
 const TURN_METRES = [6, 9, 13, 18, 26, 38]
 const TURN_RATE = 1.05
+// Where the path bends, the camera slows so that its sideways acceleration at cruise speed
+// stays under BEND.lateral m/s2: a bend of radius r allows sqrt(lateral * r) m/s. The bend
+// counts over BEND.span metres each way. Every slow-down (bends, doors and walks) then changes
+// the cruise speed by at most BEND.brake m/s2 along the path, in a pass each way, so the camera
+// brakes before a bend and speeds up after it with no surge. On a phone the flights into the
+// telescope view bend hard round the house corner: the camera took that bend at 12 to 17 m/s
+// and reached up to 298 m/s2.
+const BEND = { lateral: 60, span: 1.5, brake: 40 }
 // Samples of that pace for each spline segment.
 const PACE_SAMPLES = 64
 // A move takes MOVE_TIME.base seconds plus one second for each MOVE_TIME.speed metres of pace,
@@ -47,8 +55,9 @@ const PACE_SAMPLES = 64
 // and a short move never crawls. A move whose view turns a long way (TURN_METRES), or that
 // passes a doorway (DOOR_SLOW), may take up to MOVE_TIME.turn seconds.
 // A move along a story walk (walkFlight) takes its time from its pace with the walk's
-// slow-down, up to MOVE_TIME.walk seconds.
-const MOVE_TIME = { base: 1.2, speed: 12, min: 1.8, max: 3.6, turn: 4.4, walk: 6 }
+// slow-down, up to MOVE_TIME.walk seconds, and MOVE_TIME.door seconds more through a doorway.
+// The owner found a 6 s walk too long. A cap under 5 s only sped the camera up on the walkway.
+const MOVE_TIME = { base: 1.2, speed: 12, min: 1.8, max: 3.6, turn: 4.4, walk: 5, door: 1 }
 // The speed curve: the camera speeds up over the first RAMP.in of the move, cruises, and
 // slows over the last RAMP.out. The slow-down is the longer one, so the camera settles.
 const RAMP = { in: 0.35, out: 0.4 }
@@ -265,6 +274,11 @@ export function createMove({ position, target, shot, duration = null, field = nu
     const view = looks[0].clone().sub(cam)
     const nextCam = new THREE.Vector3()
     const nextView = new THREE.Vector3()
+    // The distance flown and the bend of the path in radians, both running totals.
+    const flown = new Float32Array(count + 1)
+    const bent = new Float32Array(count + 1)
+    const stepNow = new THREE.Vector3()
+    const stepBefore = new THREE.Vector3()
     let plainPace = 0
     for (let k = 1; k <= count; k += 1) {
         const p = k / PACE_SAMPLES
@@ -273,6 +287,10 @@ export function createMove({ position, target, shot, duration = null, field = nu
         metres[k] = nextCam.distanceTo(cam)
         turns[k] = nextView.angleTo(view)
         plainPace += Math.hypot(metres[k], TURN_METRES[0] * turns[k])
+        stepNow.subVectors(nextCam, cam)
+        flown[k] = flown[k - 1] + metres[k]
+        bent[k] = bent[k - 1] + (k > 1 && metres[k] > 0 && stepBefore.lengthSq() > 0 ? stepNow.angleTo(stepBefore) : 0)
+        stepBefore.copy(stepNow)
         if (door) slow[k] = 1 + (DOOR_SLOW - 1) * (1 - THREE.MathUtils.smoothstep(nextCam.distanceTo(door.porch), DOOR_ZONE.near, DOOR_ZONE.far))
         // A walk eases from the slow-down of one control point to the next, flat at each point,
         // so the speed changes with no step in acceleration. Near a door the larger one holds.
@@ -283,27 +301,64 @@ export function createMove({ position, target, shot, duration = null, field = nu
         cam.copy(nextCam)
         view.copy(nextView)
     }
+    const plainTime = duration ?? THREE.MathUtils.clamp(MOVE_TIME.base + plainPace / MOVE_TIME.speed, MOVE_TIME.min, MOVE_TIME.max)
+    // The slow-down of the doors and the walk alone, before the bends.
+    const base = slow.slice()
+    // Shapes slow for a cruise speed in metres a second: the slow-down for each bend, then a pass
+    // forward and a pass back that cap the change of speed squared over each step at
+    // 2 * BEND.brake * metres. The speed at a sample is cruise / slow.
+    const shape = (cruise) => {
+        slow.set(base)
+        for (let k = 0, low = 0, high = 0; k <= count; k += 1) {
+            while (flown[k] - flown[low] > BEND.span) low += 1
+            while (high < count && flown[high + 1] - flown[k] <= BEND.span) high += 1
+            const span = flown[high] - flown[low]
+            if (span > 0) slow[k] = Math.max(slow[k], cruise * Math.sqrt((bent[high] - bent[low]) / span / BEND.lateral))
+        }
+        const capSpeed = (k, from, gap) => {
+            const reach = Math.sqrt((cruise / slow[from]) ** 2 + 2 * BEND.brake * gap)
+            if (cruise / slow[k] > reach) slow[k] = cruise / reach
+        }
+        for (let k = 1; k <= count; k += 1) capSpeed(k, k - 1, metres[k])
+        for (let k = count - 1; k >= 0; k -= 1) capSpeed(k, k + 1, metres[k + 1])
+    }
     // The running pace for one turn weight. The weight rises until the fastest turn of the
     // view, at cruise speed, stays under TURN_RATE. The move time comes from the plain pace:
-    // the first weight, with no door slow-down. A heavier weight and the slow-down stretch it in
+    // the first weight, with no slow-down. A heavier weight and the slow-down stretch it in
     // step with the pace, up to MOVE_TIME.turn, so the camera keeps its speed in the open and
-    // slows only where the view turns or the doorway is close.
-    const plainTime = duration ?? THREE.MathUtils.clamp(MOVE_TIME.base + plainPace / MOVE_TIME.speed, MOVE_TIME.min, MOVE_TIME.max)
+    // slows only where the view turns, the path bends or the doorway is close.
+    const paceMove = () => {
+        let pace = null
+        let time = 0
+        for (const weight of TURN_METRES) {
+            pace = new Float32Array(count + 1)
+            let share = 0
+            for (let k = 1; k <= count; k += 1) {
+                const step = Math.hypot(metres[k], weight * turns[k]) * slow[k]
+                pace[k] = pace[k - 1] + step
+                if (step > 0) share = Math.max(share, turns[k] / step)
+            }
+            // A walk takes its time from the whole pace, slow-down included, so the camera keeps
+            // the walkway pace and does not rush the walk to fit MOVE_TIME.max.
+            const stretched = slows ? MOVE_TIME.base + pace[count] / MOVE_TIME.speed : plainTime * Math.sqrt(pace[count] / plainPace)
+            time = duration ?? Math.max(plainTime, Math.min(slows ? MOVE_TIME.walk + (door ? MOVE_TIME.door : 0) : MOVE_TIME.turn, stretched))
+            if ((share * CRUISE * pace[count]) / time <= TURN_RATE) break
+        }
+        return { pace, time }
+    }
+    // A move that a time cap or a set duration holds short cruises faster than the plain
+    // estimate, so its bends are shaped again at the speed it reaches, at most twice more. With
+    // the estimate alone, the move from the board to the telescope on a phone still took a
+    // 1.5 m bend at 15 m/s.
+    let cruise = (CRUISE * plainPace) / plainTime
     let pace = null
     let time = 0
-    for (const weight of TURN_METRES) {
-        pace = new Float32Array(count + 1)
-        let share = 0
-        for (let k = 1; k <= count; k += 1) {
-            const step = Math.hypot(metres[k], weight * turns[k]) * slow[k]
-            pace[k] = pace[k - 1] + step
-            if (step > 0) share = Math.max(share, turns[k] / step)
-        }
-        // A walk takes its time from the whole pace, slow-down included, so the camera keeps
-        // the walkway pace and does not rush the walk to fit MOVE_TIME.max.
-        const stretched = slows ? MOVE_TIME.base + pace[count] / MOVE_TIME.speed : plainTime * Math.sqrt(pace[count] / plainPace)
-        time = duration ?? Math.max(plainTime, Math.min(slows ? MOVE_TIME.walk : MOVE_TIME.turn, stretched))
-        if ((share * CRUISE * pace[count]) / time <= TURN_RATE) break
+    for (let round = 0; round < 3; round += 1) {
+        shape(cruise)
+        ;({ pace, time } = paceMove())
+        const reached = (CRUISE * pace[count]) / time
+        if (reached <= cruise * 1.05) break
+        cruise = reached
     }
     // The spline parameter at share s of the pace, for both paths.
     const parameterAt = (s) => tableIndex(pace, s) / PACE_SAMPLES

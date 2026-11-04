@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { WATER_COLORS } from './water.js'
 
 // The waterfall off the aerie rim. One ribbon starts on the open stream mouth that
 // prepareWater (water.js) finds, so it is as wide as the stream you see and lies at the same
@@ -173,8 +172,10 @@ function ribbonGeometry({ a, b, normal }) {
 }
 
 // mouth is the open mouth line from prepareWater ({ a, b, normal }). Without it, top and base
-// (Anchor_Waterfall_Top and Anchor_Waterfall_Base) build a straight fallback mouth.
-export function createWaterfall({ mouth = null, top = null, base = null }) {
+// (Anchor_Waterfall_Top and Anchor_Waterfall_Base) build a straight fallback mouth. colors is
+// WATER_COLORS from water.js. The caller passes it in, because this module loads in its own
+// chunk, and an import from the scene chunk would make Rollup split the scene chunk.
+export function createWaterfall({ mouth = null, top = null, base = null, colors }) {
     const group = new THREE.Group()
     group.name = 'Waterfall'
     const time = { value: 0 }
@@ -186,11 +187,11 @@ export function createWaterfall({ mouth = null, top = null, base = null }) {
             uTime: time,
             uLength: { value: DROP },
             uWidth: { value: width },
-            uDeep: { value: new THREE.Color(WATER_COLORS.deep) },
-            uMid: { value: new THREE.Color(WATER_COLORS.mid) },
-            uShallow: { value: new THREE.Color(WATER_COLORS.shallow) },
-            uDash: { value: new THREE.Color(WATER_COLORS.dash) },
-            uFoam: { value: new THREE.Color(WATER_COLORS.foam) },
+            uDeep: { value: new THREE.Color(colors.deep) },
+            uMid: { value: new THREE.Color(colors.mid) },
+            uShallow: { value: new THREE.Color(colors.shallow) },
+            uDash: { value: new THREE.Color(colors.dash) },
+            uFoam: { value: new THREE.Color(colors.foam) },
         },
         vertexShader: ribbonVertex,
         fragmentShader: ribbonFragment,

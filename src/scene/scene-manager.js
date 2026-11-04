@@ -15,8 +15,8 @@ import { CAMPFIRE_BOUNCE, SURFACE } from './aerie/toon-material.js'
 import { softenGeometry } from './aerie/soft-normals.js'
 import { createLeafCards } from './aerie/leaf-cards.js'
 import { createStars } from './aerie/stars.js'
-import { createWaterfall } from './aerie/waterfall.js'
 import { createMoonShadow, markShadows, configureShadows } from './aerie/moon-shadow.js'
+import { WATER_COLORS } from './aerie/water.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
@@ -556,6 +556,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // campfire leaves the lawn bare and the rest of the aerie as it is.
     const campfireBuild = import('./aerie/campfire.js').then(async (module) => ({ module, kit: await module.loadCampfireKit(loaders.gltf) }))
     campfireBuild.catch(() => {})
+    // The waterfall loads in its own chunk too, so the scene chunk keeps room under its budget.
+    // A failed waterfall leaves the stream mouth without its fall.
+    const waterfallModule = import('./aerie/waterfall.js')
+    waterfallModule.catch(() => {})
 
     // Compiles the programs of a scene, but never waits past COMPILE_WAIT_MS.
     const compiled = (target, view) => Promise.race([renderer.compileAsync(target, view), new Promise((resolve) => setTimeout(resolve, COMPILE_WAIT_MS))])
@@ -684,8 +688,9 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             const base = anchor(root, 'Anchor_Waterfall_Base')
             // The ribbon starts on the stream mouth that applyAerieLook found. The two anchors
             // only build a fallback mouth when the water mesh gave none.
-            if (look.waterMouth || (top && base)) {
-                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base })
+            const { createWaterfall } = await waterfallModule.catch(() => ({}))
+            if (createWaterfall && (look.waterMouth || (top && base))) {
+                parts.waterfall = createWaterfall({ mouth: look.waterMouth, top, base, colors: WATER_COLORS })
                 scene.add(parts.waterfall.group)
             }
 

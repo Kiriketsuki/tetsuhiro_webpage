@@ -56,6 +56,8 @@ import { useWaypoints, sections, takeLanding } from '../composables/useWaypoints
 import { useExplore } from '../composables/useExplore.js'
 import { useWalk } from '../composables/useWalk.js'
 import { useWall } from '../composables/useWall.js'
+import { useTravel } from '../composables/useTravel.js'
+import { waypoints } from '../data/waypoints.js'
 import { useScramble } from '../composables/useScramble.js'
 import { useProps } from '../composables/useProps.js'
 
@@ -96,12 +98,25 @@ const decodeTitle = (delay) => {
     scramble(second.value, 1.1, { chars: 'lowerCase', delay: delay + 0.35, speed: 0.4 })
 }
 
-// Only the section in view shows. The camera moves to match it.
-const showSection = (index) => {
+// The title decodes once, the first time the welcome shows after the gate.
+let decodePending = false
+
+// Only the section in view shows, and only once the camera rests at its stop, so the words come
+// after the move and never over it. Before the scene reports (no WebGL, or still loading) the
+// section shows at once.
+const { at } = useTravel()
+const shownSection = computed(() => {
+    const stop = waypoints[active.value]?.stop
+    return at.value === undefined || at.value === stop ? active.value : -1
+})
+
+// A section fades out fast as its move starts and fades in slower once the camera rests. On
+// mount the sections take their state at once, or every section flashed in before it hid.
+const showSection = (index, instant = false) => {
     sections.forEach((name, i) => {
         gsap.to(`.${name}`, {
             autoAlpha: i === index ? 1 : 0,
-            duration: reducedMotion.value ? 0 : 0.6,
+            duration: instant || reducedMotion.value ? 0 : i === index ? 0.6 : 0.35,
         })
     })
 }
@@ -114,9 +129,16 @@ const onKey = (e) => {
 }
 
 // A new section ends the look-around. The nav and keys 1 to 5 still work in it.
-watch(active, (index) => {
+watch(active, () => {
     exploring.value = false
+})
+
+watch(shownSection, (index) => {
     showSection(index)
+    if (index === 0 && decodePending) {
+        decodePending = false
+        decodeTitle(0.1)
+    }
 })
 
 // Fades the page in under the lifting gate. The nav lantern sets entered back to false, and
@@ -127,7 +149,7 @@ watch(entered, (value) => {
         return
     }
     gsap.fromTo('#home', { autoAlpha: 0 }, { autoAlpha: wordsHidden.value ? 0 : 1, duration: reducedMotion.value ? 0 : 1, delay: reducedMotion.value ? 0 : 0.6 })
-    decodeTitle(0.7)
+    decodePending = true
 })
 
 watch(wordsHidden, (value) => {
@@ -143,11 +165,12 @@ onMounted(async () => {
     const start = takeLanding()
     window.scrollTo({ top: start ? document.querySelector(`.${sections[start]}`).offsetTop : 0, behavior: 'instant' })
     setActive(start)
-    showSection(start)
+    showSection(shownSection.value, true)
     // Back from the wall or the sky, the words wait for the camera, and the watch on wordsHidden
     // fades them in when it rests.
     if (wordsHidden.value) gsap.set('#home', { autoAlpha: 0 })
-    if (entered.value) decodeTitle(0.2)
+    if (entered.value && shownSection.value === 0) decodeTitle(0.2)
+    else if (entered.value) decodePending = true
 
     trigger = ScrollTrigger.create({
         trigger: '#home',

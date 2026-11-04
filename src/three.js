@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { useExplore } from './composables/useExplore.js'
 import { useWall } from './composables/useWall.js'
+import { useTravel } from './composables/useTravel.js'
 import { useWalk } from './composables/useWalk.js'
 import { useProps } from './composables/useProps.js'
 import { createSceneManager } from './scene/scene-manager.js'
@@ -26,6 +27,7 @@ let inSky = false
 let inWall = false
 let wallBuilt = false
 const wall = useWall()
+const travel = useTravel()
 // index.html shows the gate art on a first visit to Home only. Behind the gate the visitor
 // waits anyway, so there the gate also waits for the evidence wall and the camera planner.
 // Built after the gate, their long tasks of up to 2 s hit the lit lantern and the first moves.
@@ -131,8 +133,16 @@ function bedroom(on, other, cut = false) {
         else crossfade()
         manager.rig.jump('bedroom')
     }
+    warmRoom()
+        .then((r) => r.show(on, { cut }))
+        .catch((error) => console.error('The About room did not load.', error))
+}
+
+// Creates the About room once. Its kit starts to load at once and replaces the old bedroom of the
+// aerie, so the new bedroom shows through its windows before the first visit (scene/aerie/room.js).
+function warmRoom() {
     room ??= import('./scene/aerie/room.js').then((module) => module.createRoom(manager, bedroomDoor))
-    room.then((r) => r.show(on, { cut })).catch((error) => console.error('The About room did not load.', error))
+    return room
 }
 
 // Explore on foot. The walk and its glue load as their own chunk on the first walk
@@ -182,11 +192,18 @@ function boot() {
         onProgress: (value) => {
             progress.value = Math.max(progress.value, gated ? SCENE_SHARE * value : value)
         },
+        onSettle: (stop) => {
+            travel.at.value = stop
+        },
     })
     if (wanted) manager.resume()
 
     manager.ready
-        .then(() => (gated ? extras() : null))
+        .then(() => {
+            if (gated) return extras()
+            warmRoom().catch(() => {})
+            return null
+        })
         .then(() => {
             progress.value = 1
             ready.value = true
@@ -284,12 +301,9 @@ function extras() {
         share += EXTRAS[part]
         progress.value = Math.max(progress.value, share)
     }
-    // The About room chunk loads too, and the room starts to load its kit, so the new bedroom
-    // shows through its windows before the first visit.
-    const roomChunk = import('./scene/aerie/room.js')
-        .then((module) => {
-            room ??= Promise.resolve(module.createRoom(manager, bedroomDoor))
-        })
+    // The About room loads too, with its kit, so the gate opens on the new bedroom.
+    const roomChunk = warmRoom()
+        .then((r) => r.loaded)
         .catch(() => {})
     const parts = Promise.all([manager.wall.built().then(step('wall')), manager.planned.then(step('planner')), roomChunk])
     return Promise.race([parts, new Promise((resolve) => setTimeout(resolve, EXTRAS_WAIT_MS))])
@@ -319,6 +333,9 @@ export function setRoute(name, { cut = false } = {}) {
     const sky = name === 'Skills'
     const onWall = WALL_ROUTES.includes(name)
     if (!manager) return
+    // A route change is a scene move, so the new page holds its words from the start. The
+    // manager reports the rest stop when the move ends, or at once below if none starts.
+    if (!cut) travel.at.value = null
     if (cut) {
         manager.goTo(currentStop(), { duration: 0 })
         inSky = sky
@@ -346,6 +363,7 @@ export function setRoute(name, { cut = false } = {}) {
         if (sky !== inSky) eyepiece(sky, currentStop())
         else if (onWall !== inWall) board(onWall, currentStop())
         else if (!onWall) manager.goTo(currentStop())
+        travel.at.value = manager.settled
     })
 }
 

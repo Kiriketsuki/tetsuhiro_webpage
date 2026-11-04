@@ -161,5 +161,6 @@ export function createRoom(manager, door) {
         wake()
     }
 
-    return { show }
+    // loaded resolves once the kit is in the scene, or has failed and left the old room.
+    return { show, loaded: kit.then(() => {}).catch(() => {}) }
 }

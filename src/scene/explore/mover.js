@@ -20,6 +20,27 @@ const FLOOR_NY = 0.5
 const STEP_DOWN = 0.22
 // The automatic hop (spec, Walker design): onto a Hop_ top that rises this much over the feet.
 const HOP = { min: 0.1, max: 0.5, ahead: 0.35, lift: 0.08 }
+// A ledge the probe finds must be this flat (the up share of its normal) to stand on. The probe
+// samples the ground at these distances ahead of the capsule middle, from just past its front to
+// HOP.ahead, so it finds a thin lip as well as a broad step.
+const LEDGE_FLAT = 0.8
+const LEDGE_SAMPLES = [0.18, 0.23, 0.28, 0.35]
+// The landing check: the floor this far past the highest top must lie within DROP of that top.
+// A thin wall strip or a rail has open air past it, and a hop over one fell 3 m off the landing.
+const LEDGE_LANDING = 0.3
+// The round foot of the capsule climbs a rise up to about RADIUS * (1 - cos 60 degrees), 0.075 m.
+// A probed ledge from LEDGE_MIN up takes a small hop, so no rise sits between a climb and a hop.
+// The pad rim is such a lip: 0.08 m over the lawn on the diagonals.
+const LEDGE_MIN = 0.05
+// A standing walker never steps off an edge with more than DROP metres of fall below it. Stairs
+// are ramps and hops only go up, and the deepest drop on a path is about 0.4 m, off the bench
+// seat. The first tower landing has open sides with 3.9 m down to the lawn, and the proxy has no
+// wall there. A step of 0.88 m off the lounge balcony put the walker on the first flight outside
+// its guard.
+const DROP = 0.6
+// A walker whose foot is this close over the proxy stands, though the collide step read a wall.
+// On a 38 degree flight the gap straight down from the foot middle is already 0.04 m.
+const STANDING_GAP = 0.08
 // A walker below this far under its spawn has left the aerie, so it goes back to the spawn.
 const LOST = 8
 
@@ -29,13 +50,22 @@ export function createMover(world) {
     const feet = new THREE.Vector3()
     const ray = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, -1, 0))
     const ahead = new THREE.Vector3()
+    const probe = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, -1, 0))
+    const up = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, 1, 0))
+    const across = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3())
+    const normal = new THREE.Vector3()
     let onFloor = false
+    // True from a hop until the walker stands again. The edge guard leaves a hop alone, but a hop
+    // that comes down over open air goes back to where it started (hopFrom).
+    let hopping = false
+    const hopFrom = { start: new THREE.Vector3(), end: new THREE.Vector3() }
 
     const place = (p) => {
         capsule.start.set(p.x, p.y + RADIUS, p.z)
         capsule.end.set(p.x, p.y + HEIGHT - RADIUS, p.z)
         velocity.set(0, 0, 0)
         onFloor = false
+        hopping = false
     }
 
     const collide = () => {
@@ -53,38 +83,143 @@ export function createMover(world) {
         const hit = world.octree.rayIntersect(ray)
         if (!hit || hit.distance > RADIUS + STEP_DOWN) return
         capsule.translate(ahead.set(0, RADIUS - hit.distance, 0))
+        if (velocity.y > 0) velocity.y = 0
         onFloor = true
     }
 
     // wish: the horizontal velocity the controls ask for, in metres a second.
+    // The distance from the capsule foot down to the proxy, or Infinity. dx and dz move the ray
+    // across the foot.
+    const floorGap = (dx = 0, dz = 0) => {
+        ray.origin.set(capsule.start.x + dx, capsule.start.y, capsule.start.z + dz)
+        const hit = world.octree.rayIntersect(ray)
+        return hit ? hit.distance - RADIUS : Infinity
+    }
+    // True when the walker hangs over a drop deeper than DROP: no floor under the middle of its
+    // foot, and none CRACK metres further along its way. A hairline crack between a deck and a
+    // flight let one ray through to the lawn 6.4 m below, and the guard held a slow walker at the
+    // top of the second flight. Past a real edge both rays find open air.
+    const CRACK = 0.03
+    const overDrop = () => {
+        if (floorGap() <= DROP) return false
+        const speed = Math.hypot(velocity.x, velocity.z)
+        if (speed < 1e-4) return true
+        return floorGap((velocity.x / speed) * CRACK, (velocity.z / speed) * CRACK) > DROP
+    }
+    const before = { start: new THREE.Vector3(), end: new THREE.Vector3() }
+
+    // The horizontal distance the walker really moved in the last step, per second. The collide
+    // step pushes the capsule back out of a lip by moving it and leaves the velocity alone, so a
+    // walker at a 6 cm lip kept a speed of 0.9 m/s while it stood still.
+    const progress = new THREE.Vector3()
+    const stepFrom = new THREE.Vector3()
+
     const step = (dt, wish) => {
+        stepFrom.copy(capsule.start)
         const h = dt / SUBSTEPS
         for (let i = 0; i < SUBSTEPS; i += 1) {
             const k = 1 - Math.exp(-h * (onFloor ? 14 : 3))
             velocity.x += (wish.x - velocity.x) * k
             velocity.z += (wish.z - velocity.z) * k
             if (!onFloor) velocity.y -= GRAVITY * h
+            // A walker against a wall reads the wall contact, so standing also counts a floor right
+            // under the foot. The vertical speed does not count: on the way up a flight the push
+            // out of the ramp gives the walker an upward speed, and the guard let it step off the
+            // side near the top of the third flight. Only a hop turns the guard off.
+            const grounded = !hopping && (onFloor || floorGap() <= STANDING_GAP)
+            // Over a floor before the move: the middle of the foot had floor within DROP under it.
+            const overFloor = grounded && floorGap() <= DROP
+            before.start.copy(capsule.start)
+            before.end.copy(capsule.end)
             capsule.translate(ahead.copy(velocity).multiplyScalar(h))
-            const wasOnFloor = onFloor
             collide()
-            if (wasOnFloor && !onFloor && velocity.y <= 0) snapDown()
+            // The snap down holds a standing walker on a slope. Against a flight guard the collide
+            // step reads the guard and not the ramp, so the snap counts a standing walker. It once
+            // ran only after a floor contact, and a walker pressed on the guard skimmed down the
+            // first flight up to 0.32 m over the ramp and landed hard at its foot. Outside a hop an
+            // upward speed is a collision kick (0.7 m/s off the first landing onto the flight
+            // head), so the snap ignores it. It still needs a floor within STEP_DOWN.
+            if (grounded && !onFloor) snapDown()
+            if (onFloor && velocity.y <= 0) hopping = false
+            if (hopping && velocity.y <= 0 && overDrop()) {
+                capsule.start.copy(hopFrom.start)
+                capsule.end.copy(hopFrom.end)
+                velocity.set(0, 0, 0)
+                hopping = false
+                onFloor = true
+                continue
+            }
+            // The guard reverts a move that takes the middle of the foot from over a floor to over
+            // a deep drop, whatever the contact says. On the lip of the telescope deck the edge
+            // contact still read as a floor while the foot hung over the 5.8 m stairwell, and the
+            // edge then pushed the walker off.
+            if (grounded && (!onFloor || overFloor) && overDrop()) {
+                capsule.start.copy(before.start)
+                capsule.end.copy(before.end)
+                velocity.set(0, 0, 0)
+                onFloor = true
+            }
         }
         if (capsule.start.y < world.spawn.y - LOST) place(world.spawn)
+        progress.subVectors(capsule.start, stepFrom).setY(0).divideScalar(Math.max(dt, 1e-6))
     }
 
-    // Hops onto a Hop_ top ahead along dir when the walker pushes against it, or when it walks
-    // into the top from outside. The lookout bench seat is a slab with open space under it, so a
-    // walker from the deck passes under the seat and never pushes against it. Returns true on a
-    // hop.
+    // The top of a low ledge ahead along dir, or null. Rays drop from over the highest hop onto
+    // the proxy at each sample, and the highest flat top counts. It must sit in the hop range over
+    // the feet and leave room for the capsule over it. This finds a ledge the export marks with no
+    // Hop_ box, such as the rim of the landing pad: a lip 0.11 to 0.15 m high round a pad that
+    // stands only 0.05 m over the lawn.
+    const ledgeTop = (at, dir) => {
+        let top = -Infinity
+        let past = 0
+        let reach = 0
+        for (const d of LEDGE_SAMPLES) {
+            probe.origin.set(at.x + dir.x * d, at.y + HOP.max + 0.3, at.z + dir.z * d)
+            const hit = world.octree.rayIntersect(probe)
+            if (!hit || Math.abs(hit.triangle.getNormal(normal).y) < LEDGE_FLAT) continue
+            if (hit.position.y > top) {
+                top = hit.position.y
+                past = d + LEDGE_LANDING
+                reach = d
+                up.origin.set(probe.origin.x, top + 0.02, probe.origin.z)
+            }
+        }
+        const rise = top - at.y
+        if (rise < LEDGE_MIN || rise > HOP.max) return null
+        // The way to the ledge must be clear just over its top. A real lip has nothing over it,
+        // but a flight guard or a wall strip stands higher, and a hop into one fell off a landing.
+        across.origin.set(at.x, top + 0.12, at.z)
+        across.direction.set(dir.x, 0, dir.z).normalize()
+        const wall = world.octree.rayIntersect(across)
+        if (wall && wall.distance < reach) return null
+        probe.origin.set(at.x + dir.x * past, top + 0.3, at.z + dir.z * past)
+        const landing = world.octree.rayIntersect(probe)
+        if (!landing || landing.distance - 0.3 > DROP) return null
+        const roof = world.octree.rayIntersect(up)
+        return roof && roof.distance < HEIGHT ? null : top
+    }
+
+    // Hops onto a low top ahead along dir. A Hop_ top fires when the walker pushes against it,
+    // or when it walks into the top from outside. The lookout bench seat is a slab with open
+    // space under it, so a walker from the deck passes under the seat and never pushes against
+    // it. Any other low ledge fires when the walker pushes against it. Returns true on a hop.
+    //
+    // A hop needs floor right under the middle of the foot. The collide step keeps one contact,
+    // so a walker on the very lip of a deck, with its middle over open air, still read as on the
+    // floor, and a hop from there carried it off the deck.
     const tryHop = (dir, pushing) => {
-        if (!onFloor) return false
+        if (hopping || velocity.y > 0.5 || floorGap() > STANDING_GAP) return false
         const at = position()
         ahead.copy(at).addScaledVector(dir, HOP.ahead)
         const rises = (h) => h.top - at.y >= HOP.min && h.top - at.y <= HOP.max
         const hop = world.hops.find((h) => insideBox(h.node, ahead, true) && (pushing || !insideBox(h.node, at, true)) && rises(h))
-        if (!hop) return false
-        velocity.y = Math.sqrt(2 * GRAVITY * (hop.top - at.y + HOP.lift))
+        const top = hop ? hop.top : pushing ? ledgeTop(at, dir) : null
+        if (top === null) return false
+        velocity.y = Math.sqrt(2 * GRAVITY * (top - at.y + HOP.lift))
         onFloor = false
+        hopping = true
+        hopFrom.start.copy(capsule.start)
+        hopFrom.end.copy(capsule.end)
         return true
     }
 
@@ -98,6 +233,7 @@ export function createMover(world) {
         tryHop,
         position,
         velocity,
+        progress,
         get onFloor() {
             return onFloor
         },

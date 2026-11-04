@@ -76,6 +76,26 @@ WALL_MIN_Z = -0.6
 TRIANGLE_LIMIT = 6000
 # The height of the guard strips along each ramp side, in metres over the ramp.
 RAMP_GUARD = 0.6
+# Each guard strip starts this far, in metres along the flight, past the flight's foot. A strip
+# that ran to the foot of the second tower flight stood across the turn from the first flight's
+# landing, so the walker never reached the telescope deck. Near the foot the flight is within
+# about 0.3 m of the landing, so a side step only drops onto the landing. The strip runs to the
+# head: beside the head of the third flight is the open stairwell, 5.8 m deep.
+RAMP_GUARD_INSET = 0.45
+# A floor face that hangs over a flight with less than this headroom over the ramp, in metres, is
+# dropped. The walker capsule stands 0.35 m tall. The top of the deck edge beam, a 6 cm strip at
+# 7.34 m, crossed the second tower flight 0.27 m over the ramp. Going up the walker met its one-sided
+# underside and passed, but going down it met the strip as a floor and could not walk down.
+RAMP_HEADROOM = 0.6
+# The walker capsule radius, so a face just past a flight's side still counts as over it.
+WALKER_RADIUS = 0.15
+# The headroom test leaves out this much of each flight end, in metres along it. There the ramp
+# dips just under its landing for one step, and the landing is a floor, not an overhang.
+RAMP_END_MARGIN = 0.45
+# Each ramp quad reaches this far, in metres, past its foot and its head, under the landings. A ramp
+# that ended exactly at the deck edge left a hairline crack, and a ray from a slow walker slipped
+# through it to the lawn 6.4 m below.
+RAMP_OVERLAP = 0.03
 
 FLOOR_MESHES = ('Island', 'Paths', 'Pad', 'Rock', 'House')
 # Walls come from slices, not from their own faces. Each slice height gets a wall strip
@@ -88,9 +108,17 @@ SLICE_HEIGHTS = {
     'Glass': (0.6, 1.3, 2.0, 4.45, 7.7, 10.85),
     'Paths': (0.6, 1.3, 2.0),
     'Rock': (0.4, 0.9),
-    'Pad': (0.4, 0.9),
+    # The pad takes no slice at 0.4 m. That strip stood from 0.05 to 0.75 m, over the pad top at
+    # 0.62 m, and fenced the pad in. The rim fence guards the aerie edge past the pad.
+    'Pad': (0.9,),
 }
 SLICE_MESHES = tuple(SLICE_HEIGHTS)
+# A strip of a ground slice (paths, rocks, pad) stops at the higher floor on its two sides,
+# sampled this far out from the strip. A strip that stood over both floors fenced in low ledges
+# such as the pad rim and the deck edge, where the walker should hop. A strip with no ground on
+# one side keeps its full height, so a drop stays walled.
+LEDGE_SLICES = ('Paths', 'Rock', 'Pad')
+LEDGE_SIDE = 0.12
 SLICE_HALF = 0.35
 SLICE_SIMPLIFY = 0.07
 GROUND_MESHES = ('Island', 'Paths', 'Pad', 'Rock')
@@ -278,12 +306,44 @@ def flight_ramp(chain, tree=None):
     if landing:
         head = last['centre'].to_2d() - d * (run / 2)
         z_head = last['z']
-    quad = [Vector((*(foot - side * half_w), z_foot)), Vector((*(head - side * half_w), z_head)),
-            Vector((*(head + side * half_w), z_head)), Vector((*(foot + side * half_w), z_foot))]
+    foot_q, head_q = foot - d * RAMP_OVERLAP, head + d * RAMP_OVERLAP
+    quad = [Vector((*(foot_q - side * half_w), z_foot)), Vector((*(head_q - side * half_w), z_head)),
+            Vector((*(head_q + side * half_w), z_head)), Vector((*(foot_q + side * half_w), z_foot))]
     box = {'origin': first['centre'].to_2d() - d * run / 2, 'd': d, 'side': side,
            'length': length if landing else length + run, 'half_w': half_w - 0.02,
-           'z': (first['z'] - rise - 0.02, last['z'] + 0.02)}
+           'z': (first['z'] - rise - 0.02, last['z'] + 0.02),
+           'ramp': {'foot': foot, 'head': head, 'z': (z_foot, z_head), 'half_w': half_w}}
     return quad, box
+
+
+def overhangs(f, boxes):
+    """True when the face hangs over a flight ramp with less than RAMP_HEADROOM over it.
+
+    The test samples the corners, the middle and points along each edge, because a long thin
+    face can cross a flight with its middle and its corners outside the flight.
+    """
+    pts = [v.co for v in f.verts] + [f.calc_center_median()]
+    for e in f.edges:
+        a, c = e.verts[0].co, e.verts[1].co
+        pts += [a.lerp(c, k / 8) for k in range(1, 8)]
+    for box in boxes:
+        r = box['ramp']
+        d = r['head'] - r['foot']
+        length = d.length
+        if length < 1e-6:
+            continue
+        d = d / length
+        side = Vector((-d.y, d.x))
+        for p in pts:
+            rel = p.to_2d() - r['foot']
+            along, across = rel.dot(d), rel.dot(side)
+            if not (RAMP_END_MARGIN <= along <= length - RAMP_END_MARGIN
+                    and abs(across) <= r['half_w'] + WALKER_RADIUS):
+                continue
+            ramp_z = r['z'][0] + (r['z'][1] - r['z'][0]) * along / length
+            if 0.02 < p.z - ramp_z < RAMP_HEADROOM:
+                return True
+    return False
 
 
 def in_flight(c, box):
@@ -674,8 +734,24 @@ def chain_edges(edges):
     return lines
 
 
-def slice_walls(bm_out, objs, boxes, on_aerie):
-    """Wall strips from horizontal cuts through the house and its glass."""
+def strip_top(ground, name, a, b, z):
+    """The top of a slice strip from a to b at height z: z + SLICE_HALF, or lower at a ledge."""
+    top = z + SLICE_HALF
+    if name not in LEDGE_SLICES:
+        return top
+    mid = (a + b) / 2
+    side = Vector((-(b - a).y, (b - a).x)).normalized() * LEDGE_SIDE
+    floors = []
+    for p in (mid + side, mid - side):
+        h = ground.hit(p.x, p.y)
+        if h is None or h[0] == 'Water':
+            return top
+        floors.append(h[1].z)
+    return min(top, max(floors))
+
+
+def slice_walls(bm_out, objs, boxes, on_aerie, ground):
+    """Wall strips from horizontal cuts through the house, its glass and the ground meshes."""
     count = 0
     for name, heights in SLICE_HEIGHTS.items():
         for z in heights:
@@ -691,8 +767,11 @@ def slice_walls(bm_out, objs, boxes, on_aerie):
                     if (Vector((x1 - x0, y1 - y0)).length < 0.02
                             or any(in_flight(mid, b) for b in boxes)):
                         continue
+                    top = strip_top(ground, name, Vector((x0, y0)), Vector((x1, y1)), z)
+                    if top < z - SLICE_HALF + 0.03:
+                        continue
                     v = [bm_out.verts.new(c) for c in ((x0, y0, z - SLICE_HALF), (x1, y1, z - SLICE_HALF),
-                                                        (x1, y1, z + SLICE_HALF), (x0, y0, z + SLICE_HALF))]
+                                                        (x1, y1, top), (x0, y0, top))]
                     bm_out.faces.new(v)
                     count += 1
             bm.free()
@@ -731,6 +810,9 @@ def build(objs, report):
             return any(in_flight(c, b) for b in boxes)
         if name in FLOOR_MESHES:
             keep = [f for f in up if not in_any(f) and (name in ('House', 'Paths') or on_aerie(f))]
+            low = [f for f in keep if overhangs(f, boxes)]
+            report['overhang_floors'] = report.get('overhang_floors', 0) + len(low)
+            keep = [f for f in keep if f not in low]
             copy_faces(floors, keep)
             if name == 'Paths':
                 ledges += floor_hops(ground, keep)
@@ -755,7 +837,7 @@ def build(objs, report):
     rim = lambda x, y: (ground.z(x, y) - FENCE_DOWN, ground.z(x, y) + FENCE_UP)
     report['fence_quads'] = fence(solids, clear_saddles(erode(region)), lo, rim)
     report['water_fence_quads'] = water_fence(solids, ground, lo, walk.shape)
-    report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point)
+    report['slice_quads'] = slice_walls(walls, objs, boxes, on_aerie_point, ground)
 
     tidy(floors, 4.0)
     tidy(walls, 6.0)
@@ -772,6 +854,7 @@ def build(objs, report):
         # heights the stair tower had no wall at a flight's side, so the walker stepped off a
         # flight and fell out through the tower glass.
         for a, b in ((quad[0], quad[1]), (quad[3], quad[2])):
+            a = a + (b - a).normalized() * RAMP_GUARD_INSET
             up = Vector((0, 0, RAMP_GUARD))
             solids.faces.new([solids.verts.new(c) for c in (a - up * 0.3, b - up * 0.3, b + up, a + up)])
 

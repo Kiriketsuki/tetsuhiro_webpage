@@ -1,14 +1,16 @@
 import * as THREE from 'three'
 
 // The Kinako material (spec, Walker design): the aerie toon material with a rig in its vertex
-// shader. walker.glb (scenes/urban-aerie-studies/export_walker.py) keeps one mesh in the stand
-// pose with a straight tail. Each vertex holds its part index in _part, and each tail vertex its
-// distance along the tail in _tail.
+// shader. walker.glb (scenes/urban-aerie-studies/export_walker.py) keeps one continuous skin in
+// the stand pose with a straight tail. Each vertex holds its part index in _part, its blend
+// toward that part in _blend (the rest goes to the parent part), and, on the tail, its distance
+// along the tail in _tail.
 //
 // - The tail bends over three joints. Each joint spreads its bend over BLEND metres of tail, as
 //   tail_spine in walker_kit_geometry.py does, so the tail curves and never kinks.
-// - Each part then takes its matrix from uKinakoPart: a turn about its pivot, after the turns
-//   of its parents. body.js writes the matrices each frame.
+// - Each vertex then takes a blend of two matrices from uKinakoPart, its part and the parent
+//   part, so a joint bends softly and the skin never tears. Each matrix is a turn about the part
+//   pivot, after the turns of its parents. body.js writes the matrices each frame.
 // - The light is the two-band toon of the concept sheet (walker_concepts.py, toon_material):
 //   one flat tone on the faces the moon reaches, and one cool shade band on the faces turned
 //   away. The aerie light shades each rigid part as its own rounded tube, so the legs, the neck
@@ -30,10 +32,12 @@ const LIT = 0.5
 const SHADE = [0.6, 0.6, 0.72]
 const EDGE = [0.3, 0.36]
 
-const VERTEX_PARS = (parts, tail) => /* glsl */ `
+const VERTEX_PARS = (parents, tail) => /* glsl */ `
 attribute float _part;
+attribute float _blend;
 attribute float _tail;
-uniform mat4 uKinakoPart[ ${parts} ];
+uniform mat4 uKinakoPart[ ${parents.length} ];
+const int KINAKO_PARENT[ ${parents.length} ] = int[]( ${parents.join(', ')} );
 // Each tail joint: the pitch and the yaw in radians, the rest angles included.
 uniform vec2 uKinakoTail[ 3 ];
 const vec3 KINAKO_PIVOT[ 3 ] = vec3[]( ${tail.joints.map((j) => `vec3( ${j.pivot.map((c) => c.toFixed(4)).join(', ')} )`).join(', ')} );
@@ -54,7 +58,10 @@ void kinakoPose( inout vec3 p, inout vec3 n ) {
         p = KINAKO_PIVOT[ j ] + r * ( p - KINAKO_PIVOT[ j ] );
         n = r * n;
     }
-    mat4 m = uKinakoPart[ int( _part + 0.5 ) ];
+    int part = int( _part + 0.5 );
+    int parent = KINAKO_PARENT[ part ];
+    mat4 m = uKinakoPart[ part ];
+    if ( parent >= 0 && _blend < 0.999 ) m = m * _blend + uKinakoPart[ parent ] * ( 1.0 - _blend );
     p = ( m * vec4( p, 1.0 ) ).xyz;
     n = mat3( m ) * n;
 }
@@ -100,7 +107,7 @@ export function createWalkerMaterial(toon, rig) {
         original.call(material, shader, renderer)
         Object.assign(shader.uniforms, uniforms)
         shader.vertexShader = shader.vertexShader
-            .replace('#include <common>', `#include <common>\n${VERTEX_PARS(rig.parts.length, rig.tail)}`)
+            .replace('#include <common>', `#include <common>\n${VERTEX_PARS(rig.parents, rig.tail)}`)
             .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvec3 kinakoPosition = position;\nkinakoPose( kinakoPosition, objectNormal );')
             .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = kinakoPosition;')
         shader.fragmentShader = shader.fragmentShader
@@ -108,6 +115,6 @@ export function createWalkerMaterial(toon, rig) {
             .replace(/float toonInk = [^;]*;/, 'float toonInk = 0.5;')
             .replace('#include <opaque_fragment>', `${FRAGMENT_RIM}\n#include <opaque_fragment>`)
     }
-    material.customProgramCacheKey = () => `${key}-kinako-2`
+    material.customProgramCacheKey = () => `${key}-kinako-3`
     return { material, uniforms }
 }

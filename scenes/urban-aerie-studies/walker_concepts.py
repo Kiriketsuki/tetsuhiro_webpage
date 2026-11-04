@@ -321,7 +321,8 @@ def build_neck(b, cfg, body):
     bm = bmesh.new()
     # The neck is wide at the chest and as wide as the jaw at the top, with long domes,
     # so it fills the gap between body and head at any pitch.
-    tube(bm, capsule_rings(nl, bw * 0.46, hy * 0.42, mid=2, dome=2), 10)
+    sides, mid, dome = geo.res(cfg, 'neck')
+    tube(bm, capsule_rings(nl, bw * 0.46, hy * 0.42, mid=mid, dome=dome), sides)
     bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0),
                      matrix=Matrix.Rotation(math.radians(tilt + 180), 3, 'Y'))
     paint(bm, lambda c: 1 if c.x > 0.010 and c.z < nl * 0.5 else 0)
@@ -334,7 +335,7 @@ def head_shape(cfg, hc):
     """Returns the head bmesh: a round skull, chubby low cheeks and a soft wedge."""
     hx, hy, hz = cfg['head']
     bm = bmesh.new()
-    ellipsoid(bm, (hx / 2, hy / 2, hz / 2), 12, 9, at=hc)
+    ellipsoid(bm, (hx / 2, hy / 2, hz / 2), *geo.res(cfg, 'head'), at=hc)
     for v in bm.verts:
         local = v.co - hc
         t = local.x / (hx / 2)
@@ -374,7 +375,7 @@ def build_face(b, cfg, head, tree, hc):
     # Muzzle: a short soft wedge, oat on the bridge and cream below.
     mx, my, mz = cfg['muzzle']
     bm = bmesh.new()
-    ellipsoid(bm, (mx / 2, my / 2, mz / 2), 8, 6)
+    ellipsoid(bm, (mx / 2, my / 2, mz / 2), *geo.res(cfg, 'muzzle'))
     for v in bm.verts:
         t = max(0.0, v.co.x / (mx / 2))
         v.co.y *= 1 - 0.30 * t
@@ -442,7 +443,8 @@ def build_ears(b, cfg, head, tree, hc):
         hit = place_on(tree, top, (0, 0, -1))
         root = hit[0] - hit[1] * 0.010 if hit else top - Vector((0, 0, hz * 0.7))
         slots = ('rust', 'umber') if side > 0 else ('oat', 'rust')
-        ear = b.part(f'ear_{name}', geo.ear_mesh(eh, er), slots, head, root)
+        ear = b.part(f'ear_{name}', geo.ear_mesh(eh, er, geo.res(cfg, 'ear_sides'), geo.res(cfg, 'ear_split')),
+                     slots, head, root)
         bm = bmesh.new()
         res = bmesh.ops.create_cone(bm, cap_ends=True, segments=5, radius1=er * 0.62,
                                     radius2=0.0, depth=eh * 0.74)
@@ -478,19 +480,20 @@ def build_legs(b, cfg, body):
         for side, name in ((1, 'L'), (-1, 'R')):
             key = f'{end}{name}'
             bm = bmesh.new()
-            tube(bm, capsule_rings(u, lr * thigh, lr * 1.0, mid=2, dome=1), 8)
+            sides, mid, dome = (geo.res(cfg, k) for k in ('leg_sides', 'leg_mid', 'leg_dome'))
+            tube(bm, capsule_rings(u, lr * thigh, lr * 1.0, mid=mid, dome=dome), sides)
             upper = b.part(f'leg_{key}_u', bm, ('oat',), body, (fx, side * sy, fz))
             sock_z = -lo * (1 - sock)
-            rings = capsule_rings(lo, lr * 1.0, lr * 0.82, mid=2, dome=1)
+            rings = capsule_rings(lo, lr * 1.0, lr * 0.82, mid=mid, dome=dome)
             rings.append((Vector((0, 0, sock_z)), Vector((1, 0, 0)), Vector((0, 1, 0)),
                           lr * (1.0 + (0.82 - 1.0) * (1 - sock))))
             rings.sort(key=lambda r: -r[0].z)
             bm = bmesh.new()
-            tube(bm, rings, 8, band_slot=lambda i, rs=rings, s=sock_z:
+            tube(bm, rings, sides, band_slot=lambda i, rs=rings, s=sock_z:
                  1 if (rs[i][0].z + rs[i + 1][0].z) / 2 < s else 0)
             lower = b.part(f'leg_{key}_l', bm, ('oat', 'rust'), upper, (0, 0, -u))
             bm = bmesh.new()
-            ellipsoid(bm, (lr * 1.30, lr * 1.05, ph), 8, 4, at=(lr * 0.35, 0, -ph * 0.4))
+            ellipsoid(bm, (lr * 1.30, lr * 1.05, ph), *geo.res(cfg, 'paw'), at=(lr * 0.35, 0, -ph * 0.4))
             for v in bm.verts:
                 if v.co.z < -ph * 0.4:
                     v.co.z = -ph * 0.4 + (v.co.z + ph * 0.4) * 0.6

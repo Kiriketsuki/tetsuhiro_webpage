@@ -1,0 +1,31 @@
+{
+ "glb": "src/assets/models/aerie_bedroom_kit.glb",
+ "bytes": 261276,
+ "tris": {
+  "Bedroom_Wood": 6304,
+  "Bedroom_Fabric": 13380,
+  "Bedroom_Metal": 5148,
+  "Bedroom_Plain": 10926,
+  "Bedroom_Plaster": 1208,
+  "Bedroom_Paper": 2604,
+  "Bedroom_Prints": 3528,
+  "Bedroom_Screen": 124,
+  "Bedroom_Glow": 1460,
+  "Bedroom_Glass": 284
+ },
+ "total_tris": 44966,
+ "budget_tris": 70000,
+ "budget_bytes": 1500000,
+ "room_box_gltf": {
+  "min": [
+   -6.93,
+   7.41,
+   -5.23
+  ],
+  "max": [
+   -3.5,
+   10.36,
+   -1.62
+  ]
+ }
+}

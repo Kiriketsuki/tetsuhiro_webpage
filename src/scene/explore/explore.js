@@ -17,8 +17,9 @@ import { createCutaway } from './cutaway.js'
 // The session steps once a frame through manager.setWalker, before the rig places the camera.
 // Under reduced motion the manager runs no loop, so the session runs its own while input moves
 // Kinako, and draws each of those frames with manager.renderNow.
-// It moves the capsule, turns and bobs the placeholder Kinako, writes the follow shot, and opens
-// a zone prompt once Kinako stops in a zone. A zone never fires on its own.
+// It moves the capsule, poses Kinako (body.js), writes the follow shot, and opens a zone prompt
+// once Kinako stops in a zone. A zone never fires on its own. Kinako idles while the walk waits,
+// so the frames keep running, except under reduced motion, where Kinako holds a still sit.
 
 // Walk and run speeds in metres a second (spec, The walker).
 const SPEED = { walk: 2.2, run: 4.5 }
@@ -79,12 +80,14 @@ export function createExplore(manager, story) {
     const built = (async () => {
         world = await loadWorld(manager.loaders)
         mover = createMover(world)
-        body = createWalkerBody(manager.parts.look.materials[0])
+        body = await createWalkerBody(manager)
         cutaway = createCutaway(manager)
+        // Kinako and the shadow disc bring the walk's new programs. They compile in a holder
+        // outside the scene before the first walk frame, because compile skips hidden objects.
+        const holder = new THREE.Group().add(body.group, body.shadow)
+        await manager.renderer.compileAsync(holder, manager.camera, scene)
         scene.add(body.group, body.shadow)
         body.group.visible = body.shadow.visible = false
-        // The shadow disc is the walk's one new program. It compiles before the first walk frame.
-        await manager.renderer.compileAsync(body.shadow, manager.camera)
     })()
 
     const { walk, active, goToSection, currentStop } = story
@@ -162,7 +165,7 @@ export function createExplore(manager, story) {
         controls.setPrompt(Boolean(label))
         overlay.setStick(controls.stick, 56)
         if (input.use) use()
-        return moved > 0.01 || !mover.onFloor || easing || controls.stick.shown || input.push > 0 || !arrived
+        return !reduced() || moved > 0.01 || !mover.onFloor || easing || controls.stick.shown || input.push > 0 || !arrived
     }
 
     // from: 'welcome' or 'contact'. Kinako wakes by the fire in both cases.
@@ -177,6 +180,7 @@ export function createExplore(manager, story) {
         }
         mover.place(world.spawn)
         body.setHeading(Math.PI)
+        body.rest(reduced())
         const feet = mover.position()
         body.update(0, feet, travel.set(0, 0, 0), true, true)
         body.group.visible = body.shadow.visible = true

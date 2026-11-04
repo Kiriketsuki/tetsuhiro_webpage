@@ -380,7 +380,7 @@ animation is done".
 
 | Worst case, all 30 moves | Fourth pass desktop | Fifth pass desktop | Fourth pass phone | Fifth pass phone |
 |---|---|---|---|---|
-| Moves with one speed peak | 25 | 28 | 24 | 26 |
+| Moves with one speed peak | 26 | 28 | 25 | 26 |
 | Peak acceleration | 82 m/s2 | 77 m/s2 | 132 m/s2 | 117 m/s2 |
 | Peak turn | 56 deg/s | 59 deg/s | 59 deg/s | 60 deg/s |
 | Mesh crossings | 0 | 0 | 0 | 0 |

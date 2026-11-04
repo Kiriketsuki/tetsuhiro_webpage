@@ -40,6 +40,8 @@ const BREATH = { period: 3.2, depth: 0.018 }
 // The warm rim: its strength next to a lamp, and the reach of a lamp glow in metres. A window
 // or the fire reaches as far as its warm spill.
 const RIM = { strength: 0.6, reach: 3.2, near: 0.6 }
+// The flat warm glow: the share of the aerie warm spill (toon-material.js) that Kinako takes.
+const GLOW = 0.6
 // The disc of the contact shadow: its radius in metres and the darkness at its centre.
 const SHADOW = { radius: 0.3, dark: 0.42, lift: 0.012 }
 
@@ -121,6 +123,8 @@ export async function createWalkerBody(manager) {
     const pivots = rig.pivots.map((p) => new THREE.Vector3(...p))
     const matrices = uniforms.uKinakoPart.value
     const lamps = lampsOf(manager.parts.look)
+    const spills = manager.parts.look?.uniforms?.uToonBounce?.value ?? []
+    const warmColour = manager.parts.look?.uniforms?.uToonWarm?.value ?? new THREE.Color(0, 0, 0)
 
     const group = new THREE.Group()
     group.name = 'walker'
@@ -309,6 +313,16 @@ export async function createWalkerBody(manager) {
         }
         if (best) uniforms.uKinakoRim.value.set(best.at.x, best.at.y, best.at.z, strength)
         else uniforms.uKinakoRim.value.w = 0
+        // The warm spill at the feet, with the falloff of the toon shader, but one value for the
+        // whole body.
+        let spill = 0
+        for (const spot of spills) {
+            if (spot.w <= 0) continue
+            const d = Math.hypot(spot.x - feet.x, spot.y - feet.y, spot.z - feet.z)
+            if (d > spot.w) continue
+            spill += (1 - smoothstep(0, 1, d / spot.w)) * ((spot.w * spot.w) / (spot.w * spot.w + d * d))
+        }
+        uniforms.uKinakoWarm.value.copy(warmColour).multiplyScalar((GLOW * spill) / (1 + spill))
     }
 
     const setHeading = (angle) => {

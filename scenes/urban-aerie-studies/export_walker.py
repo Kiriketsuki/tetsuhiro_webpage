@@ -13,7 +13,11 @@ new scene and bakes two meshes:
 - Kinako_Sleep: the sleep pose as a plain mesh.
 
 Colours are face-corner colours from the concept material slots, so each colour stays one
-coherent field. The normals are smooth inside each part. The node extras of Kinako_Walk
+coherent field. The body parts take their normals from one smooth surface round the whole
+posed kit: the union of the parts the concept outlines, remeshed and smoothed. So the light
+runs across each joint with no step, and the rigid parts read as one body, as in the concept
+renders. The face details (eyes, glints, nose, mouth, blush, inner ears) keep their own
+normals. The node extras of Kinako_Walk
 carry the rig as JSON: the part names, parents and pivots, the tail joints and the paw drops.
 
 Site model space: +Z is forward, +Y is up and +X is the walker's left. The origin is on the
@@ -37,6 +41,8 @@ from pathlib import Path
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
+from mathutils.interpolate import poly_3d_calc
 
 HERE = Path(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, str(HERE))
@@ -68,6 +74,10 @@ PARENT = {'body': None, 'neck': 'body', 'head': 'neck', 'ear_L': 'head', 'ear_R'
 for _leg in ('FL', 'FR', 'BL', 'BR'):
     PARENT.update({f'leg_u_{_leg}': 'body', f'leg_l_{_leg}': f'leg_u_{_leg}',
                    f'paw_{_leg}': f'leg_l_{_leg}'})
+
+# The smooth union for the body normals: the voxel size in metres, then the smooth factor and
+# its repeats. The smoothing widens each joint crease into a soft blend about 2 cm wide.
+UNION = {'voxel': 0.004, 'factor': 0.8, 'repeat': 14}
 
 # Concept space to the space the glTF exporter turns into site space: a quarter turn about Z.
 TO_EXPORT = Matrix.Rotation(math.radians(-90), 4, 'Z')
@@ -127,7 +137,52 @@ def straighten_tail(b):
     return tail, start
 
 
-def bake(b, name, rig=None):
+def union_normals(b, coll, matrix):
+    """Returns a function from a point to the normal of the smooth union of the inked parts.
+
+    The union is the remeshed shell that the concept outline drew (Builder.build_ink), without
+    the grow. A point takes the interpolated vertex normal of the nearest union face.
+    """
+    bpy.context.view_layer.update()
+    bm = bmesh.new()
+    for ob in b.inked:
+        me = ob.data.copy()
+        me.transform(matrix @ ob.matrix_world)
+        bm.from_mesh(me)
+        bpy.data.meshes.remove(me)
+    me = bpy.data.meshes.new(f'{b.tag}_union')
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(me.name, me)
+    coll.objects.link(ob)
+    remesh = ob.modifiers.new('Union', 'REMESH')
+    remesh.mode = 'VOXEL'
+    remesh.voxel_size = UNION['voxel']
+    smooth = ob.modifiers.new('Soften', 'SMOOTH')
+    smooth.factor = UNION['factor']
+    smooth.iterations = UNION['repeat']
+    bpy.context.view_layer.update()
+    evaluated = ob.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    shell = bpy.data.meshes.new_from_object(evaluated)
+    field = bmesh.new()
+    field.from_mesh(shell)
+    bpy.data.meshes.remove(shell)
+    bmesh.ops.triangulate(field, faces=field.faces)
+    field.normal_update()
+    field.faces.ensure_lookup_table()
+    tree = BVHTree.FromBMesh(field)
+
+    def normal_at(p):
+        location, _, index, _ = tree.find_nearest(p)
+        face = field.faces[index]
+        weights = poly_3d_calc([v.co for v in face.verts], location)
+        n = sum((v.normal * w for v, w in zip(face.verts, weights)), Vector())
+        return n.normalized() if n.length > 1e-8 else face.normal.copy()
+
+    return normal_at
+
+
+def bake(b, name, coll, rig=None):
     """Joins the posed parts into one mesh in export space.
 
     rig: the per-vertex tail distance of the body, for the walk mesh. Without it, the mesh
@@ -137,6 +192,8 @@ def bake(b, name, rig=None):
     palette = []
     out = bmesh.new()
     colour = out.faces.layers.int.new('colour')
+    inked = out.faces.layers.int.new('inked')
+    normal_at = union_normals(b, coll, TO_EXPORT)
     part_layer = out.verts.layers.float.new('_part') if rig is not None else None
     tail_layer = out.verts.layers.float.new('_tail') if rig is not None else None
     for key, ob in b.parts.items():
@@ -160,6 +217,7 @@ def bake(b, name, rig=None):
         out.faces.ensure_lookup_table()
         for f in out.faces[n_faces:]:
             f[colour] = slots[f.material_index]
+            f[inked] = 1 if ob in b.inked else 0
             f.material_index = 0
             f.smooth = True
         if rig is not None:
@@ -179,6 +237,16 @@ def bake(b, name, rig=None):
             attr.data[li].color_srgb = (*rgb, 1.0)
     me.attributes.remove(me.attributes['colour'])
     me.color_attributes.active_color = attr
+    # The body parts take the union normal at each corner. The details keep their own.
+    flags = me.attributes['inked'].data
+    own = [Vector(n.vector) for n in me.corner_normals]
+    normals = [None] * len(me.loops)
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            normals[li] = normal_at(co) if flags[poly.index].value else own[li]
+    me.normals_split_custom_set(normals)
+    me.attributes.remove(me.attributes['inked'])
     return me
 
 
@@ -250,9 +318,9 @@ def main():
     with bpy.context.temp_override(scene=work, view_layer=work.view_layers[0]):
         stand = build_kit('stand', coll, mats, 'stand')
         tail, start = straighten_tail(stand)
-        walk = bake(stand, 'Kinako_Walk', rig=tail)
+        walk = bake(stand, 'Kinako_Walk', coll, rig=tail)
         rig = rig_data(stand, start)
-        sleep = bake(build_kit('sleep', coll, mats, 'sleep'), 'Kinako_Sleep')
+        sleep = bake(build_kit('sleep', coll, mats, 'sleep'), 'Kinako_Sleep', coll)
     report = {'walk_triangles': triangles(walk), 'walk_vertices': len(walk.vertices),
               'sleep_triangles': triangles(sleep), 'sleep_vertices': len(sleep.vertices)}
     if report['walk_triangles'] > TRI_CAP:

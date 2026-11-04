@@ -9,6 +9,12 @@ import * as THREE from 'three'
 //   tail_spine in walker_kit_geometry.py does, so the tail curves and never kinks.
 // - Each part then takes its matrix from uKinakoPart: a turn about its pivot, after the turns
 //   of its parents. body.js writes the matrices each frame.
+// - The light is the two-band toon of the concept sheet (walker_concepts.py, toon_material):
+//   one flat tone on the faces the moon reaches, and one cool shade band on the faces turned
+//   away. The aerie light shades each rigid part as its own rounded tube, so the legs, the neck
+//   and the haunches read as separate blocks. The flat tone lets the parts read as one body.
+//   A flat warm glow from the windows and the fire rides on top (body.js sets it from the spill
+//   at Kinako's feet), so it never shades one part apart from the next.
 // - A warm rim lights the edge that faces the nearest lamp or the fire.
 // - The ink mask is the silhouette value 0.5 of toon-material.js, so the outline draws round
 //   Kinako and not a dark ring at each joint.
@@ -18,6 +24,11 @@ import * as THREE from 'three'
 
 // The warm lamp colour of the concept sheet (walker_concepts.py, LAMP).
 const RIM_COLOUR = 0xffbf75
+// The night level of the lit tone, and the shade band tone, after the concept ramp (a cool grey
+// at 0.5 to 0.58). The band edge sits where the wrapped moon light reaches EDGE.
+const LIT = 0.5
+const SHADE = [0.6, 0.6, 0.72]
+const EDGE = [0.3, 0.36]
 
 const VERTEX_PARS = (parts, tail) => /* glsl */ `
 attribute float _part;
@@ -53,11 +64,16 @@ const FRAGMENT_PARS = /* glsl */ `
 // xyz: the nearest lamp in the world. w: the rim strength there, 0 out of its reach.
 uniform vec4 uKinakoRim;
 uniform vec3 uKinakoRimColour;
+uniform vec3 uKinakoWarm;
 `
 
 const FRAGMENT_RIM = /* glsl */ `
 {
     vec3 kinakoN = normalize( ( vec4( normal, 0.0 ) * viewMatrix ).xyz );
+    float kinakoKey = dot( kinakoN, uToonMoonDir ) * 0.5 + 0.5;
+    float kinakoBand = smoothstep( ${EDGE[0].toFixed(2)}, ${EDGE[1].toFixed(2)}, kinakoKey );
+    vec3 kinakoTone = mix( vec3( ${SHADE.map((c) => c.toFixed(2)).join(', ')} ), vec3( 1.0 ), kinakoBand ) * ${LIT.toFixed(2)};
+    outgoingLight = diffuseColor.rgb * ( kinakoTone + uKinakoWarm );
     vec3 kinakoView = normalize( cameraPosition - vToonWorld );
     vec3 kinakoLamp = normalize( uKinakoRim.xyz - vToonWorld );
     float kinakoEdge = pow( 1.0 - clamp( dot( kinakoN, kinakoView ), 0.0, 1.0 ), 2.5 );
@@ -73,6 +89,7 @@ export function createWalkerMaterial(toon, rig) {
         uKinakoTail: { value: rig.tail.joints.map(() => new THREE.Vector2()) },
         uKinakoRim: { value: new THREE.Vector4(0, -1e4, 0, 0) },
         uKinakoRimColour: { value: new THREE.Color(RIM_COLOUR) },
+        uKinakoWarm: { value: new THREE.Color(0, 0, 0) },
     }
     const material = toon.clone()
     material.name = 'aerie.walker'
@@ -91,6 +108,6 @@ export function createWalkerMaterial(toon, rig) {
             .replace(/float toonInk = [^;]*;/, 'float toonInk = 0.5;')
             .replace('#include <opaque_fragment>', `${FRAGMENT_RIM}\n#include <opaque_fragment>`)
     }
-    material.customProgramCacheKey = () => `${key}-kinako-1`
+    material.customProgramCacheKey = () => `${key}-kinako-2`
     return { material, uniforms }
 }

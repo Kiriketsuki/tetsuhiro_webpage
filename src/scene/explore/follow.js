@@ -2,14 +2,18 @@ import * as THREE from 'three'
 
 // The follow camera (spec, Camera). It writes the rig's live `walk` shot each frame, and the rig
 // places the camera from it, with the lens focus on Kinako. The default view looks from the
-// south-west, 35 degrees down, from 7 m. Zoom runs from 4 to 12 m. Turns come in 45 degree
+// south-west, 35 degrees down, from 7 m. Zoom runs from 1.5 to 12 m, so a player can come close
+// and see Kinako. The camera lowers its pitch as it closes in, to 14 degrees at 1.5 m, so a
+// close view looks at Kinako and not down on Kinako. Turns come in 45 degree
 // steps from keys, or freely from a drag, eased back to the nearest step on release. The
 // look point follows Kinako with a 0.15 s lag. Reduced motion follows with no lag.
 //
 // In the glTF frame +Z is south and -Z is north, toward the city. A yaw of 0 sets the camera
 // south of Kinako, looking north.
 const PITCH = THREE.MathUtils.degToRad(35)
-const DISTANCE = { start: 7, min: 4, max: 12 }
+const DISTANCE = { start: 7, min: 1.5, max: 12 }
+// The close view: under `from` metres the pitch eases down to `pitch` at DISTANCE.min.
+const CLOSE = { from: 5, pitch: THREE.MathUtils.degToRad(14) }
 const LAG = 0.15
 const STEP = Math.PI / 4
 const SOUTH_WEST = -Math.PI / 4
@@ -47,7 +51,8 @@ export function createFollow({ reach = null } = {}) {
     // Swings the camera once it has stayed squeezed for a moment, unless a drag holds it.
     const swing = (dt) => {
         if (!reach || dragging || lookout) return
-        squeezed = held < SWING.tight ? squeezed + dt : 0
+        // A close zoom is not a squeeze: only a wall that holds the camera nearer than asked.
+        squeezed = held < Math.min(SWING.tight, view.distance * 0.8) ? squeezed + dt : 0
         if (squeezed < SWING.wait) return
         squeezed = 0
         const base = Math.round(want.yaw / STEP) * STEP
@@ -118,10 +123,17 @@ export function createFollow({ reach = null } = {}) {
         want.yaw = Math.round(view.yaw / STEP) * STEP
     }
 
+    // The pitch for a zoom distance: the default pitch from CLOSE.from out, easing down below it.
+    const pitchFor = (distance) => {
+        const t = THREE.MathUtils.smoothstep(distance, DISTANCE.min, CLOSE.from)
+        return THREE.MathUtils.lerp(CLOSE.pitch, PITCH, t)
+    }
+
     // A factor above 1 moves in, below 1 moves out.
     const zoom = (factor) => {
         if (!factor) return
         want.distance = THREE.MathUtils.clamp(want.distance / factor, DISTANCE.min, DISTANCE.max)
+        if (!lookout) want.pitch = pitchFor(want.distance)
     }
 
     // The lookout zone turns the view to the city, and a second use turns it back.

@@ -81,14 +81,14 @@ async function loadKinako(loaders) {
     const rig = JSON.parse(walk.userData.kinako ?? 'null')
     const ok = rig && rig.parts?.length === rig.pivots?.length && rig.parents?.length === rig.parts.length && rig.tail?.joints?.length === 3
     if (!ok) throw new Error('walker.glb carries no valid Kinako rig.')
-    for (const name of ['_part', '_tail']) {
+    for (const name of ['_part', '_blend', '_tail']) {
         if (!walk.geometry.getAttribute(name)) throw new Error(`Kinako_Walk has no ${name} attribute.`)
     }
-    // The sleep mesh shares the walker material, so it reads _part and _tail too. Zeros keep it on
-    // the body part with no tail bend. A missing attribute would read whatever value WebGL last
-    // held for that slot.
+    // The sleep mesh shares the walker material, so it reads the rig attributes too. Zeros keep
+    // it on the body part with no tail bend. A missing attribute would read whatever value WebGL
+    // last held for that slot.
     const count = sleep.geometry.attributes.position.count
-    for (const name of ['_part', '_tail']) sleep.geometry.setAttribute(name, new THREE.BufferAttribute(new Float32Array(count), 1))
+    for (const name of ['_part', '_blend', '_tail']) sleep.geometry.setAttribute(name, new THREE.BufferAttribute(new Float32Array(count), 1))
     return { rig, walk: prepare(walk.geometry), sleep: prepare(sleep.geometry) }
 }
 

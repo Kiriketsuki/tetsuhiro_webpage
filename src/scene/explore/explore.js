@@ -18,8 +18,9 @@ import { createCutaway } from './cutaway.js'
 // Under reduced motion the manager runs no loop, so the session runs its own while input moves
 // Kinako, and draws each of those frames with manager.renderNow.
 // It moves the capsule, poses Kinako (body.js), writes the follow shot, and opens a zone prompt
-// once Kinako stops in a zone. A zone never fires on its own. Kinako idles while the walk waits,
-// so the frames keep running, except under reduced motion, where Kinako holds a still sit.
+// once Kinako stops in a zone. A zone never fires on its own. While Kinako rests, the step
+// reports no motion, so the manager draws the idle habits on its ambient clock and not at the
+// full frame rate. Under reduced motion, Kinako holds a still sit.
 
 // Walk and run speeds in metres a second (spec, The walker).
 const SPEED = { walk: 2.2, run: 4.5 }
@@ -165,7 +166,7 @@ export function createExplore(manager, story) {
         controls.setPrompt(Boolean(label))
         overlay.setStick(controls.stick, 56)
         if (input.use) use()
-        return !reduced() || moved > 0.01 || !mover.onFloor || easing || controls.stick.shown || input.push > 0 || !arrived
+        return moved > 0.01 || !mover.onFloor || easing || controls.stick.shown || input.push > 0 || !arrived
     }
 
     // from: 'welcome' or 'contact'. Kinako wakes by the fire in both cases.

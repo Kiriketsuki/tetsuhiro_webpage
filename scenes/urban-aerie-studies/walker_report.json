@@ -1,11 +1,12 @@
 {
-  "walk_triangles": 2972,
-  "walk_vertices": 1542,
-  "sleep_triangles": 2940,
-  "sleep_vertices": 1522,
-  "raw_bytes": 163584,
+  "walk_triangles": 6440,
+  "walk_vertices": 3242,
+  "walk_seam_vertices": 739,
+  "sleep_triangles": 6064,
+  "sleep_vertices": 3046,
+  "raw_bytes": 349000,
   "compress": {
-    "bytes": 26196
+    "bytes": 47576
   },
   "rig": {
     "parts": [
@@ -67,24 +68,24 @@
         0.1955
       ],
       [
-        0.0472,
-        0.3565,
-        0.2106
+        0.047,
+        0.3571,
+        0.2103
       ],
       [
-        -0.0472,
-        0.3565,
-        0.2106
+        -0.047,
+        0.3571,
+        0.2103
       ],
       [
         0.0461,
-        0.3149,
-        0.2854
+        0.3148,
+        0.2888
       ],
       [
         -0.0461,
-        0.3149,
-        0.2856
+        0.3148,
+        0.2888
       ],
       [
         0.0442,

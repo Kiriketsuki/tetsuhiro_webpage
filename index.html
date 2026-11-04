@@ -29,19 +29,30 @@
     <meta name="twitter:card" content="summary" />
     <title>Jovian Lim</title>
     <!--
-      The gate: a paper lantern on an autumn branch under the night sky. It lives here, not in
-      the app bundle, so it paints before the JS arrives and costs nothing against the shell
-      budgets. The lantern, the branch and the falling leaves are frames from
-      lab/gate-lantern.html, drawn with the aerie's own toon material, ink and lens, so they
-      match the aerie. The lamp lights and autumn spreads along the branch as the load grows:
-      the ga-dawn animations creep from the first paint, then src/components/gate-meter.js
-      plays the load share on the same layers. When the load is done the lantern stays lit
-      until the visitor goes in, then its light washes the view into the aerie and Name.vue
-      hides the art. The nav lantern brings it back. Every motion here, the meter too, is a
-      transform or an opacity, so the compositor keeps it smooth while the main thread builds
-      the scene. Colours are hex, because the token CSS loads with the bundle.
+      The gate: a paper lantern on an autumn branch under the night sky, with Kinako asleep on
+      the branch. It lives here, not in the app bundle, so it paints before the JS arrives and
+      costs nothing against the shell budgets. The lantern, the branch and the leaves are frames
+      from lab/gate-lantern.html, and Kinako's frames come from lab/gate-kinako.html, drawn with
+      the aerie's own toon material, ink and lens, so they match the aerie.
+      - The first paint shows the whole picture at once: a small soft copy of it (.ga-first,
+        from scripts/gate-kinako.py) sits under the sharp layers. The script at the end of the
+        body fades the sharp layers in once their files decode, so no layer pops in alone.
+      - The lamp lights, autumn spreads along the branch and Kinako warms in the lamp light as
+        the load grows: the ga-dawn animations creep from the first paint, then
+        src/components/gate-meter.js plays the load share on the same layers.
+      - When the load is done, Name.vue walks Kinako down onto the way in (.ga-walker). When
+        the visitor goes in, Kinako trots on ahead, the lamp light washes the view into the
+        aerie, and Name.vue hides the art. The nav lantern brings it back.
+      Every motion here, the meter and the walk too, is a transform or an opacity, so the
+      compositor keeps it smooth while the main thread builds the scene. Colours are hex, and
+      the fonts are named here, because the token CSS loads with the bundle and does not hold
+      up the first paint.
     -->
     <style>
+      :root {
+        --font-display: "Instrument Serif", Georgia, serif;
+        --font-label: "JetBrains Mono", ui-monospace, monospace;
+      }
       #gate-art {
         position: fixed;
         inset: 0;
@@ -106,10 +117,101 @@
         transform: translate(-50%, -50%);
         perspective: 40rem;
       }
-      .ga-img {
+      .ga-img,
+      .ga-layer,
+      .ga-first {
         position: absolute;
         inset: 0;
         background: center / 100% 100% no-repeat;
+      }
+      /* The soft first paint copy of the unlit art. It hides once the sharp layers are in. */
+      .ga-first {
+        background-image: url(data:image/webp;base64,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);
+      }
+      #gate-art.is-sharp .ga-first {
+        opacity: 0;
+        transition: opacity 0s 0.6s;
+      }
+      /* The sharp layers fade in over the soft copy when their files decode: the unlit set at
+         once (is-sharp), then the lit lamp (is-lamp) and the autumn branch (is-autumn) each on
+         its own. On a slow line a lit layer can arrive with the meter well along, so it fades in
+         slowly and the lamp warms up instead of jumping. The script at the end of the body sets
+         the flags. */
+      .ga-sharp,
+      .ga-lamp,
+      .ga-autumn-in {
+        opacity: 0;
+        transition: opacity 0.5s;
+      }
+      .ga-lamp,
+      .ga-autumn-in {
+        transition-duration: 1.2s;
+      }
+      #gate-art.is-sharp .ga-sharp,
+      #gate-art.is-lamp .ga-lamp,
+      #gate-art.is-autumn .ga-autumn-in {
+        opacity: 1;
+      }
+      /* Kinako sleeps on the branch, left of the hook. The frame box and its place come from
+         scripts/gate-kinako.py (KINAKO_BOX). Frame 0 of the nap sheet is the moonlit nap, and
+         frame 1 the same nap in the lamp light, which the meter fades in with the lamp. */
+      .ga-kinako {
+        left: -6%;
+        top: -22.85%;
+        width: 47.7%;
+        aspect-ratio: 440 / 298;
+      }
+      #gate-art.is-open .ga-kinako {
+        opacity: 0;
+        transition: opacity 1.2s 0.5s;
+      }
+      /* A slow breath. It only stretches the curl up from the paws, so the frame stays crisp. */
+      .ga-k-breath {
+        position: absolute;
+        inset: 0;
+        transform-origin: 66% 96%;
+        animation: ga-breath 3.2s ease-in-out infinite alternate;
+      }
+      .ga-k-frame {
+        position: absolute;
+        inset: 0;
+        background: url(/gate/kinako-nap.webp) 0 0 / 200% 100% no-repeat;
+      }
+      .ga-k-lit {
+        background-position: 100% 0;
+        opacity: 0;
+        animation: ga-dawn-lit 24s linear forwards;
+      }
+      /* The night grows darker at the top and the bottom, so the title and the way in read. */
+      .ga-scrim {
+        inset: 0;
+        background: linear-gradient(#020812cc, transparent 32% 64%, #020812dd);
+        pointer-events: none;
+      }
+      /* Kinako's walk in. Name.vue sizes the box to the nap box, then moves it with one
+         transform and steps the window along the frame row with another. The row loads only
+         when Name.vue asks for it (has-walk), after the aerie has downloaded. */
+      .ga-walker {
+        left: 0;
+        top: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .ga-w-window {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .ga-w-row {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1400%;
+        height: 100%;
+        background: 0 0 / 100% 100% no-repeat;
+      }
+      #gate-art.has-walk .ga-w-row {
+        background-image: url(/gate/kinako-walk.webp);
       }
       .ga-branch {
         background-image: url(/gate/branch-s0.webp);
@@ -121,6 +223,7 @@
          transforms, so the compositor runs them. The window is 130% wide and its last 30%
          is the soft edge. */
       .ga-reveal {
+        position: absolute;
         inset: 0 auto 0 0;
         width: 130%;
         overflow: hidden;
@@ -233,27 +336,30 @@
          so they stay linear pieces, one set per layer at the same shares. */
       @keyframes ga-dawn-lit {
         0% { opacity: 0; }
-        8% { opacity: 0.035; }
-        20% { opacity: 0.07; }
-        40% { opacity: 0.11; }
-        70% { opacity: 0.145; }
+        8% { opacity: 0.05; }
+        20% { opacity: 0.09; }
+        40% { opacity: 0.12; }
+        70% { opacity: 0.15; }
         100% { opacity: 0.16; }
       }
       @keyframes ga-dawn-reveal {
         0% { transform: translateX(-100%); }
-        8% { transform: translateX(-96.5%); }
-        20% { transform: translateX(-93%); }
-        40% { transform: translateX(-89%); }
-        70% { transform: translateX(-85.5%); }
+        8% { transform: translateX(-95%); }
+        20% { transform: translateX(-91%); }
+        40% { transform: translateX(-88%); }
+        70% { transform: translateX(-85%); }
         100% { transform: translateX(-84%); }
       }
       @keyframes ga-dawn-autumn {
         0% { transform: translateX(130%); }
-        8% { transform: translateX(125.45%); }
-        20% { transform: translateX(120.9%); }
-        40% { transform: translateX(115.7%); }
-        70% { transform: translateX(111.15%); }
+        8% { transform: translateX(123.5%); }
+        20% { transform: translateX(118.3%); }
+        40% { transform: translateX(114.4%); }
+        70% { transform: translateX(110.5%); }
         100% { transform: translateX(109.2%); }
+      }
+      @keyframes ga-breath {
+        to { transform: scaleY(1.025); }
       }
       @keyframes ga-twinkle {
         50% { opacity: 0.25; }
@@ -303,6 +409,9 @@
         #gate-art *::before {
           animation: none !important;
         }
+        #gate-art .ga-title {
+          transition: none !important;
+        }
         #gate-art.is-open {
           transition: opacity 0.6s;
         }
@@ -319,13 +428,6 @@
         padding: clamp(2.5rem, 9vh, 5.5rem) 1.5rem clamp(2rem, 7vh, 4rem);
         text-align: center;
       }
-      .gate::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(#020812cc, transparent 32% 64%, #020812dd);
-        pointer-events: none;
-      }
       .gate > * {
         position: relative;
       }
@@ -340,16 +442,30 @@
         outline: 2px solid #fcc96a;
         outline-offset: 4px;
       }
-      .gate-title {
+      /* The title paints with the art, before the bundle (.ga-title). The dialog in Name.vue
+         keeps its own copy for screen readers, unseen, so its layout and its name stay. */
+      .ga-title {
+        top: clamp(2.5rem, 9vh, 5.5rem);
+        right: 1.5rem;
+        left: 1.5rem;
+        text-align: center;
         transform-origin: 50% 0;
         transition: transform 1.6s cubic-bezier(0.6, 0, 0.3, 1);
-        animation: gate-in 1.2s 0.1s backwards;
       }
+      .ga-heading {
+        position: relative;
+        display: block;
+      }
+      .gate > .gate-title {
+        opacity: 0;
+      }
+      /* Every line in the gate has a set height, so a font that arrives late changes no layout. */
       .gate-eyebrow,
       .gate-role {
         display: block;
         font-family: var(--font-label);
         font-size: 0.72rem;
+        line-height: 1rem;
         text-transform: uppercase;
       }
       .gate-eyebrow {
@@ -364,16 +480,14 @@
         font-size: clamp(3.2rem, min(8vw, 11vh), 7rem);
         font-weight: 400;
         line-height: 0.9;
-        /* Room for the J tail, which the text clip would cut. */
         padding: 0 0.15em 0.1em;
-        background: radial-gradient(60% 120% at 50% 130%, #fff3d2 0, #ffd27a 18%, #c98a3e 75%, #7a5a3a);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        color: #c9a46a;
       }
-      /* The lit name lies over the unlit one, and the gate meter fades it in with the lamp. */
+      /* The lit name lies over the unlit one, and the gate meter fades it in with the lamp. Each
+         is one flat colour (docs/design-system.md). */
       #gate-name {
-        position: relative;
+        margin: 0;
+        font: inherit;
       }
       .gate-name.is-lit {
         position: absolute;
@@ -381,8 +495,7 @@
         bottom: 0;
         left: 0;
         margin: 0;
-        background-image: radial-gradient(60% 120% at 50% 130%, #fff3d2 0, #ffd27a 40%, #c98a3e 75%, #7a5a3a);
-        filter: drop-shadow(0 0 1.4rem #ff9f4366);
+        color: #f2d9a6;
         opacity: 0;
       }
       .gate-role {
@@ -405,14 +518,41 @@
         align-items: center;
         gap: 1.1rem;
       }
+      /* The count and the lit line share one cell, so the swap at ready moves nothing. */
       .gate-readout {
+        display: grid;
+        justify-items: center;
+        align-items: center;
         max-width: 22rem;
-        min-height: 1.6rem;
+        height: 1.6rem;
+        line-height: 1.6rem;
         font-family: var(--font-label);
         font-size: 0.7rem;
         letter-spacing: 0.28em;
         text-transform: uppercase;
         color: #beb2a1;
+      }
+      .gate-readout > span {
+        grid-area: 1 / 1;
+        white-space: nowrap;
+        transition: opacity 0.4s;
+      }
+      .gate-readout > .is-off {
+        opacity: 0;
+      }
+      /* A load error is a sentence, so it wraps. */
+      .gate-readout.has-error {
+        height: auto;
+        line-height: 1.2rem;
+      }
+      .gate-readout.has-error > span {
+        white-space: normal;
+      }
+      /* Kinako trots along the top of the way in and sits on it, in front of the lit line, so
+         the line gives way once Kinako sets off. */
+      .gate.is-ready.has-kinako .gate-readout {
+        opacity: 0;
+        transition: opacity 0.4s 0.9s;
       }
       .gate-readout b {
         margin-left: 0.5rem;
@@ -443,23 +583,49 @@
         height: 1em;
         font-style: inherit;
       }
+      /* The way in is a pane of night glass in a brass ring with two 12px chamfers
+         (docs/design-system.md, The frame). The ring is a mask: the outer shape minus an inset
+         copy of it. The hard-stop gradients only cut the chamfers. */
       .gate-enter {
+        --chamfer: linear-gradient(135deg, #0000 8.49px, #000 0 calc(100% - 8.49px), #0000 0);
+        position: relative;
+        isolation: isolate;
         display: inline-flex;
         align-items: center;
         gap: 0.8rem;
         padding: 0.95rem 1.7rem;
-        border: 1px solid #ffd27a55;
-        background: #ffb54d1a;
-        box-shadow: 0 0 2.5rem #ff9f4333, inset 0 1px 0 #fff3d222;
-        -webkit-backdrop-filter: blur(6px);
-        backdrop-filter: blur(6px);
+        border: 0;
+        background: none;
         font-family: var(--font-label);
         font-size: 0.78rem;
         font-weight: 500;
+        line-height: 1rem;
         letter-spacing: 0.22em;
         text-transform: uppercase;
-        color: #fff3d2;
+        color: #fcc96a;
         cursor: pointer;
+        transition: color 0.2s;
+      }
+      .gate-enter::before,
+      .gate-enter::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      .gate-enter::before {
+        background: #0e142ad6;
+        -webkit-mask: var(--chamfer);
+        mask: var(--chamfer);
+      }
+      .gate-enter::after {
+        padding: 1px;
+        background: #c9a46ab3;
+        -webkit-mask: linear-gradient(135deg, #0000 8.07px, #000 0 calc(100% - 8.07px), #0000 0) content-box, var(--chamfer);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(135deg, #0000 8.07px, #000 0 calc(100% - 8.07px), #0000 0) content-box, var(--chamfer);
+        mask-composite: exclude;
       }
       .gate-enter svg {
         width: 1rem;
@@ -467,8 +633,11 @@
       }
       .gate-enter:hover,
       .gate-enter:focus-visible {
-        border-color: #ffd27aaa;
-        box-shadow: 0 0 3rem #ff9f4355, inset 0 1px 0 #fff3d244;
+        color: #fff3d2;
+      }
+      .gate-enter:hover::after,
+      .gate-enter:focus-visible::after {
+        background: #fbb13c;
       }
       .gate-enter:focus-visible {
         outline: 2px solid #fcc96a;
@@ -481,13 +650,15 @@
       .gate-hint {
         font-family: var(--font-label);
         font-size: 0.62rem;
+        line-height: 1rem;
         letter-spacing: 0.25em;
         text-transform: uppercase;
         color: #918473;
       }
+      /* The way in shows with the lit line, at once. */
       .gate.is-ready .gate-enter,
       .gate.is-ready .gate-hint {
-        animation: gate-in 0.9s 0.9s backwards;
+        animation: gate-in 0.5s backwards;
       }
       @keyframes gate-in {
         from { opacity: 0; transform: translateY(8px); }
@@ -496,7 +667,7 @@
         50% { transform: translateY(3px); }
       }
       @media (min-aspect-ratio: 1/1) {
-        .gate.is-ready .gate-title {
+        #gate-art.is-lit .ga-title {
           transform: translateY(-1.5rem) scale(0.78);
         }
       }
@@ -538,13 +709,22 @@
         <g fill="#ffb54d"><circle cx="122" cy="298" r="1.6" /><circle cx="880" cy="248" r="1.3" /><circle cx="716" cy="328" r="1" /></g>
       </svg>
       <div class="ga-art">
+        <i class="ga-first ga-fades"></i>
         <i class="ga-glow ga-fades"></i>
-        <i class="ga-img ga-branch ga-fades"></i>
-        <div class="ga-reveal ga-fades"><i class="ga-img ga-autumn"></i></div>
+        <div class="ga-layer ga-fades">
+          <i class="ga-img ga-branch ga-sharp"></i>
+          <div class="ga-reveal ga-autumn-in"><i class="ga-img ga-autumn"></i></div>
+        </div>
         <div class="ga-nudge ga-fades">
           <div class="ga-lantern">
-            <i class="ga-img ga-paper"></i>
-            <i class="ga-img ga-paper ga-lit"></i>
+            <i class="ga-img ga-paper ga-sharp"></i>
+            <div class="ga-layer ga-lamp"><i class="ga-img ga-paper ga-lit"></i></div>
+          </div>
+        </div>
+        <div class="ga-kinako ga-sharp">
+          <div class="ga-k-breath">
+            <i class="ga-k-frame"></i>
+            <i class="ga-k-frame ga-k-lit"></i>
           </div>
         </div>
         <i class="ga-drift" style="--x:17.9%;--y:11.9%;--s:2;--r:40deg;--t:13s;--d:-4s"></i>
@@ -562,20 +742,39 @@
         <i class="ga-leaf" style="--x:85.2%;--y:10.3%;--s:0;--r:161deg;--d:0.73s"></i>
         <i class="ga-leaf" style="--x:89.7%;--y:13.1%;--s:1;--r:-117deg;--d:0.21s"></i>
       </div>
+      <i class="ga-scrim"></i>
+      <div class="gate-title ga-title ga-fades">
+        <span class="ga-heading">
+          <span class="gate-eyebrow">Lim Zhe Hong</span>
+          <span class="gate-name">Jovian</span>
+          <span class="gate-name is-lit">Jovian</span>
+        </span>
+        <span class="gate-role">software engineer &middot; singapore</span>
+      </div>
+      <div class="ga-walker"><div class="ga-w-window"><i class="ga-w-row"></i></div></div>
     </div>
     <!-- The gate shows on a first visit to the home page. On any other page the art waits,
-         hidden and not downloaded, for the nav lantern. On the home page the layers decode
-         now, so no layer decodes on the main thread when the lamp first lights. -->
+         hidden and not downloaded, for the nav lantern, and Name.vue calls load() then. Each
+         set of layers fades in once all its files have decoded, so the picture sharpens in
+         one step and no layer decodes on the main thread when the lamp first lights. -->
     <script>
-      if (location.pathname === '/') {
-        for (const name of ['branch-s0', 'lantern-s0', 'lantern-s1', 'branch-s1', 'sprites-s1']) {
-          const image = new Image()
-          image.src = '/gate/' + name + '.webp'
-          image.decode().catch(() => {})
-        }
-      } else {
-        document.getElementById('gate-art').hidden = true
+      const art = document.getElementById('gate-art')
+      art.load = () => {
+        const set = (names, flag) =>
+          Promise.all(names.map((name) => {
+            const image = new Image()
+            // The art shows soft until then, so the app bundle goes first on a slow line.
+            image.fetchPriority = 'low'
+            image.src = '/gate/' + name + '.webp'
+            return image.decode()
+          })).then(() => art.classList.add(flag), () => art.classList.add(flag))
+        set(['branch-s0', 'lantern-s0', 'kinako-nap'], 'is-sharp')
+        set(['lantern-s1'], 'is-lamp')
+        set(['branch-s1'], 'is-autumn')
+        set(['sprites-s1'], 'has-leaves')
       }
+      if (location.pathname === '/') art.load()
+      else art.hidden = true
     </script>
 
     <div id="app"></div>

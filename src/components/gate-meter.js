@@ -16,7 +16,8 @@ const CAP = 0.96
 const LEAD = 0.15
 const LEAD_S = 5
 // The time constant, in seconds, of the drift toward CAP that keeps a goal ahead of the real
-// share creeping on.
+// share creeping on. A shorter drift ran the meter well ahead of a slow 3G load: at 12 s the
+// meter reached 90 percent at 42 s and then held near 95 percent for 20 s.
 const DRIFT_S = 90
 // The spring stiffness, 1/s. A larger value follows the goal more closely. The spring trails a
 // steady goal by 2 / STIFFNESS seconds.
@@ -89,6 +90,30 @@ function finishCurve(from, speed) {
     return { times, values }
 }
 
+// Keyframes for a track that shows whole steps, such as the count drum. Each step holds until
+// the value reaches the next one, so the drum shows one number at a time and never two halves.
+// A plan holds a few dozen linear pieces, so the crossings come from those pieces.
+function stepKeys(next, frame, steps) {
+    const { times, values } = next
+    const total = times[times.length - 1]
+    let n = Math.floor(values[0] * steps + 1e-6)
+    if (!total) return [frame(n / steps), frame(n / steps)]
+    const keys = [{ ...frame(n / steps), offset: 0, easing: 'step-end' }]
+    for (let i = 1; i < values.length; i++) {
+        const [v0, v1] = [values[i - 1], values[i]]
+        while (v1 > v0 && (n + 1) / steps <= v1 + 1e-9) {
+            n += 1
+            // The slack on v1 can put a crossing a hair past the piece. The clamp keeps the
+            // offsets in order, which animate() requires.
+            const k = Math.min(1, Math.max(0, (n / steps - v0) / (v1 - v0)))
+            const t = times[i - 1] + k * (times[i] - times[i - 1])
+            keys.push({ ...frame(n / steps), offset: Math.min(1, t / total), easing: 'step-end' })
+        }
+    }
+    keys.push({ ...frame(n / steps), offset: 1 })
+    return keys
+}
+
 // Reads the plan that the art's own CSS animation runs before this bundle loads, from its
 // keyframes. Those keyframes are linear, as a plan's are. A busy main thread on a slow phone
 // can leave the dawn waiting to start when the meter takes over. The plan then starts now, so
@@ -107,7 +132,8 @@ function cssPlan(probe) {
 }
 
 /**
- * @param {{ el: Element, frame: (p: number) => Keyframe }[]} tracks Each element and its look at share p.
+ * @param {{ el: Element, frame: (p: number) => Keyframe, steps?: number }[]} tracks Each element and
+ *   its look at share p. A track with steps shows only whole steps of 1 / steps.
  * @param {Element | null} probe The element whose dawn animation index.html starts.
  */
 export function createGateMeter(tracks, probe = null) {
@@ -129,8 +155,8 @@ export function createGateMeter(tracks, probe = null) {
     const play = (next) => {
         const duration = next.times[next.times.length - 1] * 1000
         const old = running
-        running = live.map(({ el, frame }) => {
-            const keys = next.values.map((value, i) => ({ ...frame(value), offset: duration ? (next.times[i] * 1000) / duration : 1 }))
+        running = live.map(({ el, frame, steps }) => {
+            const keys = steps ? stepKeys(next, frame, steps) : next.values.map((value, i) => ({ ...frame(value), offset: duration ? (next.times[i] * 1000) / duration : 1 }))
             const animation = el.animate(keys.length > 1 ? keys : [keys[0], keys[0]], { duration: Math.max(1, duration), fill: 'both' })
             animation.startTime = next.start
             return animation

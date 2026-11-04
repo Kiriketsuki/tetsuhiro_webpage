@@ -128,7 +128,7 @@ blurs nothing. The sky card does this on purpose (its glow matters more than the
 | Case folder | `src/components/CaseFolder.vue` | Stays manila. It is a real folder on the wall, not an instrument. |
 | Sky cards | `src/scene/aerie/sky-overlay.css` | `.frame` with a few fine stars in the flat glass |
 | /skills header | `src/views/Skills.vue` | Flat glass with a 1 px brass border and square corners |
-| Gate | `index.html` | The lantern stays. The enter button is a flat amber tint with square corners. |
+| Gate | `index.html` | The lantern stays, with Kinako asleep on the branch. The enter button is a `.frame` pane: flat glass, a 1 px brass ring and two 12 px chamfers. The name is one flat colour, brass before the lamp lights and gold after. |
 | Nav strip | `src/components/Navbar.vue` | A glass octagon with a brass rim. See below. |
 
 ## The nav strip

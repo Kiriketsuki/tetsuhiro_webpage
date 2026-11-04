@@ -19,10 +19,12 @@
 // on a curve. blend: the seconds of the still that blends the two dark frames at the swap.
 // Reduced motion takes a slower and shallower switch. The lamp probe of November 2026 set
 // these: 0.5 s for the dim and 0.6 s for the rise keep every 60 Hz frame within 2 percent of
-// the luma range.
+// the luma range. The probe found a dark point of 0.042 with the room copy of the board lit.
+// The copy is now unlit at 0.35 of that (wall.js ROOM_UNLIT), so the dark point is
+// 0.042 / 0.35 = 0.12, and the reduced motion one rises from 0.1 to 0.25.
 export const TIMING = {
-    full: { dim: 0.5, warm: 1.1, cool: 0.7, rise: 0.6, dark: 0.042, blend: 0.3 },
-    reduced: { dim: 0.9, warm: 1.8, cool: 1.1, rise: 0.9, dark: 0.1, blend: 0.5 },
+    full: { dim: 0.5, warm: 1.1, cool: 0.7, rise: 0.6, dark: 0.12, blend: 0.3 },
+    reduced: { dim: 0.9, warm: 1.8, cool: 1.1, rise: 0.9, dark: 0.25, blend: 0.5 },
 }
 // The filament glow at the dark point, as a share of its steady glow. The screen keeps this
 // faint warm point while both scenes are at their darkest.

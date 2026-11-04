@@ -49,7 +49,7 @@ const FADE_EDGE = 0.35
 // the iris close and open, and how early the iris starts to close before the camera stops.
 // The way out of the sky takes its own, slower times (out): the owner found the exit too fast,
 // with the iris shut in 0.5 s and the camera back on the terrace 1.8 s after.
-const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3, out: { fly: 2.8, close: 0.7, open: 1.1 } }
+const SCOPE = { fly: 1.9, close: 0.5, open: 0.8, overlap: 0.3, out: { fly: 2.6, close: 0.7, open: 1.1 } }
 // The place on the lamp switch track (light-switch.js) where the camera starts out of the
 // workshop: half way up the room light, after the swap.
 const WALL = { leave: 0.5 }
@@ -294,8 +294,10 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // Ends the eyepiece move and the board move at once. A new move of either kind, or a route
     // that drops the sky or the wall at once, starts from rest, with the view at its steady light.
     const settle = () => {
-        // The promise of an eyepiece move resolves here too, so nothing waits on it for ever.
+        // The promise of an eyepiece move or a board move resolves here too, so nothing waits on
+        // it for ever.
         scope?.done?.()
+        boardMove?.done?.()
         scope = null
         boardMove = null
         pipeline.grade.uniforms.uIris.value = 0
@@ -374,6 +376,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         }
         if (b.lit && !b.legs.length && !rig.moving) {
             boardMove = null
+            b.done?.()
             update()
         }
         return true
@@ -876,6 +879,8 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         // flies out through the doorway to the stop `back`. Reduced motion takes a slower and
         // shallower switch, which is a change of light and not a motion, and the camera cuts
         // at the dark point.
+        // Returns a promise that resolves when the move ends: the lamp steady at the board, or the
+        // camera at rest on `back`. The pages wait on it to show their words.
         enterWall: (on, back = 'workshop') => {
             // A new switch starts where the light is now, so a visitor who turns back halfway
             // sees no jump in light.
@@ -883,18 +888,22 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             settle()
             if (!shots?.board || wallFailed || !parts.wall) {
                 if (!on) api.goTo(back)
-                return
+                return Promise.resolve()
             }
             lightAt(at)
             const shown = view === 'wall'
-            if (on && shown && at >= 2) return
+            if (on && shown && at >= 2) return Promise.resolve()
             if (!on && !shown && at <= 0) {
                 api.goTo(back)
-                return
+                return Promise.resolve()
             }
             // The room copy shows the overview, so the wall starts there too.
             if (on && !shown) parts.wall.reset()
-            const b = (boardMove = { t: 0, on, legs: [], start: Infinity, lamp: null, lit: false })
+            let done
+            const finished = new Promise((resolve) => {
+                done = resolve
+            })
+            const b = (boardMove = { t: 0, on, legs: [], start: Infinity, lamp: null, lit: false, done })
             if (on) {
                 // One move in through the workshop doorway to the board, with the duration from
                 // its path. The switch starts once the camera rests there (stepBoard). A wall
@@ -912,6 +921,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             }
             update()
             requestRender()
+            return finished
         },
         // The look through the telescope. The camera flies up to the eyepiece (by way of the
         // terrace from any other stop), the iris closes, and it opens on the skill sky. Off
@@ -950,9 +960,12 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
                 const shut = lead + fly - SCOPE.overlap
                 scope = { t: 0, on, close: shut, swap: shut + close, legs: [[0, 'telescope', lead], [lead, 'eyepiece', fly]].slice(lead ? 0 : 1), iris: SCOPE, done }
             } else {
+                // The camera waits at the eyepiece until the iris is open, then pulls back. The
+                // owner saw the camera start to move while the blades still opened.
                 const out = SCOPE.out
-                const legs = [[out.close, 'eyepiece', 0], [out.close, 'telescope', out.fly]]
-                if (back !== 'telescope') legs.push([out.close + out.fly, back, 1.6])
+                const still = out.close + out.open
+                const legs = [[out.close, 'eyepiece', 0], [still, 'telescope', out.fly]]
+                if (back !== 'telescope') legs.push([still + out.fly, back, 1.6])
                 scope = { t: out.close * from, on, close: 0, swap: out.close, legs, iris: out, done }
             }
             requestRender()

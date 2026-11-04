@@ -1,6 +1,7 @@
 {
   "source": "src/assets/models/aerie.glb",
   "out": "src/assets/models/aerie_collide.glb",
+  "overhang_floors": 11,
   "ramps": 7,
   "hops": [
     [
@@ -35,15 +36,15 @@
   },
   "fence_quads": 179,
   "water_fence_quads": 18,
-  "slice_quads": 1311,
+  "slice_quads": 1179,
   "before_decimate": {
-    "floors": 6310,
-    "walls": 2194,
+    "floors": 6295,
+    "walls": 1933,
     "solids": 1170
   },
   "after_decimate": {
-    "floors": 2514,
-    "walls": 2194
+    "floors": 2775,
+    "walls": 1933
   },
   "triangles": 5920,
   "reach": {
@@ -55,7 +56,7 @@
     "Lookout": true,
     "Upper_Terrace": true
   },
-  "reach_cells": 9487,
+  "reach_cells": 9651,
   "rooms_closed": {
     "inside_workshop": true,
     "inside_lounge": true,
@@ -73,7 +74,7 @@
     "Zone_Workshop": [
       -4.75,
       -1.15,
-      0.931,
+      0.916,
       0.9,
       0.9,
       1.0
@@ -97,7 +98,7 @@
     "Zone_Campfire": [
       1.75,
       8.5,
-      0.377,
+      0.376,
       1.8,
       1.8,
       1.0
@@ -135,8 +136,8 @@
       0.3
     ]
   },
-  "raw_bytes": 114124,
+  "raw_bytes": 118456,
   "compress": {
-    "bytes": 27044
+    "bytes": 28320
   }
 }

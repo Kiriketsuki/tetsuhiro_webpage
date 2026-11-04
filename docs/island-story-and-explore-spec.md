@@ -133,7 +133,7 @@ The JS sizes are estimates. `Octree.js` and `Capsule.js` from three (r180) come 
 |---|---|
 | `explore-*.js` | at most 20 kB gzip |
 | `aerie_collide.glb` | at most 60 kB and 6,000 triangles |
-| `walker.glb` (Kinako: the walk mesh and the sleep mesh) | at most 80 kB with quantized attributes. The walk mesh has at most 3k triangles |
+| `walker.glb` (Kinako: the walk mesh and the sleep mesh) | at most 80 kB with quantized attributes. The walk mesh has at most 8k triangles |
 | Draw calls added | at most 4 (Kinako, its contact shadow, and the sleeping Kinako in the story views) |
 | CPU per frame for the walker, camera and zones | at most 0.5 ms on a mid Android |
 | Frame time while walking | 16.7 ms desktop, 22 ms mid Android, as the plan sets |
@@ -170,14 +170,16 @@ The owner locked this design on 3 November 2026 after five rounds of Blender con
 | Ink | `#17151B` | eyes, mouth |
 
 - **Night look.** Kinako takes a warm rim from the nearest lamp or the fire. Its shadow side stays a warm grey, not the moon blue. It stays the warmest thing on the lawn, so the eye finds it from the follow camera. The rim is one uniform on the walker material, set from the nearest warm light each frame.
+- **Toon bands.** Kinako takes the two-band toon of the concept sheets: one flat night tone where the moon reaches and one cool shade band, with a flat warm glow from the spill at its feet. The aerie light shaded each part as its own rounded tube.
 - **Ink.** The walker takes the silhouette-only ink mask (the 0.5 value in `toon-material.js`). The depth ink in `grade-pass.js` then draws its outline but no line where one part enters another.
 
 #### Rig and mesh
 
-- **One mesh, one draw.** `walker.glb` holds one mesh. Each vertex stores the index of its part in a vertex attribute. The parts are the body, the neck, the head, two ears, and an upper leg, a lower leg and a paw for each leg. The walker material moves each part in the vertex shader, from a small uniform array of joint angles and pivots. Kinako costs one draw call and its contact shadow one more, inside the four-draw budget.
+- **One skin, one draw.** `walker.glb` holds one continuous skin. `export_walker.py` joins the posed body, neck, head, muzzle, ears, legs and paws in one exact boolean union and softens a band along each joint seam, so no part pokes through another. Each face keeps its concept colour, so the colour fields keep their straight plane cuts. The neck takes the chest plane of the body, so the cream bib runs from the chest up the neck as one field. Neck and upper-leg faces next to the body take the body colour there. The face details (eyes, glints, nose, mouth, blush and inner ears) stay small parts on the skin.
+- **Soft joints.** Each vertex stores its part and a blend toward that part. The rest of the weight goes to the parent part, over 2.5 cm each side of the joint pivot. The parts are the body, the neck, the head, two ears, two eyes, and an upper leg, a lower leg and a paw for each leg. The walker material blends the two part matrices of each vertex in the vertex shader, from a small uniform array. Kinako costs one draw call and its contact shadow one more, inside the four-draw budget.
 - **The tail bends.** Each tail vertex stores its distance along the tail. The shader bends the tail over three joints, and each joint spreads its bend over 8 cm, so the tail curves and never kinks. This is a fixed bend in the walker shader, not a `SkinnedMesh`.
 - **Eyes close** by a scale on the eye parts. The glints hide while the eyes are closed.
-- **Triangles:** 3,000 at most. The concept sits at 3,002 and loses one ring at export.
+- **Triangles:** 8,000 at most, for a close view at 1.5 m (Camera). The export builds the kit at a finer resolution than the concept sheets: the walk skin has 6,440 triangles and the sleep skin 6,064.
 - **Sleep mesh.** `walker.glb` also holds the sleep pose as a second, plain mesh for the story views. It needs no walker shader, so the scene chunk only places it. See "Outside explore".
 
 #### Movement
@@ -244,17 +246,19 @@ Blender empties named `Zone_<name>` mark each zone. Their scale gives the zone s
 | Input | Move | Camera | Use a zone | Leave |
 |---|---|---|---|---|
 | Keyboard | WASD or arrow keys, Shift to run | Q and E turn by 45 degrees | E or Enter | Escape |
-| Mouse | none | Wheel zooms, right-drag turns | Click the prompt | The leave button |
-| Touch | A floating joystick where the thumb lands on the left 60 percent of the screen. A far push runs | Two-finger drag turns, pinch zooms | Tap the prompt | The leave button |
+| Mouse | none | Wheel zooms, a drag with either button orbits round Kinako | Click the prompt | The leave button |
+| Touch | A fixed touch pad in the lower left. A far push runs | A one-finger drag anywhere else orbits, pinch zooms | Tap the prompt | The leave button |
 | Gamepad | Left stick, a far push runs | Right stick turns, triggers zoom | A | B |
 
 - Movement follows the camera: up on the stick or W walks away from the camera.
-- The Gamepad API needs no library. The joystick is about 1 kB of own code, not a package.
+- The Gamepad API needs no library. The touch pad is about 1 kB of own code, not a package.
 
 ### Camera
 
-- **Fixed three-quarter follow.** The default view looks from the south-west, about 35 degrees down, 7 m from the walker. This is close to the welcome view, so the island reads as the same place.
-- **Zoom** runs from 4 to 12 m. **Turn** comes in 45 degree steps from keys, or freely from a drag or the right stick, eased back toward the nearest step.
+- **Chase follow.** While Kinako moves, the camera eases round behind Kinako's travel, like a drone that follows it, with a time constant of 0.6 s. The steering stays camera-relative, so a held left curves Kinako round. The walk starts from the south-west, 3.5 m from Kinako.
+- **Rest orbit.** Once Kinako stops, the camera holds still, and a drag orbits it round Kinako, sideways and up or down. Q and E turn it by 45 degrees. After a drag the chase waits 1.5 s, so the player can look round on the move.
+- **Zoom** runs from 1.5 to 12 m. Under 5 m the pitch eases down, to 14 degrees at 1.5 m, so a close view looks at Kinako and not down on Kinako. A drag tilts on top of that pitch.
+- **Focal point.** While Kinako walks, Kinako is the one focal point. The hover focus of the lens pulls no focus toward the cursor.
 - **The camera follows with a short lag**, about 0.15 s, so the walk reads smoothly.
 - **The lens focuses on the walker.** The rig's `focusPoint` takes the walker position, so the tilt-shift look stays on the animal.
 - **Cutaway.** When a crown, the stair canopy, the tower frame or the roof stands between the camera and the walker, those meshes open a soft round hole round the walker on screen. The toon shader discards those fragments when they are nearer than the walker. The meshes come from a tag list, and one uniform carries the walker's screen position and the hole radius.

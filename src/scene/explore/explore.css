@@ -41,6 +41,18 @@
     display: none;
 }
 
+/* On a touch screen the touch pad holds the lower left, so the prompt moves to the right of it,
+   level with its middle, and never reaches across it. */
+@media (pointer: coarse) {
+    .walk-prompt {
+        left: auto;
+        right: max(1.5rem, env(safe-area-inset-right));
+        bottom: calc(clamp(5rem, 14vh, 8rem) + env(safe-area-inset-bottom) + 2.2rem);
+        max-width: calc(100vw - 7rem - max(1.5rem, env(safe-area-inset-left)) - 3rem);
+        transform: none;
+    }
+}
+
 .walk-prompt kbd {
     display: inline-block;
     min-width: 1.4rem;
@@ -74,13 +86,13 @@
     opacity: 0;
 }
 
-/* The ring sits on the thumb. Its centre is the point where the thumb landed. */
+/* The touch pad stays in the lower left, clear of the nav strip at the bottom. */
 .walk-stick {
     position: fixed;
-    top: -2.75rem;
-    left: -2.75rem;
-    width: 5.5rem;
-    height: 5.5rem;
+    left: max(1.5rem, env(safe-area-inset-left));
+    bottom: calc(clamp(5rem, 14vh, 8rem) + env(safe-area-inset-bottom));
+    width: 7rem;
+    height: 7rem;
     border: 1px solid var(--color-brass-soft);
     border-radius: 50%;
     background: var(--color-glass);
@@ -98,6 +110,7 @@
     height: 2rem;
     border-radius: 50%;
     background: var(--color-brass);
+    pointer-events: none;
 }
 
 /* The page does not scroll or zoom under the walk's touch controls. */

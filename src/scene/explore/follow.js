@@ -1,15 +1,30 @@
 import * as THREE from 'three'
 
 // The follow camera (spec, Camera). It writes the rig's live `walk` shot each frame, and the rig
-// places the camera from it, with the lens focus on Kinako. The default view looks from the
-// south-west, 35 degrees down, from 7 m. Zoom runs from 4 to 12 m. Turns come in 45 degree
-// steps from keys, or freely from a drag, eased back to the nearest step on release. The
-// look point follows Kinako with a 0.15 s lag. Reduced motion follows with no lag.
+// places the camera from it, with the lens focus on Kinako.
+//
+// - Chase: while Kinako moves, the camera swings round behind Kinako's travel, like a drone
+//   that follows it. The steering stays camera-relative, so a held left curves Kinako round.
+// - Rest: once Kinako stops, the camera holds still. A drag orbits it round Kinako, sideways
+//   and up or down. Q and E turn it by 45 degrees. A drag also holds the chase off for a moment
+//   after its release, so the player can look round on the move.
+// - Zoom runs from 1.5 to 12 m from a start at 3.5 m. The pitch eases down as the camera closes
+//   in, to 14 degrees at 1.5 m, so a close view looks at Kinako and not down on Kinako. A drag
+//   tilts on top of that pitch.
+//
+// The look point follows Kinako with a 0.15 s lag. Reduced motion follows with no lag.
 //
 // In the glTF frame +Z is south and -Z is north, toward the city. A yaw of 0 sets the camera
 // south of Kinako, looking north.
-const PITCH = THREE.MathUtils.degToRad(35)
-const DISTANCE = { start: 7, min: 4, max: 12 }
+const PITCH = THREE.MathUtils.degToRad(32)
+const DISTANCE = { start: 3.5, min: 1.5, max: 12 }
+// The close view: under `from` metres the pitch eases down to `pitch` at DISTANCE.min.
+const CLOSE = { from: 5, pitch: THREE.MathUtils.degToRad(14) }
+// The chase: over `speed` metres a second the camera eases round behind Kinako, with a time
+// constant of `ease` seconds. After a drag it waits `hold` seconds before it chases again.
+const CHASE = { speed: 0.4, ease: 0.6, hold: 1.5 }
+// The drag tilt stays inside these limits, in radians over the zoom pitch.
+const TILT = { min: THREE.MathUtils.degToRad(-12), max: THREE.MathUtils.degToRad(40) }
 const LAG = 0.15
 const STEP = Math.PI / 4
 const SOUTH_WEST = -Math.PI / 4
@@ -38,16 +53,20 @@ export function createFollow({ reach = null } = {}) {
     const probe = new THREE.Vector3()
     let held = DISTANCE.start
     let squeezed = 0
+    let tilt = 0
+    let heldOff = 0
 
     const clearAt = (yaw) => {
         probe.set(Math.sin(yaw) * Math.cos(view.pitch), Math.sin(view.pitch), Math.cos(yaw) * Math.cos(view.pitch))
         return reach(look, probe, view.distance)
     }
 
-    // Swings the camera once it has stayed squeezed for a moment, unless a drag holds it.
-    const swing = (dt) => {
-        if (!reach || dragging || lookout) return
-        squeezed = held < SWING.tight ? squeezed + dt : 0
+    // Swings the camera once it has stayed squeezed for a moment, unless a drag or the chase
+    // holds it.
+    const swing = (dt, chasing) => {
+        if (!reach || dragging || lookout || chasing) return
+        // A close zoom is not a squeeze: only a wall that holds the camera nearer than asked.
+        squeezed = held < Math.min(SWING.tight, view.distance * 0.8) ? squeezed + dt : 0
         if (squeezed < SWING.wait) return
         squeezed = 0
         const base = Math.round(want.yaw / STEP) * STEP
@@ -61,7 +80,10 @@ export function createFollow({ reach = null } = {}) {
 
     const place = (dt = 0) => {
         dir.set(Math.sin(view.yaw) * Math.cos(view.pitch), Math.sin(view.pitch), Math.cos(view.yaw) * Math.cos(view.pitch))
-        const free = reach ? Math.max(CLEAR.near, Math.min(view.distance, reach(look, dir, view.distance) - CLEAR.gap)) : view.distance
+        // The gap applies only in front of a wall the ray hit. With nothing in the way the camera
+        // stands at the full zoom distance.
+        const clear = reach ? reach(look, dir, view.distance) : view.distance
+        const free = clear < view.distance ? Math.max(CLEAR.near, clear - CLEAR.gap) : view.distance
         held = free < held || dt === 0 ? free : held + (free - held) * (1 - Math.exp(-dt / CLEAR.out))
         shot.target.copy(look)
         shot.focus.copy(look)
@@ -70,17 +92,32 @@ export function createFollow({ reach = null } = {}) {
 
     const snap = (feet) => {
         look.copy(feet).y += LIFT
+        if (!lookout) want.pitch = pitchFor(want.distance)
         Object.assign(view, want)
         place()
     }
 
-    // Returns true while the camera still eases toward its goal.
-    const update = (dt, feet, reduced) => {
+    // Turns the camera round behind the travel of Kinako. Returns true while it chases.
+    const chase = (dt, travel, reduced) => {
+        heldOff = Math.max(0, heldOff - dt)
+        const speed = Math.hypot(travel.x, travel.z)
+        if (lookout || dragging || heldOff > 0 || speed < CHASE.speed) return false
+        const behind = Math.atan2(travel.x, travel.z) + Math.PI
+        const turn = THREE.MathUtils.euclideanModulo(behind - view.yaw + Math.PI, Math.PI * 2) - Math.PI
+        view.yaw += turn * (reduced ? 1 : 1 - Math.exp(-dt / CHASE.ease))
+        want.yaw = view.yaw
+        return Math.abs(turn) > 1e-3
+    }
+
+    // travel: Kinako's horizontal velocity. Returns true while the camera still eases toward
+    // its goal.
+    const update = (dt, feet, reduced, travel) => {
         goal.copy(feet).y += LIFT
         const k = reduced ? 1 : 1 - Math.exp(-dt / LAG)
         look.lerp(goal, k)
         const ease = reduced ? 1 : 1 - Math.exp(-dt / 0.25)
-        let busy = look.distanceToSquared(goal) > 1e-6
+        const chasing = chase(dt, travel, reduced)
+        let busy = look.distanceToSquared(goal) > 1e-6 || chasing
         for (const key of ['yaw', 'pitch', 'distance']) {
             if (dragging && key === 'yaw') continue
             view[key] += (want[key] - view[key]) * ease
@@ -88,15 +125,22 @@ export function createFollow({ reach = null } = {}) {
             else view[key] = want[key]
         }
         place(reduced ? 0 : dt)
-        swing(dt)
+        swing(dt, chasing)
         return busy || Math.abs(held - view.distance) > 1e-3
+    }
+
+    // The pitch for a zoom distance and the drag tilt: the default pitch from CLOSE.from out,
+    // easing down below it.
+    const pitchFor = (distance) => {
+        const t = THREE.MathUtils.smoothstep(distance, DISTANCE.min, CLOSE.from)
+        return THREE.MathUtils.lerp(CLOSE.pitch, PITCH, t) + tilt
     }
 
     const leaveLookout = () => {
         if (!lookout) return
         lookout = false
-        want.pitch = PITCH
         want.distance = DISTANCE.start
+        want.pitch = pitchFor(want.distance)
     }
 
     // steps: +1 or -1, one 45 degree turn.
@@ -105,23 +149,29 @@ export function createFollow({ reach = null } = {}) {
         want.yaw = Math.round(want.yaw / STEP) * STEP + steps * STEP
     }
 
-    // A drag turns freely. Release eases to the nearest step.
-    const drag = (radians) => {
+    // A drag orbits freely: radians round Kinako, and a tilt up or down. The chase waits until a
+    // moment after the release.
+    const drag = (radians, lift = 0) => {
         leaveLookout()
         dragging = true
         view.yaw += radians
         want.yaw = view.yaw
+        if (lift) {
+            tilt = THREE.MathUtils.clamp(tilt + lift, TILT.min, TILT.max)
+            want.pitch = pitchFor(want.distance)
+        }
     }
     const release = () => {
         if (!dragging) return
         dragging = false
-        want.yaw = Math.round(view.yaw / STEP) * STEP
+        heldOff = CHASE.hold
     }
 
     // A factor above 1 moves in, below 1 moves out.
     const zoom = (factor) => {
         if (!factor) return
         want.distance = THREE.MathUtils.clamp(want.distance / factor, DISTANCE.min, DISTANCE.max)
+        if (!lookout) want.pitch = pitchFor(want.distance)
     }
 
     // The lookout zone turns the view to the city, and a second use turns it back.

@@ -223,13 +223,16 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         const dof = lookSet.has('lens') && uniforms.uDepthOn.value && !scope ? 1 - Math.min(1, rig.travel * 1.6) : 0
         uniforms.uDof.value = dof
         uniforms.uFocus.value = rig.focus
-        const on = !!cursor && dof === 1 && !state.reduced
+        // While Kinako walks, Kinako is the focal point: the cursor pulls no focus and opens no
+        // clear patch.
+        const pointer = walker ? null : cursor
+        const on = !!pointer && dof === 1 && !state.reduced
         // Reduced motion draws single frames, so a long step snaps the pull out in one frame.
-        const hover = hoverFocus.update({ on, cursor, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
+        const hover = hoverFocus.update({ on, cursor: pointer, movedAt: lensCursor.movedAt, depthTexture: uniforms.tDepth.value, camera, focus: rig.focus, now, dt: state.reduced ? 1 : Math.min(dt, 0.1) })
         uniforms.uFocus2.value = hover.focus
         uniforms.uHover.value = hover.weight
-        if (cursor) lensCursor.uv.lerp(cursor, k)
-        lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
+        if (pointer) lensCursor.uv.lerp(pointer, k)
+        lensCursor.on += ((pointer ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)
         uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, hoverFocus.clear, hover.weight)
         uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.on, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.on)

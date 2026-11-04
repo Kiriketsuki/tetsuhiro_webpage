@@ -18,14 +18,21 @@ import { createCutaway } from './cutaway.js'
 // Under reduced motion the manager runs no loop, so the session runs its own while input moves
 // Kinako, and draws each of those frames with manager.renderNow.
 // It moves the capsule, poses Kinako (body.js), writes the follow shot, and opens a zone prompt
-// once Kinako stops in a zone. A zone never fires on its own. Kinako idles while the walk waits,
-// so the frames keep running, except under reduced motion, where Kinako holds a still sit.
+// once Kinako stops in a zone. A zone never fires on its own. While Kinako rests, the step
+// reports no motion, so the manager draws the idle habits on its ambient clock and not at the
+// full frame rate. Under reduced motion, Kinako holds a still sit.
 
 // Walk and run speeds in metres a second (spec, The walker).
 const SPEED = { walk: 2.2, run: 4.5 }
+// A light push on the touch pad or a stick still walks at this share of the walk speed, about
+// 1 m/s, so Kinako never creeps. Below 1 m/s the walker stalled at the 6 cm lip at the foot of the
+// second tower flight.
+const MIN_PUSH = 0.45
 // A walker slower than this, in metres a second, has stopped, so a zone prompt may open.
 const STOPPED = 0.25
-// The share of the asked speed under which a push against a ledge counts as blocked.
+// The share of the asked speed under which a push against a ledge counts as blocked. It counts
+// the real progress along the asked direction only (mover.progress): on a round rim the capsule
+// slides sideways along the lip, and at a low lip the velocity stays high while it stands still.
 const BLOCKED = 0.35
 
 // Each zone: its prompt, and what it opens. section: the home section a card shows.
@@ -74,7 +81,7 @@ export function createExplore(manager, story) {
         if (reduced() && !still && mode === 'walking') still = requestAnimationFrame(stillFrame)
         manager.requestRender()
     }
-    const controls = createControls({ onInput: wake })
+    const controls = createControls({ onInput: wake, padCentre: () => overlay.padCentre() })
     const overlay = createOverlay({ onUse: () => controls.use(), onLeave: () => controls.leave() })
 
     const built = (async () => {
@@ -141,22 +148,25 @@ export function createExplore(manager, story) {
         // lens focus onto Kinako.
         const arrived = rig.moveDuration === 0
         if (input.turnSteps) follow.turn(input.turnSteps)
-        if (input.turn) follow.drag(input.turn)
+        if (input.turn || input.tilt) follow.drag(input.turn, input.tilt)
         else if (!input.dragging) follow.release()
         if (input.zoom !== 1) follow.zoom(input.zoom)
         follow.forward(forward)
         follow.right(right)
-        const speed = arrived ? (input.run ? SPEED.run : SPEED.walk) * Math.min(1, input.push) : 0
+        const speed = arrived && input.push > 0 ? (input.run ? SPEED.run : SPEED.walk) * THREE.MathUtils.clamp(input.push, MIN_PUSH, 1) : 0
         wish.copy(forward).multiplyScalar(input.y).addScaledVector(right, input.x)
         if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(speed)
         if (wish.lengthSq() > 0) follow.leaveLookout()
         mover.step(dt, wish)
         travel.set(mover.velocity.x, 0, mover.velocity.z)
         const moved = travel.length()
-        if (wish.lengthSq() > 0) mover.tryHop(wish.clone().normalize(), moved < BLOCKED * speed)
+        if (wish.lengthSq() > 0) {
+            const dir = wish.clone().normalize()
+            mover.tryHop(dir, mover.progress.x * dir.x + mover.progress.z * dir.z < BLOCKED * speed)
+        }
         const feet = mover.position()
         body.update(dt, feet, travel, mover.onFloor, reduced())
-        const easing = follow.update(dt, feet, reduced())
+        const easing = follow.update(dt, feet, reduced(), travel)
         if (arrived) rig.jump('walk')
         cutaway.update(feet, Math.min(1, moved / SPEED.walk))
         zone = moved < STOPPED && mover.onFloor ? zoneAt(feet) : null
@@ -165,7 +175,7 @@ export function createExplore(manager, story) {
         controls.setPrompt(Boolean(label))
         overlay.setStick(controls.stick, 56)
         if (input.use) use()
-        return !reduced() || moved > 0.01 || !mover.onFloor || easing || controls.stick.shown || input.push > 0 || !arrived
+        return moved > 0.01 || !mover.onFloor || easing || controls.stick.shown || input.push > 0 || !arrived
     }
 
     // from: 'welcome' or 'contact'. Kinako wakes by the fire in both cases.

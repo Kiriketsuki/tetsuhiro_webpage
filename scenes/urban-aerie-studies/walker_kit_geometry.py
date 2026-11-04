@@ -113,6 +113,27 @@ def facing(normal, roll=0.0):
 
 BODY_STATIONS = (0.97, 0.88, 0.72, 0.5, 0.25, 0.0, -0.25, -0.5, -0.68, -0.82, -0.92, -1.0)
 
+# The mesh resolution of each part. The concept sheets use these values. A finer set (for the
+# site walker, export_walker.py) goes into cfg['res'] and replaces any of them.
+RES = {
+    'body_sides': 12, 'body_split': 1, 'tail_rings': 14,
+    'neck': (10, 2, 2), 'head': (12, 9), 'muzzle': (8, 6),
+    'ear_sides': 8, 'ear_split': 1, 'leg_sides': 8, 'leg_mid': 2, 'leg_dome': 1, 'paw': (8, 4),
+}
+
+
+def res(cfg, key):
+    """The resolution value `key` of cfg, or the concept default."""
+    return cfg.get('res', {}).get(key, RES[key])
+
+
+def split(values, n):
+    """Puts n - 1 evenly spaced values between each neighbour pair, so a profile gains rings."""
+    out = [values[0]]
+    for a, b in zip(values, values[1:]):
+        out.extend(a + (b - a) * k / n for k in range(1, n + 1))
+    return out
+
 
 def tail_radius(t, root, peak):
     """Brush profile along the tail, 0 at the root and 1 at the tip."""
@@ -170,7 +191,7 @@ def tail_spine(cfg, joints, start, steps=360):
     return samples
 
 
-def body_tail_mesh(cfg, joints, sides=12):
+def body_tail_mesh(cfg, joints, sides=None):
     """Returns the body and tail as one closed tube, and the body face set.
 
     The body sections and the tail rings share one loop at the rump end, so the
@@ -179,16 +200,18 @@ def body_tail_mesh(cfg, joints, sides=12):
     """
     length, root, peak = cfg['tail_length'], cfg['tail_root'], cfg['tail_peak']
     band0, band1 = (f * length for f in cfg['tail_band'])
+    sides = sides or res(cfg, 'body_sides')
+    n_tail = res(cfg, 'tail_rings')
     y_axis, z_axis = Vector((0, 1, 0)), Vector((0, 0, 1))
     rings = []
-    for u in BODY_STATIONS:
+    for u in split(BODY_STATIONS, res(cfg, 'body_split')):
         centre, w, h = body_ring(cfg, u)
         rings.append((centre, y_axis * w, z_axis * h, 1.0))
     n_body = len(rings)
     start = rings[-1][0]
     samples = tail_spine(cfg, joints, start)
     steps = len(samples) - 1
-    stations = sorted({round(length * 0.985 * k / 14, 5) for k in range(1, 15)}
+    stations = sorted({round(length * 0.985 * k / n_tail, 5) for k in range(1, n_tail + 1)}
                       | {band0, band1})
     for s in stations:
         _, p, r = samples[min(steps, int(round(s / length * steps)))]
@@ -261,13 +284,13 @@ def shape_body(cfg, bm, body_faces, rump_x):
 
 # Ears --------------------------------------------------------------------------------
 
-def ear_mesh(eh, er, sides=8):
+def ear_mesh(eh, er, sides=8, splits=1):
     """Returns a large fox ear whose base swells into a mound inside the skull.
 
     The mound meets the head at a shallow angle, so the ear grows out of the head.
     Slot 1 marks the tip field.
     """
-    stations = (-0.026, -0.014, -0.004, 0.008, 0.022, eh * 0.35, eh * 0.62, eh * 0.82)
+    stations = split((-0.026, -0.014, -0.004, 0.008, 0.022, eh * 0.35, eh * 0.62, eh * 0.82), splits)
     rings = []
     for z in stations:
         zz = max(z, 0.0)

@@ -92,10 +92,11 @@ const deferShellCss = () => ({
     },
 })
 
-// The gate title paints in the first paint, in the two faces its words use. This plugin
-// preloads those two font files in index.html, so they arrive early and the words change face
-// once, soon. The gate sets every line height, so the swap moves nothing.
-const GATE_FONTS = ['instrument-serif-latin-400-normal', 'jetbrains-mono-latin-400-normal']
+// The gate title paints in the first paint. This plugin preloads the face of its name in
+// index.html, so the name changes face once, soon. The small labels wait for the shell CSS, so
+// the app bundle keeps the bandwidth on a slow line. The gate sets every line height, so a
+// swap moves nothing.
+const GATE_FONTS = ['instrument-serif-latin-400-normal']
 const preloadGateFonts = () => ({
     name: 'preload-gate-fonts',
     apply: 'build',

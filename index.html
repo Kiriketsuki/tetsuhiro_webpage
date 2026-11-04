@@ -132,15 +132,24 @@
         opacity: 0;
         transition: opacity 0s 0.6s;
       }
-      /* The sharp layers fade in over the soft copy when their files decode: the unlit set
-         (is-sharp) and the lit set (is-warm). The script at the end of the body sets both. */
+      /* The sharp layers fade in over the soft copy when their files decode: the unlit set at
+         once (is-sharp), then the lit lamp (is-lamp) and the autumn branch (is-autumn) each on
+         its own. On a slow line a lit layer can arrive with the meter well along, so it fades in
+         slowly and the lamp warms up instead of jumping. The script at the end of the body sets
+         the flags. */
       .ga-sharp,
-      .ga-warm {
+      .ga-lamp,
+      .ga-autumn-in {
         opacity: 0;
         transition: opacity 0.5s;
       }
+      .ga-lamp,
+      .ga-autumn-in {
+        transition-duration: 1.2s;
+      }
       #gate-art.is-sharp .ga-sharp,
-      #gate-art.is-warm .ga-warm {
+      #gate-art.is-lamp .ga-lamp,
+      #gate-art.is-autumn .ga-autumn-in {
         opacity: 1;
       }
       /* Kinako sleeps on the branch, left of the hook. The frame box and its place come from
@@ -704,18 +713,18 @@
         <i class="ga-glow ga-fades"></i>
         <div class="ga-layer ga-fades">
           <i class="ga-img ga-branch ga-sharp"></i>
-          <div class="ga-reveal ga-warm"><i class="ga-img ga-autumn"></i></div>
+          <div class="ga-reveal ga-autumn-in"><i class="ga-img ga-autumn"></i></div>
         </div>
         <div class="ga-nudge ga-fades">
           <div class="ga-lantern">
             <i class="ga-img ga-paper ga-sharp"></i>
-            <div class="ga-layer ga-warm"><i class="ga-img ga-paper ga-lit"></i></div>
+            <div class="ga-layer ga-lamp"><i class="ga-img ga-paper ga-lit"></i></div>
           </div>
         </div>
         <div class="ga-kinako ga-sharp">
           <div class="ga-k-breath">
             <i class="ga-k-frame"></i>
-            <div class="ga-layer ga-warm"><i class="ga-k-frame ga-k-lit"></i></div>
+            <i class="ga-k-frame ga-k-lit"></i>
           </div>
         </div>
         <i class="ga-drift" style="--x:17.9%;--y:11.9%;--s:2;--r:40deg;--t:13s;--d:-4s"></i>
@@ -760,7 +769,8 @@
             return image.decode()
           })).then(() => art.classList.add(flag), () => art.classList.add(flag))
         set(['branch-s0', 'lantern-s0', 'kinako-nap'], 'is-sharp')
-        set(['lantern-s1', 'branch-s1'], 'is-warm')
+        set(['lantern-s1'], 'is-lamp')
+        set(['branch-s1'], 'is-autumn')
         set(['sprites-s1'], 'has-leaves')
       }
       if (location.pathname === '/') art.load()

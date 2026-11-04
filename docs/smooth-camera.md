@@ -388,3 +388,23 @@ animation is done".
 The moves with more than one peak are the walk moves (on the phone) and the moves between the hero
 and the board, which slow at the door. Real key 4 from the welcome, at desktop and at phone with 4x
 CPU throttle: one move, 1 speed peak on screen, no stall, no console error.
+
+## The words wait for every move (4 November 2026)
+
+The owner, after #61: "the 2d ui bits are still appearing before the various scene transitions,
+etc are done". #61 held the Projects page and the Home words for the board move only. The Home
+section cards faded in at the start of every move between sections, and the `/skills` and `/about`
+pages showed at once.
+
+- The scene manager reports where the camera rests (`onSettle`, `manager.settled`): a stop id, or
+  null while a move between stops, the eyepiece or the board move runs. `useTravel().at` holds it,
+  and a route change sets it to null at once.
+- A Home section card shows only when the camera rests at the section's stop. The hero title
+  decodes when the welcome first shows after the gate.
+- `/skills` and `/about` wait for the first rest after they mount (`useArrival`), at most 6 s.
+- The prop tags wake only at rest.
+- The old card fades out in 0.35 s as the move starts, and the new one fades in over 0.6 s.
+
+A probe drove 14 transitions with real input at 1440x900 and 390x844: the gate, five key jumps,
+into and out of the star chart, the wall and the About room. It sampled every 100 ms. In every
+run the new words show after the camera rests and none show during a move. No console errors.

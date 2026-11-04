@@ -1,5 +1,5 @@
 <template>
-    <main>
+    <main class="arrive" :class="{ waiting: !arrived }">
         <ExplorePad to="/" back="">
             <template #top>
                 <header class="sky-head">
@@ -37,6 +37,10 @@
 import ExplorePad from '../components/ExplorePad.vue'
 import { branches, skills } from '../data/skills.js'
 import { notes } from '../data/skill-notes.js'
+import { useArrival } from '../composables/useTravel.js'
+
+// The header waits for the iris to open on the sky.
+const arrived = useArrival()
 
 // /skills is the skill sky itself: the pad takes drags, pinches and taps, and the scene shows
 // the constellations at full strength behind it.
@@ -44,6 +48,16 @@ const skillsOf = (id) => skills.filter((skill) => skill.branch === id)
 </script>
 
 <style scoped>
+.arrive {
+    transition: opacity 0.6s ease;
+}
+
+/* The page waits while the camera moves into the view, then fades in (useArrival). */
+.waiting {
+    visibility: hidden;
+    opacity: 0;
+}
+
 /* A plate of night glass, like the skill cards in sky-overlay.css, with a brass hairline. The
    back control sits first in it, so it is close and easy to find. The plate takes no pointer
    events, so a drag that starts on it still moves the sky. Each night glass token has the old

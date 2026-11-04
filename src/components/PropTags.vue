@@ -27,6 +27,7 @@ import { useProps } from '../composables/useProps.js'
 import { useWaypoints } from '../composables/useWaypoints.js'
 import { useExplore } from '../composables/useExplore.js'
 import { useWalk } from '../composables/useWalk.js'
+import { useTravel } from '../composables/useTravel.js'
 
 // The labels of the props on the home walk (src/data/props.js) and the input that reaches
 // them. A mouse that rests over a prop lights it and names it, and a click opens it. On touch
@@ -50,11 +51,14 @@ const { controls } = useProps()
 const { active, entered } = useWaypoints()
 const { exploring, looking } = useExplore()
 const { walking, visiting } = useWalk()
+const { at } = useTravel()
 
 const stop = computed(() => waypoints[active.value]?.stop)
 // The walk on foot turns the props off, so a tap for the joystick never opens a page. A zone
-// card on the walk brings its section and its props back.
-const open = computed(() => entered.value && !exploring.value && !looking.value && !(walking.value && visiting.value === null))
+// card on the walk brings its section and its props back. The props wake once the camera rests
+// at their stop, so no label shows over a move.
+const resting = computed(() => at.value === undefined || at.value === stop.value)
+const open = computed(() => entered.value && resting.value && !exploring.value && !looking.value && !(walking.value && visiting.value === null))
 const here = computed(() => (open.value ? PROPS.filter((prop) => prop.stop === stop.value) : []))
 
 // The marked prop: lit in the scene, with its label on screen. source says what marked it, so

@@ -83,8 +83,9 @@ RIG = {
     'warm': linear(0xFFC088, 1.5),
     'rim': linear(0x9FB4DC, 0.08),
 }
-# The autumn.js family tones: the olive-gold lawn, an amber crown and the olive-mustard planting.
-TONES = {'web_grass': 0x947C34, 'web_crown': 0xD97E1E, 'web_plants': 0x8C7A2C}
+# The autumn.js family tones: the olive-gold lawn and an amber crown. The planting takes the
+# lawn tone, so the tufts read as soft relief in the lawn and do not clutter the ground.
+TONES = {'web_grass': 0x947C34, 'web_crown': 0xD97E1E, 'web_plants': 0x947C34}
 # The albedo factor of the lawn family (toon-material.js, toonAlbedo *= 0.56, a little lower
 # here, because the leaf carpet of the site darkens the lawn between the leaves).
 LAWN_GAIN = 0.34
@@ -426,7 +427,9 @@ def render_main():
     # Leaf litter ---------------------------------------------------------------------
     import random
     rng = random.Random(3)
-    leaf_mats = [toon(f'gate_leaf_{i}', linear(c), 0.6, moon, fire) for i, c in enumerate(CARPET)]
+    # A light litter: the owner found a full carpet too busy, so the leaves stay few, near the
+    # fire, and a little dimmer than the site carpet.
+    leaf_mats = [toon(f'gate_leaf_{i}', linear(c), 0.48, moon, fire) for i, c in enumerate(CARPET)]
     shapes = []
     for i in range(3):
         bm = bmesh.new()
@@ -445,8 +448,8 @@ def render_main():
         bm.free()
         shapes.append(me)
     clear = [(fire, 0.8)]
-    for _ in range(2600):
-        r = 0.8 + 3.2 * math.sqrt(rng.random())
+    for _ in range(700):
+        r = 0.8 + 2.2 * math.sqrt(rng.random())
         a = rng.random() * math.tau
         x, y = fire.x + math.cos(a) * r, fire.y + math.sin(a) * r
         if any((Vector((x, y)) - c.xy).length < rad for c, rad in clear):

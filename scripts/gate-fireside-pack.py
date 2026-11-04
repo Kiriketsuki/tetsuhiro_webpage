@@ -25,6 +25,13 @@ EXPOSURE, SATURATION, CONTRAST = 1.15, 1.24, 0.16
 LIFT = np.array([0.0095, 0.006, 0.0125])
 # The encoded sizes, in pixels of the master square: desktop and phone.
 SIZES = {'d': 1600, 'p': 960}
+# Kinako and the fire are the focus of the picture, so they encode finer, for a screen of two
+# device pixels to the CSS pixel.
+FOCUS_SIZES = {'d': 2400, 'p': 1440}
+# The focus falloff: the lawn past the lap blurs, darkens and greys a little, so Kinako and
+# the fire carry the picture. The radii are in units of the lap ellipse, the blur is a share
+# of the picture width, and the dark and grey shares apply at full falloff.
+FOCUS = {'inner': 1.15, 'outer': 2.6, 'blur': 0.011, 'dark': 0.5, 'grey': 0.3}
 QUALITY = {'scene': 82, 'glow': 80, 'pit': 84, 'fire': 82, 'k': 86}
 # The first paint: a soft copy of the whole picture, this many pixels wide.
 FIRST_WIDTH = 240
@@ -187,6 +194,38 @@ def slug(selector):
     return re.sub(r'[^a-z0-9]+', '-', selector.lower()).strip('-')
 
 
+def focus_mask(shape, ellipse, lift=0.07):
+    """0 inside the lap and the fire above it, rising to 1 far from them."""
+    h, w = shape
+    y, x = np.mgrid[0:h, 0:w]
+    dx = (x / w - ellipse['cx']) / ellipse['rx']
+    # The fire rises above the lap, so the focus reaches up further than down.
+    dy = (y / h - ellipse['cy']) / (ellipse['ry'] * 2.4)
+    dy = np.where(dy < 0, dy * (ellipse['ry'] * 2.4) / (ellipse['ry'] * 2.4 + lift), dy)
+    d = np.sqrt(dx * dx + dy * dy)
+    t = np.clip((d - FOCUS['inner']) / (FOCUS['outer'] - FOCUS['inner']), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def defocus(rgba, mask):
+    """Blurs, darkens and greys a straight-alpha picture where the mask is high."""
+    h, w = rgba.shape[:2]
+    small = 800
+    img = to_image(rgba).convert('RGBa').resize((small, small), Image.LANCZOS)
+    img = img.filter(ImageFilter.GaussianBlur(FOCUS['blur'] * small))
+    soft = np.asarray(img.resize((w, h), Image.BICUBIC).convert('RGBA'), dtype=np.float32) / 255
+    m = mask[..., None]
+    pre = np.concatenate([rgba[..., :3] * rgba[..., 3:4], rgba[..., 3:4]], -1)
+    soft_pre = np.concatenate([soft[..., :3] * soft[..., 3:4], soft[..., 3:4]], -1)
+    mixed = pre * (1 - m) + soft_pre * m
+    alpha = mixed[..., 3:4]
+    rgb = np.where(alpha > 1e-4, mixed[..., :3] / np.maximum(alpha, 1e-4), 0)
+    v = (rgb * [0.2126, 0.7152, 0.0722]).sum(-1, keepdims=True)
+    rgb = rgb + (v - rgb) * FOCUS['grey'] * m
+    rgb = rgb * (1 - FOCUS['dark'] * m)
+    return np.concatenate([rgb, alpha], -1)
+
+
 def main(work, out, root):
     out.mkdir(parents=True, exist_ok=True)
     layout = json.loads((work / 'layout.json').read_text())
@@ -198,6 +237,9 @@ def main(work, out, root):
     # The scene and its first paint copy.
     scene = load('scene')
     pit = load('pit')
+    mask = focus_mask(scene.shape[:2], layout['ellipse'])
+    alpha = scene[..., 3].copy()
+    scene = defocus(scene, mask)
     scene_img = to_image(scene)
     for key, size in SIZES.items():
         sizes[f'scene-{key}'] = webp(scaled(scene_img, size / master), out / f'scene-{key}.webp', QUALITY['scene'])
@@ -207,10 +249,10 @@ def main(work, out, root):
     base_lin = np.load(work / 'scene.npy')
     lum = lambda a: (a[..., :3] * [0.2126, 0.7152, 0.0722]).sum(-1)  # noqa: E731
     diff = lum(glow_lin) - lum(base_lin)
-    mask = np.clip((diff - 0.006) / 0.04, 0, 1)
-    mask = mask * mask * (3 - 2 * mask)
-    glow = load('glow')
-    glow[..., 3] *= mask
+    mask_glow = np.clip((diff - 0.006) / 0.04, 0, 1)
+    mask_glow = mask_glow * mask_glow * (3 - 2 * mask_glow)
+    glow = defocus(load('glow'), focus_mask(base_lin.shape[:2], layout['ellipse']))
+    glow[..., 3] *= mask_glow
     gx0, gy0, gx1, gy1 = alpha_box([glow], pad=8)
     glow_img = to_image(glow[gy0:gy1, gx0:gx1])
     # The pool is soft light, so it encodes at half the size and the browser scales it up.
@@ -234,7 +276,7 @@ def main(work, out, root):
         strip = Image.new('RGBA', (row[0].width * FLICKER, row[0].height))
         for f, img in enumerate(row):
             strip.paste(img, (f * img.width, 0))
-        for key, size in SIZES.items():
+        for key, size in FOCUS_SIZES.items():
             img = scaled(strip, size / master)
             # The embers paint with the first paint, from a data URL, so they need no file.
             if s == 0:
@@ -251,7 +293,7 @@ def main(work, out, root):
         strip = Image.new('RGBA', (row[0].width * n, row[0].height))
         for k, img in enumerate(row):
             strip.paste(img, (k * img.width, 0))
-        for key, size in SIZES.items():
+        for key, size in FOCUS_SIZES.items():
             img = scaled(strip, size / master)
             if sheet == 'nap':
                 if key == 'd':
@@ -272,18 +314,17 @@ def main(work, out, root):
 
     # The horizon: the median top of the lawn across the middle of the picture. The haze and
     # the city bokeh sit on it.
-    alpha = scene[..., 3]
     cols = range(master // 5, master * 4 // 5, 8)
     tops = sorted(int(np.argmax(alpha[:, c] > 0.5)) for c in cols)
     hz = tops[len(tops) // 2] / master
     rng = np.random.default_rng(11)
     discs = []
-    for _ in range(64):
+    for _ in range(40):
         x = rng.uniform(0, 100)
-        y = rng.uniform(-13, 1.5)
-        r = rng.uniform(0.35, 1.5)
+        y = rng.uniform(-7, 1.5)
+        r = rng.uniform(0.3, 1.2)
         colour = ('#ffc478', '#ffaa5a', '#aac8ff', '#ffe2aa')[rng.integers(4)]
-        a = int(rng.uniform(0.18, 0.42) * 255)
+        a = int(rng.uniform(0.14, 0.32) * 255)
         discs.append(f'{x:.2f}cqw {y:.2f}cqw 0 {r:.2f}cqw {colour}{a:02x}')
     css.append(f'#gate-art {{ --hz: {round(hz, 4)}; }}')
     css.append('.ga-bokeh { box-shadow: ' + ', '.join(discs) + '; }')

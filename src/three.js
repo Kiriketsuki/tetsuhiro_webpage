@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { useWaypoints } from './composables/useWaypoints.js'
 import { useExplore } from './composables/useExplore.js'
 import { useWall } from './composables/useWall.js'
+import { useTravel } from './composables/useTravel.js'
 import { useWalk } from './composables/useWalk.js'
 import { useProps } from './composables/useProps.js'
 import { createSceneManager } from './scene/scene-manager.js'
@@ -26,6 +27,7 @@ let inSky = false
 let inWall = false
 let wallBuilt = false
 const wall = useWall()
+const travel = useTravel()
 // index.html shows the gate art on a first visit to Home only. Behind the gate the visitor
 // waits anyway, so there the gate also waits for the evidence wall and the camera planner.
 // Built after the gate, their long tasks of up to 2 s hit the lit lantern and the first moves.
@@ -190,6 +192,9 @@ function boot() {
         onProgress: (value) => {
             progress.value = Math.max(progress.value, gated ? SCENE_SHARE * value : value)
         },
+        onSettle: (stop) => {
+            travel.at.value = stop
+        },
     })
     if (wanted) manager.resume()
 
@@ -328,6 +333,9 @@ export function setRoute(name, { cut = false } = {}) {
     const sky = name === 'Skills'
     const onWall = WALL_ROUTES.includes(name)
     if (!manager) return
+    // A route change is a scene move, so the new page holds its words from the start. The
+    // manager reports the rest stop when the move ends, or at once below if none starts.
+    if (!cut) travel.at.value = null
     if (cut) {
         manager.goTo(currentStop(), { duration: 0 })
         inSky = sky
@@ -355,6 +363,7 @@ export function setRoute(name, { cut = false } = {}) {
         if (sky !== inSky) eyepiece(sky, currentStop())
         else if (onWall !== inWall) board(onWall, currentStop())
         else if (!onWall) manager.goTo(currentStop())
+        travel.at.value = manager.settled
     })
 }
 

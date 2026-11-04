@@ -20,7 +20,6 @@ import { WATER_COLORS } from './aerie/water.js'
 import { createCameraRig, shotsFromStops } from './aerie/camera-rig.js'
 import { fitFov } from './aerie/framing.js'
 import { TIERS, BUDGET_MS, startTier, createPipeline, createGovernor } from './aerie/quality.js'
-import { createHoverFocus, HOVER_FOCUS } from './aerie/hover-focus.js'
 import { GRADE } from './aerie/grade-pass.js'
 import { createLookControl, SITE_LOOK } from './aerie/look-options.js'
 
@@ -140,7 +139,19 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
     // The pointer in uv, or null without one. The lens pulls focus toward what it rests on.
     let cursor = null
     const lensCursor = { uv: new THREE.Vector2(0.5, 0.5), on: 0, movedAt: 0, last: performance.now(), shown: -1 }
-    const hoverFocus = createHoverFocus(renderer)
+    // The hover focus loads in its own chunk, and only with the lens, so a phone never fetches
+    // it. Until it arrives, the lens keeps the stop's focus only.
+    let hoverFocus = { update: () => ({ focus: rig.focus, weight: 0, busy: false }), dispose: () => {}, clear: 0 }
+    let hoverGone = false
+    if (lookSet.has('lens')) {
+        import('./aerie/hover-focus.js')
+            .then(({ createHoverFocus, HOVER_FOCUS }) => {
+                if (hoverGone) return
+                hoverFocus = createHoverFocus(renderer)
+                Object.defineProperty(hoverFocus, 'clear', { get: () => HOVER_FOCUS.clear })
+            })
+            .catch(() => {})
+    }
     let lookControl = null
     let submits = []
 
@@ -216,7 +227,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
         if (cursor) lensCursor.uv.lerp(cursor, k)
         lensCursor.on += ((cursor ? 1 : 0) - lensCursor.on) * k
         uniforms.uCursor.value.copy(lensCursor.uv)
-        uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, HOVER_FOCUS.clear, hover.weight)
+        uniforms.uCursorClear.value = lensCursor.on * THREE.MathUtils.lerp(0.4, hoverFocus.clear, hover.weight)
         uniforms.uVignetteCentre.value.set(0.5 + 0.12 * (lensCursor.uv.x - 0.5) * lensCursor.on, 0.5 + 0.12 * (lensCursor.uv.y - 0.5) * lensCursor.on)
         uniforms.uVignette.value = (lookSet.has('split') ? 0.27 : 0.22) + 0.04 * dof
         const shown = Math.round(dof * 20) / 20
@@ -1013,6 +1024,7 @@ export function createSceneManager({ canvas, reducedMotion = false, lod = null, 
             carpetBuild.dispose()
             Object.values(parts).forEach((part) => part?.dispose?.())
             pipeline?.dispose()
+            hoverGone = true
             hoverFocus.dispose()
             disposeLoaders(loaders)
             renderer.dispose()

@@ -16,7 +16,7 @@ export const stops = [
         label: 'Hello',
         title: 'Jovian Lim',
         body: [
-            'Hello! I am a Software Engineer in Singapore.',
+            'Hello! I am a Senior Software Engineer in Singapore.',
             'This is my corner of the aerie: a small room up high, with the whole city lit up outside the window. I like a quiet spot where I can see everything.',
             'Come in and have a look around. I will walk you through the things I care about.',
         ],
@@ -27,7 +27,7 @@ export const stops = [
         id: 'desk',
         thing: 'The desk',
         label: 'Now',
-        title: 'Software Engineer, Aurrigo',
+        title: 'Senior Software Engineer, Aurrigo',
         body: [
             'I joined Aurrigo in February 2025. There I build the screens people use to run driverless vehicles at airports.',
             'I lean toward the frontend. I care most about screens that stay clear when someone relies on them.',
@@ -133,7 +133,7 @@ export const stops = [
 
 // The short facts from the home card, for the plain page without the scene.
 export const facts = [
-    ['Now', 'Software Engineer, Aurrigo'],
+    ['Now', 'Senior Software Engineer, Aurrigo'],
     ['Since', 'February 2025'],
     ['Teaching', 'Database Systems, Ngee Ann Poly'],
     ['Before', 'NTU, Computer Science'],

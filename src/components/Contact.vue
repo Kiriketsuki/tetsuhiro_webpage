@@ -58,5 +58,6 @@ const links = [
         href: 'https://www.linkedin.com/in/jovian-lim-tetsuhiro',
         external: true,
     },
+    { label: 'X', text: 'TetsuhiroDev', href: 'https://x.com/TetsuhiroDev', external: true },
 ]
 </script>

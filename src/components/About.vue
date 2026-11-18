@@ -64,6 +64,9 @@ const facts = [
                         >GitHub</a
                     >
                 </li>
+                <li>
+                    <a href="https://x.com/TetsuhiroDev" target="_blank" rel="noopener" class="action">X</a>
+                </li>
             </ul>
         </article>
     </div>

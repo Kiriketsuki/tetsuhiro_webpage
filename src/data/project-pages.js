@@ -71,6 +71,15 @@ const pages = {
         ],
         links: [{ label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/seeKi' }],
     },
+    clodeks: {
+        blurb: 'A bridge between Claude Code and the OpenAI Codex CLI, so each can work with the other.',
+        body: [
+            'clodeKs connects Claude Code and the OpenAI Codex CLI on one machine. A Claude Code Workflow can start Codex subagents, and each one runs a Codex turn and returns JSON that matches a schema.',
+            'A Claude mod adds a /codex command and tools to list Codex threads, and a panel that shows service status. A Claude session can also message a live Codex thread, and Codex can reply to Claude.',
+            'It needs Node.js 22 or newer and a logged-in Codex CLI. It is MIT licensed.',
+        ],
+        links: [{ label: 'View on GitHub', href: 'https://github.com/Kiriketsuki/clodeKs' }],
+    },
     'agenkic-orkistrator': {
         blurb: 'Coding agents as pixel-art wizards in a tower. A Go orchestrator runs them, and a Godot client draws them.',
         coverAlt: 'The architecture overview from the write-up of the Go orchestrator core.',

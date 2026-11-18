@@ -143,6 +143,7 @@ export const facts = [
 export const socials = [
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/jovian-lim-tetsuhiro' },
     { label: 'GitHub', href: 'https://github.com/Kiriketsuki' },
+    { label: 'X', href: 'https://x.com/TetsuhiroDev' },
 ]
 
 export const steam = { label: 'Steam profile', href: 'https://steamcommunity.com/id/Kiriketsuki/' }

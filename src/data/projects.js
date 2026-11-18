@@ -52,6 +52,14 @@ export const projects = [
         group: 'recent',
     },
     {
+        id: 'clodeks',
+        title: 'clodeKs',
+        stack: 'Node.js, Claude Code, Codex CLI',
+        year: '2026',
+        role: 'Solo, open source',
+        group: 'recent',
+    },
+    {
         id: 'agenkic-orkistrator',
         title: 'agenKic-orKistrator',
         stack: 'Go, gRPC, tmux, Godot 4',

@@ -24,7 +24,7 @@ export const projects = [
         title: 'Auto-Connect operator interfaces',
         stack: 'Flask, then FastAPI and uv, websockets',
         year: '2025 to 2026',
-        role: 'Software Engineer, Aurrigo',
+        role: 'Senior Software Engineer, Aurrigo',
         group: 'work',
     },
     {
